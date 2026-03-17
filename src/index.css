@@ -1,0 +1,146 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+
+.flexbox {
+    @apply flex justify-center items-center
+}
+.sidebar-icons{
+    @apply p-2 rounded-md hover:bg-gray-400/10
+}
+
+
+/* === Thing UI Theme Variables (Auto-Generated) === */
+/* Default Theme — Minimal Black/White/Primary */
+@theme inline {
+  --color-theme-background: var(--theme-background);
+  --color-theme-foreground: var(--theme-foreground);
+
+  --color-theme-card: var(--theme-card);
+  --color-theme-card-foreground: var(--theme-card-foreground);
+
+  --color-theme-popover: var(--theme-popover);
+  --color-theme-popover-foreground: var(--theme-popover-foreground);
+
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-primary-foreground: var(--theme-primary-foreground);
+
+  --color-theme-secondary: var(--theme-secondary);
+  --color-theme-secondary-foreground: var(--theme-secondary-foreground);
+
+  --color-theme-muted: var(--theme-muted);
+  --color-theme-muted-foreground: var(--theme-muted-foreground);
+
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-accent-foreground: var(--theme-accent-foreground);
+
+  --color-theme-destructive: var(--theme-destructive);
+
+  --color-theme-border: var(--theme-border);
+  --color-theme-input: var(--theme-input);
+  --color-theme-ring: var(--theme-ring);
+
+  --color-theme-sidebar: var(--theme-sidebar);
+  --color-theme-sidebar-foreground: var(--theme-sidebar-foreground);
+  --color-theme-sidebar-primary: var(--theme-sidebar-primary);
+  --color-theme-sidebar-primary-foreground: var(--theme-sidebar-primary-foreground);
+  --color-theme-sidebar-accent: var(--theme-sidebar-accent);
+  --color-theme-sidebar-accent-foreground: var(--theme-sidebar-accent-foreground);
+  --color-theme-sidebar-border: var(--theme-sidebar-border);
+  --color-sidebar-ring: var(--theme-sidebar-ring);
+
+  --radius-theme-sm: calc(var(--theme-radius) - 4px);
+  --radius-theme-md: calc(var(--theme-radius) - 2px);
+  --radius-theme-lg: var(--theme-radius);
+  --radius-theme-xl: calc(var(--theme-radius) + 4px);
+}
+:root {
+  --theme-radius: 0.625rem;
+
+  --theme-background: #ffffff;
+  --theme-foreground: #000000;
+
+  --theme-card: #ffffff;
+  --theme-card-foreground: #000000;
+
+  --theme-popover: #ffffff;
+  --theme-popover-foreground: #000000;
+
+  --theme-primary: #000000;
+  --theme-primary-foreground: #f8efef;
+
+  --theme-secondary: #f2f2f2;
+  --theme-secondary-foreground: #000000;
+
+  --theme-muted: #e6e6e6;
+  --theme-muted-foreground: #666666;
+
+  --theme-accent: #e6e6e6;
+  --theme-accent-foreground: #000000;
+
+  --theme-destructive: #ff0000;
+
+  --theme-border: #cccccc;
+  --theme-input: #e6e6e6;
+  --theme-ring: #0000ff;
+
+  /* Sidebar */
+  --theme-sidebar: #ffffff;
+  --theme-sidebar-foreground: #000000;
+  --theme-sidebar-primary: #0000ff;
+  --theme-sidebar-primary-foreground: #ffffff;
+  --theme-sidebar-accent: #f2f2f2;
+  --theme-sidebar-accent-foreground: #000000;
+  --theme-sidebar-border: #cccccc;
+  --theme-sidebar-ring: #0000ff;
+}
+.dark {
+  --theme-background: #000000;
+  --theme-foreground: #ffffff;
+
+  --theme-card: #111111;
+  --theme-card-foreground: #ffffff;
+
+  --theme-popover: #111111;
+  --theme-popover-foreground: #ffffff;
+
+  --theme-primary: #f8f8ff;
+  --theme-primary-foreground: #000000;
+
+  --theme-secondary: #1a1a1a;
+  --theme-secondary-foreground: #ffffff;
+
+  --theme-muted: #222222;
+  --theme-muted-foreground: #bbbbbb;
+
+  --theme-accent: #1a1a1a;
+  --theme-accent-foreground: #ffffff;
+
+  --theme-destructive: #ff4444;
+
+  --theme-border: #333333;
+  --theme-input: #333333;
+  --theme-ring: #0000ff;
+
+  /* Sidebar */
+  --theme-sidebar: #111111;
+  --theme-sidebar-foreground: #ffffff;
+  --theme-sidebar-primary: #0000ff;
+  --theme-sidebar-primary-foreground: #ffffff;
+  --theme-sidebar-accent: #1a1a1a;
+  --theme-sidebar-accent-foreground: #ffffff;
+  --theme-sidebar-border: #333333;
+  --theme-sidebar-ring: #0000ff;
+}
+
+@layer base {
+  * {
+    @apply border-theme-border outline-theme-ring/50;
+  }
+  body {
+    @apply bg-theme-background text-theme-foreground;
+  }
+}
+/* === End Thing UI Theme Variables === */
