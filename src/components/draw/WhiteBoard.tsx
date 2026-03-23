@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {useOutletContext} from "react-router";
 import {useCamera} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
@@ -9,13 +9,14 @@ import {useSpaceKey} from "../../hooks/UseSapcekey";
 import {useSelectArea} from "../../hooks/useSelectArea";
 import {useCircleDraw} from "../../hooks/useCircle";
 import {usePenDraw} from "../../hooks/usePen";
-import type {CanvasTool, Tools} from "../../types/types";
+import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useText} from "../../hooks/useText";
 
 type OutletContextType = {
     tool: Tools;
-    setTool: (tool: Tools) => void
+    setTool: (tool: Tools) => void,
+    setUndoRedo: React.Dispatch<React.SetStateAction<HistoryActions>>
 };
 
 
@@ -25,7 +26,8 @@ export default function Whiteboard () {
     const textRef = useRef<HTMLDivElement | null>(null)
     const justFinishedRef = useRef<boolean>(false);
 
-    const {tool: activeTool, setTool} = useOutletContext<OutletContextType>();
+    const {tool: activeTool, setTool, setUndoRedo} = useOutletContext<OutletContextType>();
+    
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     useCanvasResize(canvasRef);
@@ -41,12 +43,25 @@ export default function Whiteboard () {
         addCurrentShape,
         addShape,
         updateShape,
+        updateShapes,
         removeShapes,
         moveShapes,
         resizeShapes,
-        getShapeById
+        getShapeById,
+        undo,
+        redo,
     } = useShapes()
 
+    useEffect(() => {
+        setUndoRedo(prev => {
+            // 🧠 prevent infinite loop
+            if(prev?.undo === undo && prev?.redo === redo) {
+                return prev
+            }
+
+            return {undo, redo}
+        })
+    }, [undo, redo, setUndoRedo])
     // Circle tool hook
     const {
         draw: circleDraw,
@@ -80,7 +95,7 @@ export default function Whiteboard () {
         onPointerMove: updateSelect,
         onPointerUp: endSelect,
         resetSelection
-    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef);
+    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef, updateShapes);
 
 
 

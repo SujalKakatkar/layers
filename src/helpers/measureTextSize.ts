@@ -20,11 +20,7 @@ export function measureTextSize (text: string, fontSize = 20) {
         maxWidth = Math.max(maxWidth, metrics.width);
     });
 
-    const lineHeight = fontSize * 1.2;
-
-    console.log(maxWidth);
-    console.log(lines.length * lineHeight);
-    
+    const lineHeight = fontSize * 1.2;    
     
     return {
         width: maxWidth,

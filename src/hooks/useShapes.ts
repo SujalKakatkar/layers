@@ -1,57 +1,83 @@
-import {useState} from "react"
+import {useCallback, useState} from "react"
 import type {HandleType, Shape} from "../types/types"
 import {measureTextSize} from "../helpers/measureTextSize"
 
+type HistoryState = {
+    past: Shape[][];
+    present: Shape[];
+    future: Shape[][];
+}
+
 export function useShapes () {
-    const [shapes, setShapes] = useState<Shape[]>([])
+    const [history, setHistory] = useState<HistoryState>({
+        past: [],
+        present: [],
+        future: []
+    })
+
+    // const shapes = history.present;
 
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
 
+    function updateShapes (
+        updater: (prevShapes: Shape[]) => Shape[]
+    ) {
+        setHistory(prev => ({
+            past: [...prev.past, structuredClone(prev.present)],
+            present: updater(prev.present),
+            future: []
+        }))
+    }
+
     // Add shape
     function addShape (shape: Shape) {
-        setShapes(prev => [...prev, shape])
+        updateShapes(prevShapes => [...prevShapes, shape])
     }
     //current shapes
     function addCurrentShape (shape: Shape | null) {
         setCurrentShape(shape)
     }
 
-    // Update single shape
     function updateShape (id: string, updater: (shape: Shape) => Shape) {
-        setShapes(prev =>
-            prev.map(shape =>
+        updateShapes(prevShapes =>
+            prevShapes.map(shape =>
                 shape.id === id ? updater(shape) : shape
             )
         )
     }
+    function updateShapesWithoutHistory (
+        updater: (prevShapes: Shape[]) => Shape[]
+    ) {
+        setHistory(prev => ({
+            ...prev,
+            present: updater(prev.present)
+        }))
+    }
 
     // Remove shapes
     function removeShapes (ids: string[]) {
-        setShapes(prev =>
-            prev.filter(shape => !ids.includes(shape.id))
+        updateShapes(prevShapes =>
+            prevShapes.filter(shape => !ids.includes(shape.id))
         )
     }
 
     // Move shapes
-    function moveShapes (ids: string[], dx: number, dy: number) {
-        setShapes(prev =>
-            prev.map(shape => {
-                if(!ids.includes(shape.id)) return shape
+    function moveShapes (
+        ids: string[],
+        dx: number,
+        dy: number,
+    ) {
+
+        const updater = (prevShapes: Shape[]) =>
+            prevShapes.map(shape => {
+                if(!ids.includes(shape.id)) return shape;
 
                 switch(shape.type) {
                     case "rectangle":
-                        return {
-                            ...shape,
-                            x: shape.x + dx,
-                            y: shape.y + dy
-                        }
+                        return {...shape, x: shape.x + dx, y: shape.y + dy};
 
                     case "circle":
-                        return {
-                            ...shape,
-                            cx: shape.cx + dx,
-                            cy: shape.cy + dy
-                        }
+                        return {...shape, cx: shape.cx + dx, cy: shape.cy + dy};
 
                     case "stroke":
                         return {
@@ -60,24 +86,21 @@ export function useShapes () {
                                 x: p.x + dx,
                                 y: p.y + dy
                             }))
-                        }
+                        };
+
                     case "text":
-                        return {
-                            ...shape,
-                            x: shape.x + dx,
-                            y: shape.y + dy
-                        }
+                        return {...shape, x: shape.x + dx, y: shape.y + dy};
 
                     default:
-                        return shape
+                        return shape;
                 }
-            })
-        )
-    }
+            });
 
+            updateShapesWithoutHistory(updater);
+    }
     // Get shape
     function getShapeById (id: string) {
-        return shapes.find(shape => shape.id === id)
+        return history.present.find(shape => shape.id === id)
     }
 
     //resize shapes
@@ -88,8 +111,8 @@ export function useShapes () {
         dy: number,
         initialMap: Map<string, Shape>
     ) {
-        setShapes(prev =>
-            prev.map(shape => {
+        updateShapes(prevShapes =>
+            prevShapes.map(shape => {
                 if(!ids.includes(shape.id)) return shape;
 
                 switch(shape.type) {
@@ -315,18 +338,50 @@ export function useShapes () {
                         return shape;
                 }
             })
-        );
+        )
     }
 
+    //undo logic
+    const undo = useCallback(() => {
+        setHistory(prev => {
+            if(prev.past.length === 0) return prev;
+
+            const previous = prev.past[prev.past.length - 1];
+
+            return {
+                past: prev.past.slice(0, -1),
+                present: structuredClone(previous),
+                future: [structuredClone(prev.present), ...prev.future]
+            };
+        });
+    }, []);
+    //redo logic
+    const redo = useCallback(() => {
+        setHistory(prev => {
+            if(prev.future.length === 0) return prev;
+
+            const next = prev.future[0];
+
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: structuredClone(next),
+                future: prev.future.slice(1)
+            };
+        });
+    }, []);
+
     return {
-        shapes,
+        shapes: history.present,
         currentShape,
         addShape,
         addCurrentShape,
         updateShape,
+        updateShapes,
         removeShapes,
         moveShapes,
         resizeShapes,
-        getShapeById
+        getShapeById,
+        undo,
+        redo
     }
 }

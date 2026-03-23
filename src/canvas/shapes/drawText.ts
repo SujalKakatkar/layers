@@ -6,8 +6,6 @@ export function drawText (
     shape: Text
 ) {
 
-    console.log("final shape",shape);
-    
     ctx.font = `${shape.fontSize}px sans-serif`
     ctx.fillStyle = "white"
     ctx.textBaseline = "top"

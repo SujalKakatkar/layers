@@ -1,5 +1,5 @@
 import React, {useRef, useState} from "react";
-import type { HandleType, Point, SelectionArea, Shape} from "../types/types";
+import type {HandleType, Point, SelectionArea, Shape} from "../types/types";
 import {getWorldPoint} from "../canvas/transform";
 import {isRectInside} from "../helpers/Rectinside";
 import {isCircleInside} from "../helpers/circleinside";
@@ -14,18 +14,24 @@ export function useSelectArea (
     scale: number,
     offset: {x: number; y: number},
     shapes: Shape[],
-    moveShapes: (ids: string[], dx: number, dy: number) => void,
+    moveShapes: (
+        ids: string[],
+        dx: number,
+        dy: number,
+    ) => void,
     selectedIds: string[],
     onSelect: (ids: string[]) => void,
     resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>) => void,
     spacePressedRef: React.RefObject<boolean>,
-    justFinishedRef: React.RefObject<boolean>
+    justFinishedRef: React.RefObject<boolean>,
+    updateShapes: (updater: (prevShapes: Shape[]) => Shape[]) => void
 ) {
     const isDraggingRef = useRef(false);
 
     const startRef = useRef<Point | null>(null);
     const areaRef = useRef<SelectionArea>(null);
     const initialShapesRef = useRef<Map<string, Shape>>(new Map());
+    const hasSavedMoveHistoryRef = useRef(false);
 
     //movestartref is used to store the starting of the shape before moving it to another location
     const moveStartRef = useRef<Point | null>(null);
@@ -87,6 +93,8 @@ export function useSelectArea (
             }
 
             moveStartRef.current = p;
+
+            hasSavedMoveHistoryRef.current = false
 
             return
         }
@@ -171,6 +179,14 @@ export function useSelectArea (
             const dy = curr.y - prev.y;
 
             if(Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                hasMovedRef.current = true;
+
+                if(!hasSavedMoveHistoryRef.current) {
+                    updateShapes(prev => structuredClone(prev)); // 🔥 KEY FIX
+                    hasSavedMoveHistoryRef.current = true;
+                }
+
+
                 moveShapes(selectedIds, dx, dy);
                 moveStartRef.current = curr;
             }
@@ -200,9 +216,13 @@ export function useSelectArea (
     }
 
     function onPointerUp () {
+        const canvas = canvasRef.current;
+        if(!canvas) return;
 
         const wasDragging = hasMovedRef.current;
         const clickedSelected = clickedSelectedRef.current;
+
+
         //drag selection
         if(wasDragging && areaRef.current) {
             const area = areaRef.current;

@@ -3,6 +3,11 @@ export type Tools = "select" | "rectangle" | "circle" | "pen" | "text"
 
 export type HelperTools = "undo" | "redo";
 
+export type HistoryActions = {
+    undo: () => void
+    redo: () => void
+}
+
 
 export type CanvasTool = {
     onPointerDown?: (e: React.PointerEvent<HTMLCanvasElement>) => void;

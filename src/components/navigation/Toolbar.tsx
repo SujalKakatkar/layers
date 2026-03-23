@@ -5,6 +5,8 @@ import type {HelperTools, Tools} from "../../types/types"
 type ToolbarProps = {
   onToolChange: (tool: Tools) => void
   activeTool: Tools
+  onUndo: () => void,
+  onRedo: () => void
 }
 
 type baseItems = {
@@ -20,7 +22,7 @@ type ToolbarItems = (baseItems & {
   tool: Tools
 })[]
 
-function Toolbar ({onToolChange, activeTool}: ToolbarProps) {
+function Toolbar ({onToolChange, activeTool, onUndo, onRedo}: ToolbarProps) {
 
   const icons: ToolbarItems = [
     {
@@ -104,6 +106,7 @@ function Toolbar ({onToolChange, activeTool}: ToolbarProps) {
           return (
             <li key={tool.name}>
               <button
+                onClick={tool.name === "undo" ? onUndo : onRedo}
                 className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:bg-zinc-900"
               ><Icon
                   size={18}
