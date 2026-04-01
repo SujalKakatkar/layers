@@ -1,19 +1,33 @@
 import {BringToFront} from "lucide-react"
 import {Button} from "../ui/button"
+import {Link} from "react-router"
 
 function Navbar () {
     return (
-        <nav className='h-20 w-full z-20  sticky top-0 flexbox'>
-            <main className="w-2/3 lg:w-1/2 flex items-center rounded-md bg-theme-muted/50 backdrop-blur-md  px-4 h-15">
-                <section className="flex-1 flex gap-2 items-center">
-                    <BringToFront />
-                    <h1 className="font-bold text-xl">layer</h1>
+        <nav className="sticky top-0 z-50 flex justify-center px-4 py-3">
+            <main className="w-full max-w-6xl flex items-center justify-between rounded-xbg-white/60 dark:bg-zinc-900/60 backdrop-blur-lg border border-white/20 shadow-sm px-5 h-16">
+
+                {/* Logo */}
+                <section className="flex items-center gap-2">
+                    <BringToFront className="h-5 w-5 text-primary" />
+                    <h1 className="font-semibold text-lg tracking-tight">
+                        Layer
+                    </h1>
                 </section>
-                <section className="space-x-5 flex">
-                    <Button variant={"clear"}>Log In</Button>
-                    <Button className="hidden lg:block">Try Layer
+
+                {/* Actions */}
+                <section className="flex items-center gap-3">
+                    <Link to={'/auth/sign-in'}>
+                        <Button variant="ghost" className="hidden sm:inline-flex">
+                            Log In
+                        </Button>
+                    </Link>
+                    <Button className="rounded-lg px-5 font-medium shadow-sm">
+                        Try Layer
                     </Button>
+
                 </section>
+
             </main>
         </nav>
     )

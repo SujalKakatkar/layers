@@ -7,6 +7,8 @@ import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import Dashboard from "../pages/Dashboard";
 import Blanklayout from "../layouts/Blanklayout";
+import AuthLayout from "@/layouts/AuthLayout";
+import ProtectedRoute from "@/providers/ProtectedRoute";
 
 export const routes = createBrowserRouter([
     {
@@ -16,20 +18,14 @@ export const routes = createBrowserRouter([
                 path: '/',
                 element: <Home />
             },
-            {
-                path: '/login',
-                element: <Login />
-            },
-            {
-                path: '/signup',
-                element: <Signup />
-            },
-
-
         ]
     },
     {
-        element: <Blanklayout />,
+        element: (
+            <ProtectedRoute>
+                <Blanklayout />
+            </ProtectedRoute>
+        ),
         children: [
             {
                 path: '/dashboard',
@@ -38,12 +34,30 @@ export const routes = createBrowserRouter([
         ]
     },
     {
-        element: <Canvaslayout />,
+        element: (
+            <ProtectedRoute>
+                <Canvaslayout />
+            </ProtectedRoute>
+        ),
         children: [
             {
                 path: '/canvas/:id',
                 element: <Canvas />
             }
         ]
-    }
+    },
+    {
+        element: <AuthLayout />,
+        children: [
+            {
+                path: '/auth/sign-in',
+                element: <Login />
+            },
+            {
+                path: '/auth/sign-up',
+                element: <Signup />
+            },
+        ]
+    },
+
 ])

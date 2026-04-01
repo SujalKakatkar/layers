@@ -1,14 +1,14 @@
-import {ThemeProvider} from "./components/ThemeProvider";
+
 import {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
 import './index.css'
-import {RouterProvider} from 'react-router'
-import {routes} from './routes/route.tsx'
+import {initAuthListener} from "./lib/initAuth.ts";
+import Root from "./Root.tsx";
+
+initAuthListener()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <RouterProvider router={routes} />
-    </ThemeProvider>
+    <Root />
   </StrictMode>,
 )

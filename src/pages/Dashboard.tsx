@@ -2,7 +2,8 @@ import {LogOut, Plus} from "lucide-react"
 import {useEffect, useState} from "react"
 import {useNavigate} from "react-router"
 import {Button} from "../components/ui/button"
-import {Separator} from "../components/ui/separator"
+import {useAuthStore} from "@/store/useAuthStore"
+// import {Separator} from "../components/ui/separator"
 
 type Canvas = {
   id: string
@@ -11,9 +12,16 @@ type Canvas = {
 }
 
 function Dashboard () {
-
+  const Logout = useAuthStore((s) => s.logout)
+  const user = useAuthStore((s)=>s.user)
   const [canvases, setCanvases] = useState<Canvas[]>([])
   const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await Logout()
+    console.log(user);
+    
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem("canvases")
@@ -49,13 +57,13 @@ function Dashboard () {
 
           </div>
           <div>
-            <Button size={"icon"} variant={"bordered"}>
+            <Button onClick={handleLogout} size={"icon"} variant={"outline"}>
               <LogOut />
             </Button>
           </div>
         </section>
 
-        <Separator />
+        {/* <Separator /> */}
 
         <section className="py-3">
           <button
