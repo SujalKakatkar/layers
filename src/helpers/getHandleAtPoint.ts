@@ -4,38 +4,42 @@ import type {HandleType, Point} from "../types/types";
 
 export function getHandleAtPoint (
     p: Point,
-    bounds: {x: number; y: number; width: number; height: number}
+    bounds: {x: number; y: number; width: number; height: number},
+    pad = 10
 ): HandleType | null {
     const size = 8;
     const half = size / 2;
 
-    const centerX = bounds.x + bounds.width / 2;
-    const centerY = bounds.y + bounds.height / 2;
+    // Use the same padded box that drawScene draws
+    const bx = bounds.x - pad;
+    const by = bounds.y - pad;
+    const bw = bounds.width + pad * 2;
+    const bh = bounds.height + pad * 2;
 
-    const handles: Record<HandleType, {x: number; y: number}> = {
-        nw: {x: bounds.x, y: bounds.y},
-        ne: {x: bounds.x + bounds.width, y: bounds.y},
-        sw: {x: bounds.x, y: bounds.y + bounds.height},
-        se: {x: bounds.x + bounds.width, y: bounds.y + bounds.height},
+    const cx = bx + bw / 2;
+    const cy = by + bh / 2;
 
-        n: {x: centerX, y: bounds.y},
-        s: {x: centerX, y: bounds.y + bounds.height},
-        w: {x: bounds.x, y: centerY},
-        e: {x: bounds.x + bounds.width, y: centerY},
+    const handles: Partial<Record<HandleType, {x: number; y: number}>> = {
+        nw: {x: bx,      y: by},
+        ne: {x: bx + bw, y: by},
+        se: {x: bx + bw, y: by + bh},
+        sw: {x: bx,      y: by + bh},
     };
 
     for(const key in handles) {
-        const h = handles[key as HandleType];
+        const handlePos = handles[key as HandleType];
+        
+        if (!handlePos) continue;
 
         if(
-            p.x >= h.x - half &&
-            p.x <= h.x + half &&
-            p.y >= h.y - half &&
-            p.y <= h.y + half
+            p.x >= handlePos.x - half &&
+            p.x <= handlePos.x + half &&
+            p.y >= handlePos.y - half &&
+            p.y <= handlePos.y + half
         ) {
             return key as HandleType;
         }
     }
 
     return null;
-}
+}

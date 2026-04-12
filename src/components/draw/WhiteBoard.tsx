@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useOutletContext} from "react-router";
 import {useCamera} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
@@ -12,6 +12,7 @@ import {usePenDraw} from "../../hooks/usePen";
 import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useText} from "../../hooks/useText";
+import {useKeyboard} from "../../hooks/useKeyboard";
 
 type OutletContextType = {
     tool: Tools;
@@ -96,6 +97,21 @@ export default function Whiteboard () {
         onPointerUp: endSelect,
         resetSelection
     } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef, updateShapes);
+
+    // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
+    const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+    useKeyboard({
+        selectedIds,
+        isEditingText: editingText !== null,
+        removeShapes,
+        undo,
+        redo,
+        moveShapes,
+        updateShapes,
+        clearSelection,
+        finishText,
+    });
 
 
 

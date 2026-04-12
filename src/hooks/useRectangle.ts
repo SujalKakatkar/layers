@@ -46,9 +46,20 @@ export function useRectangleDraw (
     function endDraw () {
         if(!currentShape || currentShape.type !== "rectangle") return
 
-        addShape(currentShape)
+        let finalShape = currentShape;
+        
+        // Feature 2: Click to Create Default Shape
+        if(Math.abs(currentShape.width) < 5 && Math.abs(currentShape.height) < 5) {
+            finalShape = {
+                ...currentShape,
+                width: 120,
+                height: 80
+            };
+        }
 
-        const created = currentShape;
+        addShape(finalShape)
+
+        const created = finalShape;
 
         setCurrentShape(null)
         rectRef.current = null

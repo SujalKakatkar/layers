@@ -1,36 +1,38 @@
+import {Button} from "@/components/ui/button"
 import {ArrowRight} from "lucide-react"
-import {Button} from "../components/ui/button"
 import {useNavigate} from "react-router"
 
-function Home () {
+export default function Home () {
   const navigate = useNavigate()
+
   return (
-    <div className=' min-h-screen flexbox'>
-      <main className=" flex flex-col items-center justify-center text-center px-6">
-        <h2 className="text-5xl md:text-6xl font-extrabold leading-tight max-w-4xl">
-          Collaborate. Create. Visualize.
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <main className="flex flex-col items-center text-center max-w-3xl">
+
+        {/* Headline */}
+        <h2 className="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
+          Think visually.
         </h2>
-        <p className="mt-6 text-lg md:text-xl text-slate-300 max-w-2xl">
-          A powerful online whiteboard to brainstorm ideas, design systems,
-          and build your thoughts visually in real time.
+
+        {/* Subtext */}
+        <p className="mt-6 text-lg text-zinc-400 max-w-xl">
+          A minimal whiteboard tool to organize ideas and bring clarity to your thoughts.
         </p>
 
-        <div className="mt-10 flex flex-col sm:flex-row gap-4">
-          <Button onClick={() => navigate('/dashboard')} className=" flex items-center gap-1">
+        {/* CTA */}
+        <div className="mt-10">
+          <Button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 px-6 py-5 text-base font-semibold 
+            bg-white text-black hover:bg-zinc-200 
+            transition-all duration-200 rounded-lg shadow-sm hover:shadow-md"
+          >
             Try Layer
-            <ArrowRight size={20} />
+            <ArrowRight size={18} />
           </Button>
         </div>
 
-        {/* Preview Card */}
-        {/* <div className="mt-16 w-full max-w-5xl bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6">
-          <div className="h-64 md:h-80 rounded-xl bg-gradient-to-br from-indigo-500/30 to-pink-500/30 flex items-center justify-center text-slate-200 text-xl">
-            <Whiteboard/>
-          </div>
-        </div> */}
       </main>
     </div>
   )
 }
-
-export default Home

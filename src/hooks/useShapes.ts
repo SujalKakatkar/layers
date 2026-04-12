@@ -1,4 +1,4 @@
-import {useCallback, useState} from "react"
+import {useCallback, useState, useEffect} from "react"
 import type {HandleType, Shape} from "../types/types"
 import {measureTextSize} from "../helpers/measureTextSize"
 
@@ -9,55 +9,99 @@ type HistoryState = {
 }
 
 export function useShapes () {
-    const [history, setHistory] = useState<HistoryState>({
-        past: [],
-        present: [],
-        future: []
-    })
+    const [history, setHistory] = useState<HistoryState>(() => {
+        try {
+            const saved = localStorage.getItem("layer-canvas");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                
+                // Load updated complete structure natively handling properties mapping seamlessly 
+                if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                    return {
+                        past: parsed.history || [],
+                        present: parsed.elements || [],
+                        future: parsed.future || []
+                    };
+                }
+                
+                // Fallback catch seamlessly capturing the legacy structure
+                if (Array.isArray(parsed)) {
+                    return {
+                        past: [],
+                        present: parsed,
+                        future: []
+                    };
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load shapes from localStorage", error);
+        }
+
+        return {
+            past: [],
+            present: [],
+            future: []
+        };
+    });
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            const fullState = {
+                elements: history.present,
+                history: history.past,
+                future: history.future
+            };
+            localStorage.setItem("layer-canvas", JSON.stringify(fullState));
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [history]);
 
     // const shapes = history.present;
 
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
 
     function updateShapes (
-        updater: (prevShapes: Shape[]) => Shape[]
+        updater: (prevShapes: Shape[]) => Shape[],
+        options?: { skipHistory?: boolean }
     ) {
-        setHistory(prev => ({
-            past: [...prev.past, structuredClone(prev.present)],
-            present: updater(prev.present),
-            future: []
-        }))
+        setHistory(prev => {
+            const nextPresent = updater(prev.present);
+            if (options?.skipHistory) {
+                return {
+                    ...prev,
+                    present: nextPresent
+                };
+            }
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: nextPresent,
+                future: []
+            };
+        });
     }
 
     // Add shape
-    function addShape (shape: Shape) {
-        updateShapes(prevShapes => [...prevShapes, shape])
+    function addShape (shape: Shape, options?: { skipHistory?: boolean }) {
+        updateShapes(prevShapes => [...prevShapes, shape], options)
     }
     //current shapes
     function addCurrentShape (shape: Shape | null) {
         setCurrentShape(shape)
     }
 
-    function updateShape (id: string, updater: (shape: Shape) => Shape) {
+    function updateShape (id: string, updater: (shape: Shape) => Shape, options?: { skipHistory?: boolean }) {
         updateShapes(prevShapes =>
             prevShapes.map(shape =>
                 shape.id === id ? updater(shape) : shape
-            )
+            ), options
         )
-    }
-    function updateShapesWithoutHistory (
-        updater: (prevShapes: Shape[]) => Shape[]
-    ) {
-        setHistory(prev => ({
-            ...prev,
-            present: updater(prev.present)
-        }))
     }
 
     // Remove shapes
-    function removeShapes (ids: string[]) {
+    function removeShapes (ids: string[], options?: { skipHistory?: boolean }) {
         updateShapes(prevShapes =>
-            prevShapes.filter(shape => !ids.includes(shape.id))
+            prevShapes.filter(shape => !ids.includes(shape.id)), options
         )
     }
 
@@ -66,6 +110,7 @@ export function useShapes () {
         ids: string[],
         dx: number,
         dy: number,
+        options?: { skipHistory?: boolean }
     ) {
 
         const updater = (prevShapes: Shape[]) =>
@@ -96,7 +141,7 @@ export function useShapes () {
                 }
             });
 
-            updateShapesWithoutHistory(updater);
+            updateShapes(updater, options);
     }
     // Get shape
     function getShapeById (id: string) {
@@ -109,7 +154,8 @@ export function useShapes () {
         handle: HandleType,
         dx: number,
         dy: number,
-        initialMap: Map<string, Shape>
+        initialMap: Map<string, Shape>,
+        options?: { skipHistory?: boolean }
     ) {
         updateShapes(prevShapes =>
             prevShapes.map(shape => {
@@ -337,7 +383,7 @@ export function useShapes () {
                     default:
                         return shape;
                 }
-            })
+            }), options
         )
     }
 

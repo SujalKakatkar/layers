@@ -42,11 +42,21 @@ export function useCircleDraw (
     }
 
     function endDraw () {
-        if(!currentShape) return;
+        if(!currentShape || currentShape.type !== "circle") return;
+
+        let finalShape = currentShape;
+
+        // Feature 2: Click to Create Default Shape
+        if(currentShape.r < 5) {
+            finalShape = {
+                ...currentShape,
+                r: 50
+            };
+        }
 
         //add the circle into global shape array
-        addShape(currentShape)
-        const created = currentShape
+        addShape(finalShape)
+        const created = finalShape
 
         setCurrentShape(null);
         isDrawingRef.current = false;

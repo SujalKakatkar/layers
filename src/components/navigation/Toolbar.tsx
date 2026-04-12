@@ -76,38 +76,43 @@ function Toolbar ({onToolChange, activeTool, onUndo, onRedo}: ToolbarProps) {
   ]
 
   return (
-    <div className="w-[25rem] h-12 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-xl flex justify-center gap-5 items-center shadow-lg">
-      <ul className="text-white p-1 flex  gap-5">
+    <div className="w-fit px-3 h-12 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-xl flex justify-center gap-2 items-center shadow-lg">
+      <ul className="text-white p-1 flex gap-2">
         {icons.map((item) => {
-          const Icon = item.icon
-          const isActive = activeTool === item.tool
+            const Icon = item.icon
+            const isActive = activeTool === item.tool
 
-          return (
-            <li key={item.name}>
-              <button
-                onClick={() => onToolChange(item.tool)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition
-          ${isActive ? "bg-theme-muted text-white" : "text-zinc-300 hover:bg-zinc-900"}`}
-              >
-                <Icon
-                  size={18}
-                  strokeWidth={2}
-                  fill={isActive ? "currentColor" : "none"}
-                />
-              </button>
-            </li>
-          )
-        })}
-
+            return (
+              <li key={item.name}>
+                <button
+                  onClick={() => onToolChange(item.tool)}
+                  className={`w-9 h-9 flex items-center justify-center rounded-lg transition
+            ${isActive ? "bg-theme-muted text-white" : "text-zinc-300 hover:bg-zinc-800"}`}
+                 title={item.name}
+                >
+                  <Icon
+                    size={18}
+                    strokeWidth={2}
+                    fill={isActive ? "currentColor" : "none"}
+                  />
+                </button>
+              </li>
+            )
+          })}
       </ul>
-      <ul className="text-white p-1 flex  gap-5">
+
+      {/* Separator */}
+      <div className="w-px h-6 bg-zinc-700 mx-1" />
+
+      <ul className="text-zinc-400 p-1 flex gap-2">
         {helper.map((tool) => {
           const Icon = tool.icon
           return (
             <li key={tool.name}>
               <button
                 onClick={tool.name === "undo" ? onUndo : onRedo}
-                className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:bg-zinc-900"
+                className="w-9 h-9 flex items-center justify-center rounded-lg transition hover:bg-zinc-800 hover:text-white"
+                title={tool.name}
               ><Icon
                   size={18}
                   strokeWidth={2}

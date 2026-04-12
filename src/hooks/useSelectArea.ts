@@ -18,10 +18,11 @@ export function useSelectArea (
         ids: string[],
         dx: number,
         dy: number,
+        options?: { skipHistory?: boolean }
     ) => void,
     selectedIds: string[],
     onSelect: (ids: string[]) => void,
-    resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>) => void,
+    resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>, options?: { skipHistory?: boolean }) => void,
     spacePressedRef: React.RefObject<boolean>,
     justFinishedRef: React.RefObject<boolean>,
     updateShapes: (updater: (prevShapes: Shape[]) => Shape[]) => void
@@ -168,7 +169,13 @@ export function useSelectArea (
             const dx = curr.x - start.x;
             const dy = curr.y - start.y;
 
-            resizeShapes(selectedIds, resizeHandleRef.current, dx, dy, initialShapesRef.current);
+            // 🔥 Snap current past history before resize so undo reverts accurately!
+            if (!hasSavedMoveHistoryRef.current) {
+                updateShapes(prev => structuredClone(prev)); // Pushes an exact copy as current block
+                hasSavedMoveHistoryRef.current = true;
+            }
+
+            resizeShapes(selectedIds, resizeHandleRef.current, dx, dy, initialShapesRef.current, { skipHistory: true });
 
             return;
         }
@@ -187,7 +194,7 @@ export function useSelectArea (
                 }
 
 
-                moveShapes(selectedIds, dx, dy);
+                moveShapes(selectedIds, dx, dy, { skipHistory: true });
                 moveStartRef.current = curr;
             }
 

@@ -29,14 +29,16 @@ export function useText (
             return
         }
 
+        const {width, height} = measureTextSize("Text")
+
         setEditingText({
             id: crypto.randomUUID(),
             x: point.x,
             y: point.y,
-            text: "",
+            text: "Text",
             fontSize: 20,
-            width: 40,
-            height:24,
+            width,
+            height,
             isNew: true
         })
     }

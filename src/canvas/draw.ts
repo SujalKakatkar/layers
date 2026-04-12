@@ -80,19 +80,41 @@ export function drawScene (
     }
 
     if(bounds) {
-
         ctx.save();
 
-        ctx.strokeStyle = "#3b82f6";
         const pad = 10;
-        ctx.lineWidth = 1 / scale;
+        const bx = bounds.x - pad;
+        const by = bounds.y - pad;
+        const bw = bounds.width + pad * 2;
+        const bh = bounds.height + pad * 2;
 
-        ctx.strokeRect(
-            bounds.x - pad,
-            bounds.y - pad,
-            bounds.width + pad * 2,
-            bounds.height + pad * 2
-        );
+        // ── Bounding box stroke ────────────────────────────────────────
+        ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 1 / scale;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        // ── Resize handles ─────────────────────────────────────────────
+        // Handle size stays at 8 CSS px regardless of zoom
+        const hSize = 8 / scale;
+        const half  = hSize / 2;
+
+        const cx = bx + bw / 2;
+        const cy = by + bh / 2;
+
+        const handlePositions = [
+            {x: bx,       y: by},        // nw
+            {x: bx + bw,  y: by},        // ne
+            {x: bx + bw,  y: by + bh},   // se
+            {x: bx,       y: by + bh},   // sw
+        ];
+
+        handlePositions.forEach(({x, y}) => {
+            ctx.fillStyle   = "#ffffff";
+            ctx.strokeStyle = "#3b82f6";
+            ctx.lineWidth   = 1.5 / scale;
+            ctx.fillRect  (x - half, y - half, hSize, hSize);
+            ctx.strokeRect(x - half, y - half, hSize, hSize);
+        });
 
         ctx.restore();
     }
