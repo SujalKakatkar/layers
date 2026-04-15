@@ -8,32 +8,22 @@ type HistoryState = {
     future: Shape[][];
 }
 
-export function useShapes () {
+export function useShapes (canvasId: string = "default") {
     const [history, setHistory] = useState<HistoryState>(() => {
         try {
-            const saved = localStorage.getItem("layer-canvas");
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                
-                // Load updated complete structure natively handling properties mapping seamlessly 
-                if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            const savedAll = localStorage.getItem("layer-canvases");
+            if(savedAll) {
+                const parsedAll = JSON.parse(savedAll);
+                if(parsedAll && typeof parsedAll === "object" && parsedAll[canvasId]) {
+                    const parsed = parsedAll[canvasId];
                     return {
                         past: parsed.history || [],
                         present: parsed.elements || [],
                         future: parsed.future || []
                     };
                 }
-                
-                // Fallback catch seamlessly capturing the legacy structure
-                if (Array.isArray(parsed)) {
-                    return {
-                        past: [],
-                        present: parsed,
-                        future: []
-                    };
-                }
             }
-        } catch (error) {
+        } catch(error) {
             console.error("Failed to load shapes from localStorage", error);
         }
 
@@ -45,29 +35,60 @@ export function useShapes () {
     });
 
     useEffect(() => {
+        try {
+            const savedAll = localStorage.getItem("layer-canvases");
+            if(savedAll) {
+                const parsedAll = JSON.parse(savedAll);
+                if(parsedAll && typeof parsedAll === "object" && parsedAll[canvasId]) {
+                    const parsed = parsedAll[canvasId];
+                    setHistory({
+                        past: parsed.history || [],
+                        present: parsed.elements || [],
+                        future: parsed.future || []
+                    });
+                    return;
+                }
+            }
+        } catch(error) {
+            console.error("Failed to load shapes on canvas change", error);
+        }
+
+        setHistory({past: [], present: [], future: []});
+    }, [canvasId]);
+
+    useEffect(() => {
         const timeoutId = setTimeout(() => {
             const fullState = {
                 elements: history.present,
                 history: history.past,
                 future: history.future
             };
-            localStorage.setItem("layer-canvas", JSON.stringify(fullState));
+
+            try {
+                const savedAll = localStorage.getItem("layer-canvases");
+                const parsedAll = savedAll ? JSON.parse(savedAll) : {};
+                parsedAll[canvasId] = fullState;
+                localStorage.setItem("layer-canvases", JSON.stringify(parsedAll));
+            } catch(err) {
+                console.error("Failed to sync persistence", err);
+            }
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [history]);
+    }, [history, canvasId]);
 
     // const shapes = history.present;
 
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
+    const [clipboard, setClipboard] = useState<Shape[]>([])
 
     function updateShapes (
         updater: (prevShapes: Shape[]) => Shape[],
-        options?: { skipHistory?: boolean }
+        options?: {skipHistory?: boolean}
     ) {
         setHistory(prev => {
             const nextPresent = updater(prev.present);
-            if (options?.skipHistory) {
+            if(options?.skipHistory) {
                 return {
                     ...prev,
                     present: nextPresent
@@ -82,7 +103,7 @@ export function useShapes () {
     }
 
     // Add shape
-    function addShape (shape: Shape, options?: { skipHistory?: boolean }) {
+    function addShape (shape: Shape, options?: {skipHistory?: boolean}) {
         updateShapes(prevShapes => [...prevShapes, shape], options)
     }
     //current shapes
@@ -90,7 +111,7 @@ export function useShapes () {
         setCurrentShape(shape)
     }
 
-    function updateShape (id: string, updater: (shape: Shape) => Shape, options?: { skipHistory?: boolean }) {
+    function updateShape (id: string, updater: (shape: Shape) => Shape, options?: {skipHistory?: boolean}) {
         updateShapes(prevShapes =>
             prevShapes.map(shape =>
                 shape.id === id ? updater(shape) : shape
@@ -99,7 +120,7 @@ export function useShapes () {
     }
 
     // Remove shapes
-    function removeShapes (ids: string[], options?: { skipHistory?: boolean }) {
+    function removeShapes (ids: string[], options?: {skipHistory?: boolean}) {
         updateShapes(prevShapes =>
             prevShapes.filter(shape => !ids.includes(shape.id)), options
         )
@@ -110,7 +131,7 @@ export function useShapes () {
         ids: string[],
         dx: number,
         dy: number,
-        options?: { skipHistory?: boolean }
+        options?: {skipHistory?: boolean}
     ) {
 
         const updater = (prevShapes: Shape[]) =>
@@ -141,8 +162,91 @@ export function useShapes () {
                 }
             });
 
-            updateShapes(updater, options);
+        updateShapes(updater, options);
     }
+
+    // Copy shapes
+    function copyShapes(ids: string[]) {
+        const selected = history.present.filter(s => ids.includes(s.id));
+        setClipboard(structuredClone(selected));
+    }
+
+    // Paste shapes
+    function pasteShapes() {
+        if (clipboard.length === 0) return [];
+        
+        const offset = 20;
+        const pasted: Shape[] = clipboard.map(shape => {
+            const newId = crypto.randomUUID();
+            switch(shape.type) {
+                case "rectangle":
+                case "text":
+                    return { ...shape, id: newId, x: shape.x + offset, y: shape.y + offset };
+                case "circle":
+                    return { ...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset };
+                case "stroke":
+                    return {
+                        ...shape,
+                        id: newId,
+                        points: shape.points.map(p => ({ x: p.x + offset, y: p.y + offset }))
+                    };
+                default:
+                    return shape;
+            }
+        });
+
+        setClipboard(pasted); // offset continues on multiple pastes
+        updateShapes(prevShapes => [...prevShapes, ...pasted]);
+        return pasted.map(s => s.id);
+    }
+
+    // Duplicate shapes
+    function duplicateShapes(ids: string[], options?: { offset?: number; skipHistory?: boolean }) {
+        const toDuplicate = history.present.filter(s => ids.includes(s.id));
+        if (toDuplicate.length === 0) return [];
+
+        const offset = options?.offset ?? 20;
+        const duplicated: Shape[] = toDuplicate.map(shape => {
+            const newId = crypto.randomUUID();
+            switch(shape.type) {
+                case "rectangle":
+                case "text":
+                    return { ...shape, id: newId, x: shape.x + offset, y: shape.y + offset };
+                case "circle":
+                    return { ...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset };
+                case "stroke":
+                    return {
+                        ...shape,
+                        id: newId,
+                        points: shape.points.map(p => ({ x: p.x + offset, y: p.y + offset }))
+                    };
+                default:
+                    return shape;
+            }
+        });
+
+        updateShapes(prevShapes => [...prevShapes, ...duplicated], { skipHistory: options?.skipHistory });
+        return duplicated.map(s => s.id);
+    }
+
+    // Bring to front
+    function bringToFront(ids: string[]) {
+        updateShapes(prevShapes => {
+            const affected = prevShapes.filter(s => ids.includes(s.id));
+            const unaffected = prevShapes.filter(s => !ids.includes(s.id));
+            return [...unaffected, ...affected];
+        });
+    }
+
+    // Send to back
+    function sendToBack(ids: string[]) {
+        updateShapes(prevShapes => {
+            const affected = prevShapes.filter(s => ids.includes(s.id));
+            const unaffected = prevShapes.filter(s => !ids.includes(s.id));
+            return [...affected, ...unaffected];
+        });
+    }
+
     // Get shape
     function getShapeById (id: string) {
         return history.present.find(shape => shape.id === id)
@@ -155,7 +259,7 @@ export function useShapes () {
         dx: number,
         dy: number,
         initialMap: Map<string, Shape>,
-        options?: { skipHistory?: boolean }
+        options?: {skipHistory?: boolean}
     ) {
         updateShapes(prevShapes =>
             prevShapes.map(shape => {
@@ -419,6 +523,7 @@ export function useShapes () {
     return {
         shapes: history.present,
         currentShape,
+        clipboard,
         addShape,
         addCurrentShape,
         updateShape,
@@ -427,6 +532,11 @@ export function useShapes () {
         moveShapes,
         resizeShapes,
         getShapeById,
+        copyShapes,
+        pasteShapes,
+        duplicateShapes,
+        bringToFront,
+        sendToBack,
         undo,
         redo
     }

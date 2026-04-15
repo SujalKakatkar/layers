@@ -1,13 +1,13 @@
-import { useEffect } from "react";
-import type { Shape } from "../types/types";
+import {useEffect} from "react";
+import type {Shape, Tools} from "../types/types";
 
 /**
  * Returns true when focus is inside a text-editing target
  * (input, textarea, or contenteditable element).
  * Mirrors the guard already used in useSpaceKey.
  */
-function isTypingTarget(target: EventTarget | null): boolean {
-    if (!(target instanceof HTMLElement)) return false;
+function isTypingTarget (target: EventTarget | null): boolean {
+    if(!(target instanceof HTMLElement)) return false;
     return (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
@@ -30,7 +30,7 @@ type UseKeyboardOptions = {
      * Move shapes by (dx, dy) WITHOUT writing to history.
      * Used for the incremental per-keydown step.
      */
-    moveShapes: (ids: string[], dx: number, dy: number, options?: { skipHistory?: boolean }) => void;
+    moveShapes: (ids: string[], dx: number, dy: number, options?: {skipHistory?: boolean}) => void;
     /**
      * Write a snapshot to history BEFORE moving, so the
      * arrow-key move sequence is undoable as a single step.
@@ -41,12 +41,24 @@ type UseKeyboardOptions = {
     clearSelection: () => void;
     /** Finish text editing if active */
     finishText: () => string | undefined;
+    /** Copy selected shapes */
+    copyShapes?: (ids: string[]) => void;
+    /** Paste copied shapes */
+    pasteShapes?: () => string[];
+    /** Duplicate selected shapes */
+    duplicateShapes?: (ids: string[]) => string[];
+    /** Select all shapes on canvas */
+    selectAll?: () => void;
+    /** Select specific shapes */
+    setSelectedIds?: (ids: string[]) => void;
+    /** Update active tool */
+    setTool?: (tool: Tools) => void;
 };
 
 /** px moved per arrow-key press (in world/canvas coordinates) */
 const ARROW_STEP = 4;
 
-export function useKeyboard({
+export function useKeyboard ({
     selectedIds,
     isEditingText,
     removeShapes,
@@ -56,40 +68,46 @@ export function useKeyboard({
     updateShapes,
     clearSelection,
     finishText,
+    copyShapes,
+    pasteShapes,
+    duplicateShapes,
+    selectAll,
+    setSelectedIds,
+    setTool,
 }: UseKeyboardOptions) {
     useEffect(() => {
         // Track whether we have already saved the pre-move history snapshot
         // for the current arrow-key "session".  Reset on keyup of any arrow key.
         let savedArrowHistory = false;
 
-        function handleKeyDown(e: KeyboardEvent) {
+        function handleKeyDown (e: KeyboardEvent) {
             // Never steal events from text inputs / contenteditable areas
-            if (isTypingTarget(e.target)) return;
+            if(isTypingTarget(e.target)) return;
 
             const ctrl = e.ctrlKey || e.metaKey;
 
             // ── Undo / Redo ──────────────────────────────────────────────
-            if (ctrl && e.shiftKey && e.code === "KeyZ") {
+            if(ctrl && e.shiftKey && e.code === "KeyZ") {
                 e.preventDefault();
                 redo();
                 return;
             }
 
-            if (ctrl && e.code === "KeyZ") {
+            if(ctrl && e.code === "KeyZ") {
                 e.preventDefault();
                 undo();
                 return;
             }
 
             // Ctrl+Y is an alternative redo shortcut (Windows convention)
-            if (ctrl && e.code === "KeyY") {
+            if(ctrl && e.code === "KeyY") {
                 e.preventDefault();
                 redo();
                 return;
             }
 
             // ── Delete / Backspace ───────────────────────────────────────
-            if (
+            if(
                 (e.code === "Delete" || e.code === "Backspace") &&
                 selectedIds.length > 0 &&
                 !isEditingText
@@ -101,8 +119,8 @@ export function useKeyboard({
             }
 
             // ── Escape ───────────────────────────────────────────────────
-            if (e.code === "Escape") {
-                if (isEditingText) {
+            if(e.code === "Escape") {
+                if(isEditingText) {
                     finishText();
                 } else {
                     clearSelection();
@@ -110,13 +128,62 @@ export function useKeyboard({
                 return;
             }
 
+            // ── Common Actions: Copy, Paste, Select All, Duplicate ──────
+            if(ctrl && e.code === "KeyC" && selectedIds.length > 0 && !isEditingText) {
+                e.preventDefault();
+                copyShapes?.(selectedIds);
+                return;
+            }
+
+            if(ctrl && e.code === "KeyV" && !isEditingText) {
+                e.preventDefault();
+                const newIds = pasteShapes?.();
+                if(newIds && newIds.length > 0) {
+                    setSelectedIds?.(newIds);
+                }
+                return;
+            }
+
+            if(ctrl && e.code === "KeyA" && !isEditingText) {
+                e.preventDefault();
+                selectAll?.();
+                return;
+            }
+
+            if(ctrl && e.code === "KeyD" && selectedIds.length > 0 && !isEditingText) {
+                e.preventDefault();
+                const newIds = duplicateShapes?.(selectedIds);
+                if(newIds && newIds.length > 0) {
+                    setSelectedIds?.(newIds);
+                }
+                return;
+            }
+
+            // ── Tool Switching ───────────────────────────────────────────
+            if(!ctrl && !isEditingText) {
+                const keyToToolMap: Record<string, Tools> = {
+                    KeyV: "select",
+                    KeyR: "rectangle",
+                    KeyC: "circle",
+                    KeyP: "pen",
+                    KeyT: "text",
+                };
+
+                const toolToSwitch = keyToToolMap[e.code];
+                if(toolToSwitch) {
+                    e.preventDefault();
+                    setTool?.(toolToSwitch);
+                    return;
+                }
+            }
+
             // ── Arrow keys (move selected shapes) ────────────────────────
-            if (selectedIds.length === 0 || isEditingText) return;
+            if(selectedIds.length === 0 || isEditingText) return;
 
             let dx = 0;
             let dy = 0;
 
-            switch (e.code) {
+            switch(e.code) {
                 case "ArrowLeft":
                     dx = -ARROW_STEP;
                     break;
@@ -137,18 +204,18 @@ export function useKeyboard({
 
             // On the first arrow keydown in a sequence, write a history
             // snapshot so the whole move run is one undoable step.
-            if (!savedArrowHistory) {
+            if(!savedArrowHistory) {
                 updateShapes((prev) => structuredClone(prev));
                 savedArrowHistory = true;
             }
 
-            moveShapes(selectedIds, dx, dy, { skipHistory: true });
+            moveShapes(selectedIds, dx, dy, {skipHistory: true});
         }
 
-        function handleKeyUp(e: KeyboardEvent) {
+        function handleKeyUp (e: KeyboardEvent) {
             // Reset the history-saved flag when the user lifts any arrow key
             // so the next press starts a fresh undo-able action.
-            if (
+            if(
                 e.code === "ArrowLeft" ||
                 e.code === "ArrowRight" ||
                 e.code === "ArrowUp" ||
@@ -175,5 +242,11 @@ export function useKeyboard({
         updateShapes,
         clearSelection,
         finishText,
+        copyShapes,
+        pasteShapes,
+        duplicateShapes,
+        selectAll,
+        setSelectedIds,
+        setTool,
     ]);
 }

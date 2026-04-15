@@ -25,7 +25,8 @@ export function useSelectArea (
     resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>, options?: { skipHistory?: boolean }) => void,
     spacePressedRef: React.RefObject<boolean>,
     justFinishedRef: React.RefObject<boolean>,
-    updateShapes: (updater: (prevShapes: Shape[]) => Shape[]) => void
+    updateShapes: (updater: (prevShapes: Shape[]) => Shape[]) => void,
+    duplicateShapes: (ids: string[], options?: { offset?: number; skipHistory?: boolean }) => string[]
 ) {
     const isDraggingRef = useRef(false);
 
@@ -60,7 +61,7 @@ export function useSelectArea (
 
 
 
-    function startSelect (p: Point) {
+    function startSelect (p: Point, isAltKey: boolean = false) {
         isDraggingRef.current = true;
 
         if(selectedIds.length > 0) {
@@ -81,21 +82,43 @@ export function useSelectArea (
 
                     return;
                 }
+
+                // If clicked inside the bounding box completely, drag the whole group
+                if (
+                    p.x >= bounds.x &&
+                    p.x <= bounds.x + bounds.width &&
+                    p.y >= bounds.y &&
+                    p.y <= bounds.y + bounds.height
+                ) {
+                    if (isAltKey) {
+                        const newIds = duplicateShapes(selectedIds, { offset: 0, skipHistory: false });
+                        onSelect(newIds);
+                    }
+                    clickedSelectedRef.current = true;
+                    moveStartRef.current = p;
+                    hasSavedMoveHistoryRef.current = isAltKey;
+                    return;
+                }
             }
         }
-
 
         const hitId = getShapeAtPoint(p.x, p.y, shapes);
         if(hitId) {
             clickedSelectedRef.current = true
-
+            
+            let idsToMove = selectedIds;
             if(!selectedIds.includes(hitId)) {
                 onSelect([hitId])
+                idsToMove = [hitId];
+            }
+
+            if (isAltKey) {
+                const newIds = duplicateShapes(idsToMove, { offset: 0, skipHistory: false });
+                onSelect(newIds);
             }
 
             moveStartRef.current = p;
-
-            hasSavedMoveHistoryRef.current = false
+            hasSavedMoveHistoryRef.current = isAltKey;
 
             return
         }
@@ -148,6 +171,17 @@ export function useSelectArea (
             case "w":
                 canvas.style.cursor = "ew-resize";
                 return;
+        }
+
+        // Inside bounding box -> Move cursor
+        if (
+            p.x >= bounds.x &&
+            p.x <= bounds.x + bounds.width &&
+            p.y >= bounds.y &&
+            p.y <= bounds.y + bounds.height
+        ) {
+            canvas.style.cursor = "move";
+            return;
         }
 
         canvas.style.cursor = "default";

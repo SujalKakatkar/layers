@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {useOutletContext} from "react-router";
+import {useOutletContext, useParams} from "react-router";
 import {useCamera} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
 import {drawScene} from "../../canvas/draw";
@@ -13,6 +13,20 @@ import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useText} from "../../hooks/useText";
 import {useKeyboard} from "../../hooks/useKeyboard";
+import {
+    ContextMenu,
+    ContextMenuTrigger,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuShortcut
+} from "../ui/context-menu";
+
+type MenuItem = {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    shortcut?: string;
+};
 
 type OutletContextType = {
     tool: Tools;
@@ -28,7 +42,7 @@ export default function Whiteboard () {
     const justFinishedRef = useRef<boolean>(false);
 
     const {tool: activeTool, setTool, setUndoRedo} = useOutletContext<OutletContextType>();
-    
+
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     useCanvasResize(canvasRef);
@@ -36,6 +50,9 @@ export default function Whiteboard () {
     // Global hooks (always active)
     const {scale, offset, startPan, pan, endPan, zoom} = useCamera();
     const {pressedRef: spacePressedRef, pressed} = useSpaceKey();
+
+    const {id} = useParams<{id: string}>();
+    const canvasId = id || "default";
 
     //shapes
     const {
@@ -49,9 +66,15 @@ export default function Whiteboard () {
         moveShapes,
         resizeShapes,
         getShapeById,
+        copyShapes,
+        pasteShapes,
+        duplicateShapes,
+        bringToFront,
+        sendToBack,
+        clipboard,
         undo,
         redo,
-    } = useShapes()
+    } = useShapes(canvasId)
 
     useEffect(() => {
         setUndoRedo(prev => {
@@ -96,10 +119,14 @@ export default function Whiteboard () {
         onPointerMove: updateSelect,
         onPointerUp: endSelect,
         resetSelection
-    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef, updateShapes);
+    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
     const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+    const selectAll = useCallback(() => {
+        setSelectedIds(shapes.map(s => s.id));
+    }, [shapes]);
 
     useKeyboard({
         selectedIds,
@@ -111,6 +138,12 @@ export default function Whiteboard () {
         updateShapes,
         clearSelection,
         finishText,
+        copyShapes,
+        pasteShapes,
+        duplicateShapes,
+        selectAll,
+        setSelectedIds,
+        setTool
     });
 
 
@@ -140,7 +173,7 @@ export default function Whiteboard () {
                 return
             }
 
-            startSelect(p)
+            startSelect(p, e.altKey)
         },
         onPointerMove: updateSelect,
         onPointerUp: endSelect,
@@ -345,52 +378,99 @@ export default function Whiteboard () {
 
     }, [editingText?.id])
 
+    const handleCopy = () => copyShapes(selectedIds);
+    const handlePaste = () => {
+        const newIds = pasteShapes();
+        if(newIds.length > 0) setSelectedIds(newIds);
+    };
+    const handleDuplicate = () => {
+        const newIds = duplicateShapes(selectedIds);
+        if(newIds.length > 0) setSelectedIds(newIds);
+    };
+    const handleDelete = () => {
+        removeShapes(selectedIds);
+        setSelectedIds([]);
+    };
+
+    let menuItems: MenuItem[] = [];
+
+    if(selectedIds.length === 0) {
+        menuItems = [
+            {label: "Undo", onClick: undo, shortcut: "Ctrl+Z"},
+            {label: "Redo", onClick: redo, shortcut: "Ctrl+Y"},
+            {label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0},
+            {label: "Select All", onClick: selectAll, shortcut: "Ctrl+A"}
+        ];
+    } else {
+        menuItems = [
+            {label: "Copy", onClick: handleCopy, shortcut: "Ctrl+C"},
+            {label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0},
+            {label: "Duplicate", onClick: handleDuplicate, shortcut: "Ctrl+D"},
+            {label: "Select All", onClick: selectAll, shortcut: "Ctrl+A"},
+            {label: "Delete", onClick: handleDelete, shortcut: "Del"},
+            {label: "Bring to Front", onClick: () => bringToFront(selectedIds)},
+            {label: "Send to Back", onClick: () => sendToBack(selectedIds)}
+        ];
+    }
+
     return (
         <div className="relative w-full h-full overflow-hidden">
+            <ContextMenu>
+                <ContextMenuTrigger className="block w-full h-full">
 
-            {editingText && (
-                <div
-                    ref={textRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={(e) => {
-                        const text = e.currentTarget.innerText;
-                        updateText(text);
-                    }}
-                    style={{
-                        position: "absolute",
-                        left: editingText.x * scale + offset.x,
-                        top: editingText.y * scale + offset.y,
-                        outline: "none",
-                        lineHeight: "1.2",
-                        padding: 0,
-                        margin: 0,
-                        display: "block",
-                        minWidth: 40,
-                        whiteSpace: "pre-wrap",
-                        fontSize: `${editingText.fontSize * scale}px`,
-                        fontFamily: "sans-serif"
-                    }}
-                />
-            )}
-            <canvas
-                ref={canvasRef}
-                // width={1000}
-                // height={1000}
-                className="w-full h-full"
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-                onDoubleClick={onDoubleClick}
-                // style={{cursor: tools[activeTool]?.cursor}}
-                onWheel={(e) => zoom(e.deltaY, canvasRef.current!)}
-                style={{
-                    cursor: tools[activeTool]?.cursor,
-                    touchAction: "none",
-                    userSelect: "none"
-                }}
-            />
+                    {editingText && (
+                        <div
+                            ref={textRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onInput={(e) => {
+                                const text = e.currentTarget.innerText;
+                                updateText(text);
+                            }}
+                            style={{
+                                position: "absolute",
+                                left: editingText.x * scale + offset.x,
+                                top: editingText.y * scale + offset.y,
+                                outline: "none",
+                                lineHeight: "1.2",
+                                padding: 0,
+                                margin: 0,
+                                display: "block",
+                                minWidth: 40,
+                                whiteSpace: "pre-wrap",
+                                fontSize: `${editingText.fontSize * scale}px`,
+                                fontFamily: "sans-serif"
+                            }}
+                        />
+                    )}
+                    <canvas
+                        ref={canvasRef}
+                        // width={1000}
+                        // height={1000}
+                        className="w-full h-full"
+                        onPointerDown={onPointerDown}
+                        onPointerMove={onPointerMove}
+                        onPointerUp={onPointerUp}
+                        onPointerCancel={onPointerUp}
+                        onDoubleClick={onDoubleClick}
+                        // style={{cursor: tools[activeTool]?.cursor}}
+                        onWheel={(e) => zoom(e.deltaY, canvasRef.current!)}
+                        style={{
+                            cursor: tools[activeTool]?.cursor,
+                            touchAction: "none",
+                            userSelect: "none"
+                        }}
+                    />
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-48">
+                    {menuItems.map((item, idx) => (
+                        <ContextMenuItem key={idx} onClick={item.onClick} disabled={item.disabled}>
+                            {item.label}
+                            {item.shortcut && <ContextMenuShortcut>{item.shortcut}</ContextMenuShortcut>}
+                        </ContextMenuItem>
+                    ))}
+                </ContextMenuContent>
+            </ContextMenu>
         </div>
     );
 }
