@@ -47,6 +47,10 @@ type UseKeyboardOptions = {
     pasteShapes?: () => string[];
     /** Duplicate selected shapes */
     duplicateShapes?: (ids: string[]) => string[];
+    /** Group shapes */
+    groupShapes?: (ids: string[]) => void;
+    /** Ungroup shapes */
+    ungroupShapes?: (ids: string[]) => void;
     /** Select all shapes on canvas */
     selectAll?: () => void;
     /** Select specific shapes */
@@ -71,6 +75,8 @@ export function useKeyboard ({
     copyShapes,
     pasteShapes,
     duplicateShapes,
+    groupShapes,
+    ungroupShapes,
     selectAll,
     setSelectedIds,
     setTool,
@@ -156,6 +162,18 @@ export function useKeyboard ({
                 if(newIds && newIds.length > 0) {
                     setSelectedIds?.(newIds);
                 }
+                return;
+            }
+
+            if(ctrl && e.shiftKey && e.code === "KeyG" && selectedIds.length > 0 && !isEditingText) {
+                e.preventDefault();
+                ungroupShapes?.(selectedIds);
+                return;
+            }
+
+            if(ctrl && !e.shiftKey && e.code === "KeyG" && selectedIds.length > 1 && !isEditingText) {
+                e.preventDefault();
+                groupShapes?.(selectedIds);
                 return;
             }
 
@@ -245,6 +263,8 @@ export function useKeyboard ({
         copyShapes,
         pasteShapes,
         duplicateShapes,
+        groupShapes,
+        ungroupShapes,
         selectAll,
         setSelectedIds,
         setTool,

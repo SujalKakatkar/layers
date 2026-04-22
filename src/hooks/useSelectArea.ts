@@ -68,7 +68,9 @@ export function useSelectArea (
             const bounds = getSelectionBounds(shapes, selectedIds);
             if(bounds) {
                 const handle = getHandleAtPoint(p, bounds);
-                if(handle) {
+                const isTextOnly = selectedIds.length === 1 && shapes.find(s => s.id === selectedIds[0])?.type === "text";
+                
+                if(handle && !isTextOnly) {
                     resizeHandleRef.current = handle;
                     moveStartRef.current = p;
 
@@ -149,28 +151,32 @@ export function useSelectArea (
         const bounds = getSelectionBounds(shapes, selectedIds);
         if(!bounds) return;
 
+        const isTextOnly = selectedIds.length === 1 && shapes.find(s => s.id === selectedIds[0])?.type === "text";
+
         const handle = getHandleAtPoint(p, bounds);
 
-        switch(handle) {
-            case "nw":
-            case "se":
-                canvas.style.cursor = "nwse-resize";
-                return;
+        if(handle && !isTextOnly) {
+            switch(handle) {
+                case "nw":
+                case "se":
+                    canvas.style.cursor = "nwse-resize";
+                    return;
 
-            case "ne":
-            case "sw":
-                canvas.style.cursor = "nesw-resize";
-                return;
+                case "ne":
+                case "sw":
+                    canvas.style.cursor = "nesw-resize";
+                    return;
 
-            case "n":
-            case "s":
-                canvas.style.cursor = "ns-resize";
-                return;
+                case "n":
+                case "s":
+                    canvas.style.cursor = "ns-resize";
+                    return;
 
-            case "e":
-            case "w":
-                canvas.style.cursor = "ew-resize";
-                return;
+                case "e":
+                case "w":
+                    canvas.style.cursor = "ew-resize";
+                    return;
+            }
         }
 
         // Inside bounding box -> Move cursor

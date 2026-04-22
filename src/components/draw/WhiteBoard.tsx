@@ -13,6 +13,8 @@ import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useText} from "../../hooks/useText";
 import {useKeyboard} from "../../hooks/useKeyboard";
+import TextToolbar from "./TextToolbar";
+import {useConnector} from "../../hooks/useConnector";
 import {
     ContextMenu,
     ContextMenuTrigger,
@@ -35,8 +37,10 @@ type OutletContextType = {
 };
 
 
+import {expandSelectionByGroup} from "../../helpers/selectionTools";
+
 export default function Whiteboard () {
-    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
 
     const textRef = useRef<HTMLDivElement | null>(null)
     const justFinishedRef = useRef<boolean>(false);
@@ -71,10 +75,36 @@ export default function Whiteboard () {
         duplicateShapes,
         bringToFront,
         sendToBack,
+        groupShapes,
+        ungroupShapes,
         clipboard,
         undo,
         redo,
+        connectors,
+        addConnector
     } = useShapes(canvasId)
+
+    const {
+        draft: connectorDraft,
+        targetShapeId: connectorTargetShapeId,
+        dotShapeId: connectorDotShapeId,
+        onPointerDown: onConnectorPointerDown,
+        onPointerMove: onConnectorPointerMove,
+        onPointerUp: onConnectorPointerUp,
+        cancelDrag: cancelConnectorDrag,
+    } = useConnector();
+
+    const shapesRef = useRef(shapes);
+    useEffect(() => {shapesRef.current = shapes;}, [shapes]);
+
+    const setSelectedIds = useCallback((idsOrUpdater: React.SetStateAction<string[]>) => {
+        setSelectedIdsState(prev => {
+            const nextIds = typeof idsOrUpdater === "function" ? idsOrUpdater(prev) : idsOrUpdater;
+            return expandSelectionByGroup(nextIds, shapesRef.current);
+        });
+    }, []);
+
+    const selectedIds = selectedIdsState;
 
     useEffect(() => {
         setUndoRedo(prev => {
@@ -141,6 +171,8 @@ export default function Whiteboard () {
         copyShapes,
         pasteShapes,
         duplicateShapes,
+        groupShapes,
+        ungroupShapes,
         selectAll,
         setSelectedIds,
         setTool
@@ -164,6 +196,13 @@ export default function Whiteboard () {
             if(!canvas) return;
 
             const p = getWorldPoint(e, canvas, scale, offset);
+
+            // Check if we hit a connector dot first
+            if(activeTool === "select" && e.isPrimary) {
+                const consumed = onConnectorPointerDown(p, shapes);
+                if(consumed) return; // skip normal selection logic if starting a connector
+            }
+
             if(editingText) {
                 const current = finishText()
                 if(current) {
@@ -175,8 +214,35 @@ export default function Whiteboard () {
 
             startSelect(p, e.altKey)
         },
-        onPointerMove: updateSelect,
-        onPointerUp: endSelect,
+        onPointerMove: (e) => {
+            const canvas = canvasRef.current;
+            if(!canvas) return;
+            const p = getWorldPoint(e, canvas, scale, offset);
+
+            if(activeTool === "select") {
+                onConnectorPointerMove(p, shapes);
+            }
+
+            updateSelect(e);
+        },
+        onPointerUp: (e) => {
+            if(activeTool === "select") {
+                const canvas = canvasRef.current;
+                if(canvas) {
+                    const p = getWorldPoint(e, canvas, scale, offset);
+                    const connectionResult = onConnectorPointerUp(p, shapes);
+                    if(connectionResult) {
+                        addConnector(
+                            connectionResult.fromShapeId,
+                            connectionResult.fromSide,
+                            connectionResult.toShapeId,
+                            connectionResult.toSide
+                        );
+                    }
+                }
+            }
+            endSelect();
+        },
         cursor: "default",
     };
 
@@ -288,8 +354,12 @@ export default function Whiteboard () {
             selectArea,
             selectedIds,
             editingText,
+            connectors,
+            connectorDraft,
+            connectorDotShapeId,
+            connectorTargetShapeId
         );
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText]);
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, connectors, connectorDraft, connectorDotShapeId, connectorTargetShapeId]);
 
 
 
@@ -391,6 +461,8 @@ export default function Whiteboard () {
         removeShapes(selectedIds);
         setSelectedIds([]);
     };
+    const handleGroup = () => groupShapes(selectedIds);
+    const handleUngroup = () => ungroupShapes(selectedIds);
 
     let menuItems: MenuItem[] = [];
 
@@ -406,6 +478,8 @@ export default function Whiteboard () {
             {label: "Copy", onClick: handleCopy, shortcut: "Ctrl+C"},
             {label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0},
             {label: "Duplicate", onClick: handleDuplicate, shortcut: "Ctrl+D"},
+            ...(selectedIds.length > 1 ? [{label: "Group", onClick: handleGroup, shortcut: "Ctrl+G"}] : []),
+            ...(selectedIds.some(id => shapes.find(s => s.id === id)?.groupId) ? [{label: "Ungroup", onClick: handleUngroup, shortcut: "Ctrl+Shift+G"}] : []),
             {label: "Select All", onClick: selectAll, shortcut: "Ctrl+A"},
             {label: "Delete", onClick: handleDelete, shortcut: "Del"},
             {label: "Bring to Front", onClick: () => bringToFront(selectedIds)},
@@ -415,6 +489,12 @@ export default function Whiteboard () {
 
     return (
         <div className="relative w-full h-full overflow-hidden">
+            {selectedIds.length === 1 && getShapeById(selectedIds[0])?.type === "text" && (
+                <TextToolbar
+                    shape={getShapeById(selectedIds[0])! as any}
+                    updateShape={updateShape}
+                />
+            )}
             <ContextMenu>
                 <ContextMenuTrigger className="block w-full h-full">
 

@@ -1,9 +1,9 @@
 const measureCanvas = document.createElement("canvas");
 const measureCtx = measureCanvas.getContext("2d")!;
 
-export function measureTextSize (text: string, fontSize = 20) {
+export function measureTextSize (text: string, fontSize = 20, fontWeight: string = "normal") {
 
-    measureCtx.font = `${fontSize}px sans-serif`;
+    measureCtx.font = `${fontWeight} ${fontSize}px sans-serif`;
 
     const lines = text.split("\n");
 

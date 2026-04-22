@@ -32,6 +32,7 @@ export type Point = {
 
 export type Rectangle = {
     id: string
+    groupId?: string
     type: "rectangle"
     x: number
     y: number
@@ -41,6 +42,7 @@ export type Rectangle = {
 
 export type Circle = {
     id: string,
+    groupId?: string
     type: "circle"
     cx: number
     cy: number
@@ -49,6 +51,7 @@ export type Circle = {
 
 export type Stroke = {
     id: string
+    groupId?: string
     type: "stroke"
     points: Point[]
     color: string
@@ -57,6 +60,7 @@ export type Stroke = {
 
 export type Text = {
     id: string,
+    groupId?: string
     type: "text"
     x: number
     y: number
@@ -64,10 +68,13 @@ export type Text = {
     fontSize: number
     width: number
     height: number
+    fontWeight?: string;
+    textAlign?: "left" | "center" | "right";
 }
 
 export type EditingText = {
     id: string
+    groupId?: string
     x: number
     y: number
     text: string,
@@ -75,6 +82,8 @@ export type EditingText = {
     width: number
     height: number
     isNew: boolean
+    fontWeight?: string;
+    textAlign?: "left" | "center" | "right";
 }
 
 
@@ -91,12 +100,22 @@ export type SelectionArea = {
 
 export type AnchorPosition = "top" | "bottom" | "left" | "right"
 
-export type Connections = {
-    id: string
-    fromShapeId: string
-    toShapeId: string
+export type ConnectorSide = "top" | "right" | "bottom" | "left";
 
-}
+export type Connector = {
+    id: string;
+    fromShapeId: string;
+    toShapeId: string;
+    fromSide: ConnectorSide;
+    toSide: ConnectorSide;
+};
+
+/** Transient state while the user is dragging a new connector */
+export type ConnectorDraft = {
+    fromShapeId: string;
+    fromSide: ConnectorSide;
+    toWorldPoint: Point; // cursor position in world coords
+};
 
 export type HandleType =
     | "nw" | "ne" | "sw" | "se"

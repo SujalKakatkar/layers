@@ -1,11 +1,17 @@
 import {useCallback, useState, useEffect} from "react"
-import type {HandleType, Shape} from "../types/types"
+import type {Connector, ConnectorSide, HandleType, Shape} from "../types/types"
 import {measureTextSize} from "../helpers/measureTextSize"
+import {getSelectionBounds} from "../canvas/selectArea"
+
+type LayerState = {
+    elements: Shape[];
+    connectors: Connector[];
+}
 
 type HistoryState = {
-    past: Shape[][];
-    present: Shape[];
-    future: Shape[][];
+    past: LayerState[];
+    present: LayerState;
+    future: LayerState[];
 }
 
 export function useShapes (canvasId: string = "default") {
@@ -18,7 +24,10 @@ export function useShapes (canvasId: string = "default") {
                     const parsed = parsedAll[canvasId];
                     return {
                         past: parsed.history || [],
-                        present: parsed.elements || [],
+                        present: {
+                            elements: parsed.elements || [],
+                            connectors: parsed.connectors || []
+                        },
                         future: parsed.future || []
                     };
                 }
@@ -29,7 +38,7 @@ export function useShapes (canvasId: string = "default") {
 
         return {
             past: [],
-            present: [],
+            present: {elements: [], connectors: []},
             future: []
         };
     });
@@ -43,7 +52,10 @@ export function useShapes (canvasId: string = "default") {
                     const parsed = parsedAll[canvasId];
                     setHistory({
                         past: parsed.history || [],
-                        present: parsed.elements || [],
+                        present: {
+                            elements: parsed.elements || [],
+                            connectors: parsed.connectors || []
+                        },
                         future: parsed.future || []
                     });
                     return;
@@ -53,13 +65,14 @@ export function useShapes (canvasId: string = "default") {
             console.error("Failed to load shapes on canvas change", error);
         }
 
-        setHistory({past: [], present: [], future: []});
+        setHistory({past: [], present: {elements: [], connectors: []}, future: []});
     }, [canvasId]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             const fullState = {
-                elements: history.present,
+                elements: history.present.elements,
+                connectors: history.present.connectors,
                 history: history.past,
                 future: history.future
             };
@@ -77,26 +90,29 @@ export function useShapes (canvasId: string = "default") {
         return () => clearTimeout(timeoutId);
     }, [history, canvasId]);
 
-    // const shapes = history.present;
-
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
     const [clipboard, setClipboard] = useState<Shape[]>([])
+
+    // --------------- SHAPES -------------
 
     function updateShapes (
         updater: (prevShapes: Shape[]) => Shape[],
         options?: {skipHistory?: boolean}
     ) {
         setHistory(prev => {
-            const nextPresent = updater(prev.present);
+            const nextElements = updater(prev.present.elements);
             if(options?.skipHistory) {
                 return {
                     ...prev,
-                    present: nextPresent
+                    present: {
+                        ...prev.present,
+                        elements: nextElements
+                    }
                 };
             }
             return {
                 past: [...prev.past, structuredClone(prev.present)],
-                present: nextPresent,
+                present: {elements: nextElements, connectors: prev.present.connectors},
                 future: []
             };
         });
@@ -106,7 +122,7 @@ export function useShapes (canvasId: string = "default") {
     function addShape (shape: Shape, options?: {skipHistory?: boolean}) {
         updateShapes(prevShapes => [...prevShapes, shape], options)
     }
-    //current shapes
+
     function addCurrentShape (shape: Shape | null) {
         setCurrentShape(shape)
     }
@@ -121,9 +137,25 @@ export function useShapes (canvasId: string = "default") {
 
     // Remove shapes
     function removeShapes (ids: string[], options?: {skipHistory?: boolean}) {
-        updateShapes(prevShapes =>
-            prevShapes.filter(shape => !ids.includes(shape.id)), options
-        )
+        setHistory(prev => {
+            const nextElements = prev.present.elements.filter(shape => !ids.includes(shape.id));
+            const nextConnectors = prev.present.connectors.filter(c => !ids.includes(c.fromShapeId) && !ids.includes(c.toShapeId));
+
+            if(options?.skipHistory) {
+                return {
+                    ...prev,
+                    present: {
+                        elements: nextElements,
+                        connectors: nextConnectors
+                    }
+                };
+            }
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: {elements: nextElements, connectors: nextConnectors},
+                future: []
+            };
+        });
     }
 
     // Move shapes
@@ -133,7 +165,6 @@ export function useShapes (canvasId: string = "default") {
         dy: number,
         options?: {skipHistory?: boolean}
     ) {
-
         const updater = (prevShapes: Shape[]) =>
             prevShapes.map(shape => {
                 if(!ids.includes(shape.id)) return shape;
@@ -166,44 +197,44 @@ export function useShapes (canvasId: string = "default") {
     }
 
     // Copy shapes
-    function copyShapes(ids: string[]) {
-        const selected = history.present.filter(s => ids.includes(s.id));
+    function copyShapes (ids: string[]) {
+        const selected = history.present.elements.filter(s => ids.includes(s.id));
         setClipboard(structuredClone(selected));
     }
 
     // Paste shapes
-    function pasteShapes() {
-        if (clipboard.length === 0) return [];
-        
+    function pasteShapes () {
+        if(clipboard.length === 0) return [];
+
         const offset = 20;
         const pasted: Shape[] = clipboard.map(shape => {
             const newId = crypto.randomUUID();
             switch(shape.type) {
                 case "rectangle":
                 case "text":
-                    return { ...shape, id: newId, x: shape.x + offset, y: shape.y + offset };
+                    return {...shape, id: newId, x: shape.x + offset, y: shape.y + offset};
                 case "circle":
-                    return { ...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset };
+                    return {...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
                 case "stroke":
                     return {
                         ...shape,
                         id: newId,
-                        points: shape.points.map(p => ({ x: p.x + offset, y: p.y + offset }))
+                        points: shape.points.map(p => ({x: p.x + offset, y: p.y + offset}))
                     };
                 default:
                     return shape;
             }
         });
 
-        setClipboard(pasted); // offset continues on multiple pastes
+        setClipboard(pasted);
         updateShapes(prevShapes => [...prevShapes, ...pasted]);
         return pasted.map(s => s.id);
     }
 
     // Duplicate shapes
-    function duplicateShapes(ids: string[], options?: { offset?: number; skipHistory?: boolean }) {
-        const toDuplicate = history.present.filter(s => ids.includes(s.id));
-        if (toDuplicate.length === 0) return [];
+    function duplicateShapes (ids: string[], options?: {offset?: number; skipHistory?: boolean}) {
+        const toDuplicate = history.present.elements.filter(s => ids.includes(s.id));
+        if(toDuplicate.length === 0) return [];
 
         const offset = options?.offset ?? 20;
         const duplicated: Shape[] = toDuplicate.map(shape => {
@@ -211,26 +242,26 @@ export function useShapes (canvasId: string = "default") {
             switch(shape.type) {
                 case "rectangle":
                 case "text":
-                    return { ...shape, id: newId, x: shape.x + offset, y: shape.y + offset };
+                    return {...shape, id: newId, x: shape.x + offset, y: shape.y + offset};
                 case "circle":
-                    return { ...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset };
+                    return {...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
                 case "stroke":
                     return {
                         ...shape,
                         id: newId,
-                        points: shape.points.map(p => ({ x: p.x + offset, y: p.y + offset }))
+                        points: shape.points.map(p => ({x: p.x + offset, y: p.y + offset}))
                     };
                 default:
                     return shape;
             }
         });
 
-        updateShapes(prevShapes => [...prevShapes, ...duplicated], { skipHistory: options?.skipHistory });
+        updateShapes(prevShapes => [...prevShapes, ...duplicated], {skipHistory: options?.skipHistory});
         return duplicated.map(s => s.id);
     }
 
     // Bring to front
-    function bringToFront(ids: string[]) {
+    function bringToFront (ids: string[]) {
         updateShapes(prevShapes => {
             const affected = prevShapes.filter(s => ids.includes(s.id));
             const unaffected = prevShapes.filter(s => !ids.includes(s.id));
@@ -239,7 +270,7 @@ export function useShapes (canvasId: string = "default") {
     }
 
     // Send to back
-    function sendToBack(ids: string[]) {
+    function sendToBack (ids: string[]) {
         updateShapes(prevShapes => {
             const affected = prevShapes.filter(s => ids.includes(s.id));
             const unaffected = prevShapes.filter(s => !ids.includes(s.id));
@@ -249,7 +280,7 @@ export function useShapes (canvasId: string = "default") {
 
     // Get shape
     function getShapeById (id: string) {
-        return history.present.find(shape => shape.id === id)
+        return history.present.elements.find(shape => shape.id === id)
     }
 
     //resize shapes
@@ -261,13 +292,89 @@ export function useShapes (canvasId: string = "default") {
         initialMap: Map<string, Shape>,
         options?: {skipHistory?: boolean}
     ) {
+        if(ids.length > 1) {
+            const initialShapes = Array.from(initialMap.values());
+            const initialBounds = getSelectionBounds(initialShapes, ids);
+
+            if(initialBounds) {
+                let {x: groupX, y: groupY, width: groupWidth, height: groupHeight} = initialBounds;
+
+                switch(handle) {
+                    case "se":
+                        groupWidth += dx; groupHeight += dy; break;
+                    case "sw":
+                        groupX += dx; groupWidth -= dx; groupHeight += dy; break;
+                    case "ne":
+                        groupY += dy; groupHeight -= dy; groupWidth += dx; break;
+                    case "nw":
+                        groupX += dx; groupY += dy; groupWidth -= dx; groupHeight -= dy; break;
+                }
+
+                if(groupWidth < 0) {groupX += groupWidth; groupWidth = Math.abs(groupWidth);}
+                if(groupHeight < 0) {groupY += groupHeight; groupHeight = Math.abs(groupHeight);}
+
+                const initialW = initialBounds.width || 1;
+                const initialH = initialBounds.height || 1;
+                const scaleX = groupWidth / initialW;
+                const scaleY = groupHeight / initialH;
+
+                updateShapes(prevShapes =>
+                    prevShapes.map(shape => {
+                        if(!ids.includes(shape.id)) return shape;
+
+                        const original = initialMap.get(shape.id);
+                        if(!original) return shape;
+
+                        switch(shape.type) {
+                            case "rectangle":
+                                if(original.type !== "rectangle") return shape;
+                                return {
+                                    ...shape,
+                                    x: groupX + (original.x - initialBounds.x) * scaleX,
+                                    y: groupY + (original.y - initialBounds.y) * scaleY,
+                                    width: original.width * scaleX,
+                                    height: original.height * scaleY
+                                };
+                            case "circle":
+                                if(original.type !== "circle") return shape;
+                                return {
+                                    ...shape,
+                                    cx: groupX + (original.cx - initialBounds.x) * scaleX,
+                                    cy: groupY + (original.cy - initialBounds.y) * scaleY,
+                                    r: original.r * Math.min(scaleX, scaleY)
+                                };
+                            case "stroke":
+                                if(original.type !== "stroke") return shape;
+                                return {
+                                    ...shape,
+                                    points: original.points.map(p => ({
+                                        x: groupX + (p.x - initialBounds.x) * scaleX,
+                                        y: groupY + (p.y - initialBounds.y) * scaleY
+                                    }))
+                                };
+                            case "text": {
+                                if(original.type !== "text") return shape;
+                                return {
+                                    ...shape,
+                                    x: groupX + (original.x - initialBounds.x) * scaleX,
+                                    y: groupY + (original.y - initialBounds.y) * scaleY,
+                                    // text NO LONGER scales
+                                };
+                            }
+                            default:
+                                return shape;
+                        }
+                    }), options
+                );
+            }
+            return;
+        }
+
         updateShapes(prevShapes =>
             prevShapes.map(shape => {
                 if(!ids.includes(shape.id)) return shape;
 
                 switch(shape.type) {
-
-
                     case "rectangle": {
                         const original = initialMap.get(shape.id);
                         if(!original || original.type !== "rectangle") return shape;
@@ -275,45 +382,17 @@ export function useShapes (canvasId: string = "default") {
                         let {x, y, width, height} = original;
 
                         switch(handle) {
-                            case "se":
-                                width += dx;
-                                height += dy;
-                                break;
-
-                            case "sw":
-                                x += dx;
-                                width -= dx;
-                                height += dy;
-                                break;
-
-                            case "ne":
-                                y += dy;
-                                height -= dy;
-                                width += dx;
-                                break;
-
-                            case "nw":
-                                x += dx;
-                                y += dy;
-                                width -= dx;
-                                height -= dy;
-                                break;
+                            case "se": width += dx; height += dy; break;
+                            case "sw": x += dx; width -= dx; height += dy; break;
+                            case "ne": y += dy; height -= dy; width += dx; break;
+                            case "nw": x += dx; y += dy; width -= dx; height -= dy; break;
                         }
 
-                        // 🔥 Handle flipping
-                        if(width < 0) {
-                            x += width;
-                            width = Math.abs(width);
-                        }
-
-                        if(height < 0) {
-                            y += height;
-                            height = Math.abs(height);
-                        }
+                        if(width < 0) {x += width; width = Math.abs(width);}
+                        if(height < 0) {y += height; height = Math.abs(height);}
 
                         return {...shape, x, y, width, height};
                     }
-
 
                     case "circle": {
                         const original = initialMap.get(shape.id)
@@ -326,42 +405,15 @@ export function useShapes (canvasId: string = "default") {
                         let height = r * 2;
 
                         switch(handle) {
-                            case "se":
-                                width += dx;
-                                height += dy;
-                                break;
-
-                            case "sw":
-                                x += dx;
-                                width -= dx;
-                                height += dy;
-                                break;
-
-                            case "ne":
-                                y += dy;
-                                height -= dy;
-                                width += dx;
-                                break;
-
-                            case "nw":
-                                x += dx;
-                                y += dy;
-                                width -= dx;
-                                height -= dy;
-                                break;
+                            case "se": width += dx; height += dy; break;
+                            case "sw": x += dx; width -= dx; height += dy; break;
+                            case "ne": y += dy; height -= dy; width += dx; break;
+                            case "nw": x += dx; y += dy; width -= dx; height -= dy; break;
                         }
 
-                        if(width < 0) {
-                            x += width;
-                            width = Math.abs(width);
-                        }
+                        if(width < 0) {x += width; width = Math.abs(width);}
+                        if(height < 0) {y += height; height = Math.abs(height);}
 
-                        if(height < 0) {
-                            y += height;
-                            height = Math.abs(height);
-                        }
-
-                        // Keep it proportional (true circle)
                         const newR = Math.max(width, height) / 2;
 
                         return {
@@ -374,7 +426,6 @@ export function useShapes (canvasId: string = "default") {
 
                     case "stroke": {
                         const original = initialMap.get(shape.id)
-
                         if(!original || original.type !== "stroke") return shape;
                         const points = original.points;
 
@@ -389,40 +440,14 @@ export function useShapes (canvasId: string = "default") {
                         let height = maxY - minY;
 
                         switch(handle) {
-                            case "se":
-                                width += dx;
-                                height += dy;
-                                break;
-
-                            case "sw":
-                                x += dx;
-                                width -= dx;
-                                height += dy;
-                                break;
-
-                            case "ne":
-                                y += dy;
-                                height -= dy;
-                                width += dx;
-                                break;
-
-                            case "nw":
-                                x += dx;
-                                y += dy;
-                                width -= dx;
-                                height -= dy;
-                                break;
+                            case "se": width += dx; height += dy; break;
+                            case "sw": x += dx; width -= dx; height += dy; break;
+                            case "ne": y += dy; height -= dy; width += dx; break;
+                            case "nw": x += dx; y += dy; width -= dx; height -= dy; break;
                         }
 
-                        if(width < 0) {
-                            x += width;
-                            width = Math.abs(width);
-                        }
-
-                        if(height < 0) {
-                            y += height;
-                            height = Math.abs(height);
-                        }
+                        if(width < 0) {x += width; width = Math.abs(width);}
+                        if(height < 0) {y += height; height = Math.abs(height);}
 
                         const baseWidth = maxX - minX || 1;
                         const baseHeight = maxY - minY || 1;
@@ -435,54 +460,17 @@ export function useShapes (canvasId: string = "default") {
                             y: y + (p.y - minY) * scaleY
                         }));
 
-                        return {
-                            ...shape,
-                            points: newPoints
-                        };
+                        return {...shape, points: newPoints};
                     }
 
                     case "text": {
                         const original = initialMap.get(shape.id);
                         if(!original || original.type !== "text") return shape;
 
-                        let {x, y, width} = original;
-
-                        const MIN_W = 40;
-
-                        switch(handle) {
-                            case "se":
-                                width = Math.max(MIN_W, width + dx);
-                                break;
-
-                            case "sw":
-                                width = Math.max(MIN_W, width - dx);
-                                x = original.x + (original.width - width);
-                                break;
-
-                            case "ne":
-                                width = Math.max(MIN_W, width + dx);
-                                break;
-
-                            case "nw":
-                                width = Math.max(MIN_W, width - dx);
-                                x = original.x + (original.width - width);
-                                break;
-                        }
-
-                        const scale = width / original.width;
-                        const newFontSize = original.fontSize * scale;
-                        const {height} = measureTextSize(original.text, newFontSize)
-
-                        return {
-                            ...shape,
-                            x,
-                            y,
-                            width,
-                            height,
-                            fontSize: newFontSize
-                        };
+                        // text resizing is disabled, handles don't appear.
+                        // we return original shape dimensions intact.
+                        return {...shape, x: original.x, y: original.y, width: original.width, height: original.height};
                     }
-
 
                     default:
                         return shape;
@@ -491,7 +479,69 @@ export function useShapes (canvasId: string = "default") {
         )
     }
 
-    //undo logic
+    function groupShapes (ids: string[]) {
+        if(ids.length <= 1) return;
+        const groupId = crypto.randomUUID();
+        updateShapes(prevShapes =>
+            prevShapes.map(shape =>
+                ids.includes(shape.id) ? {...shape, groupId} : shape
+            )
+        );
+    }
+
+    function ungroupShapes (ids: string[]) {
+        updateShapes(prevShapes =>
+            prevShapes.map(shape =>
+                ids.includes(shape.id) ? {...shape, groupId: undefined} : shape
+            )
+        );
+    }
+
+
+    // --------------- CONNECTORS -------------
+
+    function addConnector (
+        fromShapeId: string,
+        fromSide: ConnectorSide,
+        toShapeId: string,
+        toSide: ConnectorSide
+    ) {
+        if(fromShapeId === toShapeId) return;
+        const connector: Connector = {
+            id: crypto.randomUUID(),
+            fromShapeId,
+            fromSide,
+            toShapeId,
+            toSide,
+        };
+        setHistory(prev => {
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: {
+                    elements: prev.present.elements,
+                    connectors: [...prev.present.connectors, connector]
+                },
+                future: []
+            };
+        });
+    }
+
+    function removeConnector (id: string) {
+        setHistory(prev => {
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: {
+                    elements: prev.present.elements,
+                    connectors: prev.present.connectors.filter(c => c.id !== id)
+                },
+                future: []
+            };
+        });
+    }
+
+
+    // --------------- UNDO / REDO -------------
+
     const undo = useCallback(() => {
         setHistory(prev => {
             if(prev.past.length === 0) return prev;
@@ -505,7 +555,7 @@ export function useShapes (canvasId: string = "default") {
             };
         });
     }, []);
-    //redo logic
+
     const redo = useCallback(() => {
         setHistory(prev => {
             if(prev.future.length === 0) return prev;
@@ -521,7 +571,8 @@ export function useShapes (canvasId: string = "default") {
     }, []);
 
     return {
-        shapes: history.present,
+        shapes: history.present.elements,
+        connectors: history.present.connectors,
         currentShape,
         clipboard,
         addShape,
@@ -537,6 +588,10 @@ export function useShapes (canvasId: string = "default") {
         duplicateShapes,
         bringToFront,
         sendToBack,
+        groupShapes,
+        ungroupShapes,
+        addConnector,
+        removeConnector,
         undo,
         redo
     }

@@ -23,7 +23,7 @@ export function useText (
                 text: existing.text,
                 fontSize: existing.fontSize,
                 width: existing?.width,
-                height:existing?.height,
+                height: existing?.height,
                 isNew: false
             })
             return

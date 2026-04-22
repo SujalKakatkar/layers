@@ -1,10 +1,11 @@
 import {drawCircle} from "./shapes/drawCircle";
-import type {EditingText, SelectionArea, Shape} from "../types/types";
+import type {Connector, ConnectorDraft, EditingText, SelectionArea, Shape} from "../types/types";
 import {drawRect} from "./shapes/drawRect";
 import {getSelectionBounds} from "./selectArea";
 import {drawStroke} from "./shapes/drawStroke";
 import {drawText} from "./shapes/drawText";
-import { measureTextSize} from "../helpers/measureTextSize";
+import {measureTextSize} from "../helpers/measureTextSize";
+import {drawConnectors, drawConnectorPreview, drawConnectionDots} from "./shapes/drawConnectors";
 
 export function drawScene (
     canvas: HTMLCanvasElement,
@@ -14,7 +15,12 @@ export function drawScene (
     offset: {x: number; y: number},
     selectArea: SelectionArea,
     selectedIds: string[],
-    editingText?: EditingText | null
+    editingText?: EditingText | null,
+    // ── connector params (all optional so existing call-sites don't break) ─
+    connectors?: Connector[],
+    draft?: ConnectorDraft | null,
+    dotShapeId?: string | null,
+    targetShapeId?: string | null,
 ) {
 
     const ctx = canvas.getContext("2d")!;
@@ -61,14 +67,35 @@ export function drawScene (
                 break
         }
     }
+
+    if(connectors) {
+        drawConnectors(ctx, connectors, shapes, scale);
+    }
+
+    if(draft && dotShapeId) {
+        drawConnectorPreview(ctx, draft, shapes, dotShapeId, scale);
+    } else if(draft && targetShapeId) { // Fallback if hovering but not near dot exactly
+        drawConnectorPreview(ctx, draft, shapes, targetShapeId, scale);
+    } else if(draft) {
+        drawConnectorPreview(ctx, draft, shapes, null, scale);
+    }
+
+    if(dotShapeId || selectedIds.length > 0) {
+        const visibleDotIds = new Set(selectedIds);
+        if(dotShapeId) visibleDotIds.add(dotShapeId);
+
+        drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale, dotShapeId || null, selectedIds);
+    }
+
     let bounds = getSelectionBounds(shapes, selectedIds);
 
     if(editingText) {
-        
+
 
         const {width, height} = measureTextSize(
             editingText.text,
-            editingText.fontSize
+            editingText.fontSize,
+            editingText.fontWeight
         );
 
         bounds = {
@@ -96,23 +123,23 @@ export function drawScene (
         // ── Resize handles ─────────────────────────────────────────────
         // Handle size stays at 8 CSS px regardless of zoom
         const hSize = 8 / scale;
-        const half  = hSize / 2;
+        const half = hSize / 2;
 
         const cx = bx + bw / 2;
         const cy = by + bh / 2;
 
         const handlePositions = [
-            {x: bx,       y: by},        // nw
-            {x: bx + bw,  y: by},        // ne
-            {x: bx + bw,  y: by + bh},   // se
-            {x: bx,       y: by + bh},   // sw
+            {x: bx, y: by},        // nw
+            {x: bx + bw, y: by},        // ne
+            {x: bx + bw, y: by + bh},   // se
+            {x: bx, y: by + bh},   // sw
         ];
 
         handlePositions.forEach(({x, y}) => {
-            ctx.fillStyle   = "#ffffff";
+            ctx.fillStyle = "#ffffff";
             ctx.strokeStyle = "#3b82f6";
-            ctx.lineWidth   = 1.5 / scale;
-            ctx.fillRect  (x - half, y - half, hSize, hSize);
+            ctx.lineWidth = 1.5 / scale;
+            ctx.fillRect(x - half, y - half, hSize, hSize);
             ctx.strokeRect(x - half, y - half, hSize, hSize);
         });
 
