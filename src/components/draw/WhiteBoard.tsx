@@ -68,6 +68,7 @@ export default function Whiteboard () {
         updateShapes,
         removeShapes,
         moveShapes,
+        rotateShapes,
         resizeShapes,
         getShapeById,
         copyShapes,
@@ -81,12 +82,12 @@ export default function Whiteboard () {
         undo,
         redo,
         connectors,
-        addConnector
+        addConnector,
+        addShapeWithConnector
     } = useShapes(canvasId)
 
     const {
-        draft: connectorDraft,
-        targetShapeId: connectorTargetShapeId,
+        connectionState,
         dotShapeId: connectorDotShapeId,
         onPointerDown: onConnectorPointerDown,
         onPointerMove: onConnectorPointerMove,
@@ -148,8 +149,9 @@ export default function Whiteboard () {
         startSelect,
         onPointerMove: updateSelect,
         onPointerUp: endSelect,
-        resetSelection
-    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
+        resetSelection,
+        guides
+    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
     const clearSelection = useCallback(() => setSelectedIds([]), []);
@@ -230,14 +232,30 @@ export default function Whiteboard () {
                 const canvas = canvasRef.current;
                 if(canvas) {
                     const p = getWorldPoint(e, canvas, scale, offset);
-                    const connectionResult = onConnectorPointerUp(p, shapes);
-                    if(connectionResult) {
-                        addConnector(
-                            connectionResult.fromShapeId,
-                            connectionResult.fromSide,
-                            connectionResult.toShapeId,
-                            connectionResult.toSide
-                        );
+                    const intent = onConnectorPointerUp(p, shapes);
+                    if(intent) {
+                        if (intent.type === "connect") {
+                            addConnector(
+                                intent.fromShapeId,
+                                intent.fromSide,
+                                intent.toShapeId,
+                                intent.toSide
+                            );
+                        } else if (intent.type === "create") {
+                            const newConnector = {
+                                id: crypto.randomUUID(),
+                                fromShapeId: intent.sourceId,
+                                fromSide: intent.side,
+                                toShapeId: intent.newShape.id,
+                                toSide: (
+                                    intent.side === "top" ? "bottom" :
+                                    intent.side === "bottom" ? "top" :
+                                    intent.side === "left" ? "right" : "left"
+                                ) as any
+                            };
+                            addShapeWithConnector(intent.newShape, newConnector);
+                            setSelectedIds([intent.newShape.id]);
+                        }
                     }
                 }
             }
@@ -354,12 +372,12 @@ export default function Whiteboard () {
             selectArea,
             selectedIds,
             editingText,
+            guides,
             connectors,
-            connectorDraft,
-            connectorDotShapeId,
-            connectorTargetShapeId
+            connectionState,
+            connectorDotShapeId
         );
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, connectors, connectorDraft, connectorDotShapeId, connectorTargetShapeId]);
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId]);
 
 
 

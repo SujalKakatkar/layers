@@ -23,23 +23,53 @@ export function getShapeBounds(shape: Shape): {
 }
 
 /** Returns the world-space anchor Point for a given side of a shape */
-export function getConnectionPoint(shape: Shape, side: ConnectorSide): Point {
-    const b = getShapeBounds(shape);
-    const cx = b.x + b.width / 2;
-    const cy = b.y + b.height / 2;
+export function getShapeAnchorPoint(shape: Shape, side: ConnectorSide): Point {
+    let px: number, py: number;
+    let cx: number, cy: number;
 
-    switch (side) {
-        case "top":    return { x: cx, y: b.y };
-        case "bottom": return { x: cx, y: b.y + b.height };
-        case "left":   return { x: b.x, y: cy };
-        case "right":  return { x: b.x + b.width, y: cy };
+    if (shape.type === "circle") {
+        cx = shape.cx;
+        cy = shape.cy;
+        const r = shape.r;
+        switch (side) {
+            case "top":    px = cx;     py = cy - r; break;
+            case "bottom": px = cx;     py = cy + r; break;
+            case "left":   px = cx - r; py = cy;     break;
+            case "right":  px = cx + r; py = cy;     break;
+        }
+    } else {
+        const b = getShapeBounds(shape);
+        cx = b.x + b.width / 2;
+        cy = b.y + b.height / 2;
+        switch (side) {
+            case "top":    px = cx;           py = b.y;          break;
+            case "bottom": px = cx;           py = b.y + b.height; break;
+            case "left":   px = b.x;          py = cy;           break;
+            case "right":  px = b.x + b.width; py = cy;           break;
+        }
     }
+
+    if (!shape.rotation) {
+        return { x: px, y: py };
+    }
+
+    const cosA = Math.cos(shape.rotation);
+    const sinA = Math.sin(shape.rotation);
+    const dx = px - cx;
+    const dy = py - cy;
+
+    return {
+        x: cx + dx * cosA - dy * sinA,
+        y: cy + dx * sinA + dy * cosA
+    };
 }
+
+/** Shorthand for getConnectionPoint (maintains backward compatibility if needed) */
+export const getConnectionPoint = getShapeAnchorPoint;
 
 /**
  * Given two shapes, return the closest side pair so the connector
  * always attaches to geometrically nearest anchors.
- * This is recomputed every frame allowing auto-adjustment.
  */
 export function getClosestSidePair(
     from: Shape,
@@ -54,8 +84,8 @@ export function getClosestSidePair(
 
     for (const fs of fromSides) {
         for (const ts of toSides) {
-            const p1 = getConnectionPoint(from, fs);
-            const p2 = getConnectionPoint(to, ts);
+            const p1 = getShapeAnchorPoint(from, fs);
+            const p2 = getShapeAnchorPoint(to, ts);
             const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             if (d < best) {
                 best     = d;
@@ -70,19 +100,17 @@ export function getClosestSidePair(
 
 /**
  * All 4 connection dot positions for a shape (world coords).
- * Returns an array of { side, point }.
  */
 export function getConnectionDots(shape: Shape): { side: ConnectorSide; point: Point }[] {
     if (shape.type === "text" || shape.type === "stroke") {
         return [];
     }
     const sides: ConnectorSide[] = ["top", "right", "bottom", "left"];
-    return sides.map(side => ({ side, point: getConnectionPoint(shape, side) }));
+    return sides.map(side => ({ side, point: getShapeAnchorPoint(shape, side) }));
 }
 
 /**
- * Returns the side whose dot is within `threshold` world-units of `point`,
- * or null if no dot is close enough.
+ * Returns the side whose dot is within `threshold` world-units of `point`.
  */
 export function getHoveredDot(
     point: Point,

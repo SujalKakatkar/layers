@@ -1,5 +1,5 @@
 import {drawCircle} from "./shapes/drawCircle";
-import type {Connector, ConnectorDraft, EditingText, SelectionArea, Shape} from "../types/types";
+import type {Connector, EditingText, SelectionArea, Shape, Guide, ConnectionState} from "../types/types";
 import {drawRect} from "./shapes/drawRect";
 import {getSelectionBounds} from "./selectArea";
 import {drawStroke} from "./shapes/drawStroke";
@@ -16,11 +16,11 @@ export function drawScene (
     selectArea: SelectionArea,
     selectedIds: string[],
     editingText?: EditingText | null,
-    // ── connector params (all optional so existing call-sites don't break) ─
+    guides?: Guide[],
+    // ── connector params ──
     connectors?: Connector[],
-    draft?: ConnectorDraft | null,
+    connectionState?: ConnectionState,
     dotShapeId?: string | null,
-    targetShapeId?: string | null,
 ) {
 
     const ctx = canvas.getContext("2d")!;
@@ -33,51 +33,57 @@ export function drawScene (
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
 
-    shapes.forEach(shape => {
-
-        if(editingText && shape.id === editingText.id) return
+    const renderShape = (shape: Shape, opacity: number = 1) => {
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        
+        if (shape.rotation) {
+            let cx = 0, cy = 0;
+            if (shape.type === "rectangle" || shape.type === "text") {
+                cx = shape.x + shape.width / 2;
+                cy = shape.y + shape.height / 2;
+            } else if (shape.type === "circle") {
+                cx = shape.cx;
+                cy = shape.cy;
+            }
+            if (cx || cy) {
+                ctx.translate(cx, cy);
+                ctx.rotate(shape.rotation);
+                ctx.translate(-cx, -cy);
+            }
+        }
 
         switch(shape.type) {
-            case "rectangle":
-                return drawRect(ctx, shape)
-            case "circle":
-                return drawCircle(ctx, shape)
-            case "stroke":
-                return drawStroke(ctx, shape)
-            case "text":
-                return drawText(ctx, shape)
-            default:
-                return false
+            case "rectangle": drawRect(ctx, shape); break;
+            case "circle": drawCircle(ctx, shape); break;
+            case "stroke": drawStroke(ctx, shape); break;
+            case "text": drawText(ctx, shape); break;
         }
-    })
+
+        ctx.restore();
+    };
+
+    shapes.forEach(shape => {
+        if(editingText && shape.id === editingText.id) return;
+        renderShape(shape);
+    });
 
     if(currentShape && (!editingText || currentShape.id !== editingText.id)) {
-        switch(currentShape.type) {
-            case "rectangle":
-                drawRect(ctx, currentShape)
-                break
-            case "circle":
-                drawCircle(ctx, currentShape)
-                break
-            case "stroke":
-                drawStroke(ctx, currentShape)
-                break
-            case "text":
-                drawText(ctx, currentShape)
-                break
-        }
+        renderShape(currentShape);
     }
 
     if(connectors) {
         drawConnectors(ctx, connectors, shapes, scale);
     }
 
-    if(draft && dotShapeId) {
-        drawConnectorPreview(ctx, draft, shapes, dotShapeId, scale);
-    } else if(draft && targetShapeId) { // Fallback if hovering but not near dot exactly
-        drawConnectorPreview(ctx, draft, shapes, targetShapeId, scale);
-    } else if(draft) {
-        drawConnectorPreview(ctx, draft, shapes, null, scale);
+    // ── Unified Connection Rendering ──────────────────────────────────
+    if (connectionState) {
+        if (connectionState.mode === "hover") {
+            renderShape(connectionState.ghostShape, 0.4);
+            drawConnectorPreview(ctx, connectionState, shapes, scale);
+        } else if (connectionState.mode === "drag") {
+            drawConnectorPreview(ctx, connectionState, shapes, scale);
+        }
     }
 
     if(dotShapeId || selectedIds.length > 0) {
@@ -90,8 +96,6 @@ export function drawScene (
     let bounds = getSelectionBounds(shapes, selectedIds);
 
     if(editingText) {
-
-
         const {width, height} = measureTextSize(
             editingText.text,
             editingText.fontSize,
@@ -115,6 +119,9 @@ export function drawScene (
         const bw = bounds.width + pad * 2;
         const bh = bounds.height + pad * 2;
 
+        const cx = bx + bw / 2;
+        const cy = by + bh / 2;
+
         // ── Bounding box stroke ────────────────────────────────────────
         ctx.strokeStyle = "#3b82f6";
         ctx.lineWidth = 1 / scale;
@@ -124,9 +131,6 @@ export function drawScene (
         // Handle size stays at 8 CSS px regardless of zoom
         const hSize = 8 / scale;
         const half = hSize / 2;
-
-        const cx = bx + bw / 2;
-        const cy = by + bh / 2;
 
         const handlePositions = [
             {x: bx, y: by},        // nw
@@ -166,6 +170,34 @@ export function drawScene (
             selectArea.width,
             selectArea.height
         );
+
+        ctx.restore();
+    }
+
+    if(guides && guides.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = "#a855f7"; // purple-500
+        ctx.lineWidth = 1 / scale;
+        ctx.setLineDash([4 / scale, 4 / scale]);
+
+        // to draw infinite lines, we can just use a very large number or canvas boundaries
+        // wait, we translated offset and scaled. The canvas boundaries in world coordinates are:
+        const worldMinX = -offset.x / scale;
+        const worldMinY = -offset.y / scale;
+        const worldMaxX = (canvas.width / dpr - offset.x) / scale;
+        const worldMaxY = (canvas.height / dpr - offset.y) / scale;
+
+        guides.forEach(guide => {
+            ctx.beginPath();
+            if(guide.type === "vertical") {
+                ctx.moveTo(guide.position, worldMinY - 1000);
+                ctx.lineTo(guide.position, worldMaxY + 1000);
+            } else {
+                ctx.moveTo(worldMinX - 1000, guide.position);
+                ctx.lineTo(worldMaxX + 1000, guide.position);
+            }
+            ctx.stroke();
+        });
 
         ctx.restore();
     }

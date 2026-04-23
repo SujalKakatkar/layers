@@ -1,5 +1,5 @@
 import React, {useRef, useState} from "react";
-import type {HandleType, Point, SelectionArea, Shape} from "../types/types";
+import type {HandleType, Point, SelectionArea, Shape, Guide} from "../types/types";
 import {getWorldPoint} from "../canvas/transform";
 import {isRectInside} from "../helpers/Rectinside";
 import {isCircleInside} from "../helpers/circleinside";
@@ -18,15 +18,16 @@ export function useSelectArea (
         ids: string[],
         dx: number,
         dy: number,
-        options?: { skipHistory?: boolean }
+        options?: {skipHistory?: boolean}
     ) => void,
     selectedIds: string[],
     onSelect: (ids: string[]) => void,
-    resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>, options?: { skipHistory?: boolean }) => void,
+    resizeShapes: (ids: string[], handle: HandleType, dx: number, dy: number, initialMap: Map<string, Shape>, options?: {skipHistory?: boolean}) => void,
+    rotateShapes: (ids: string[], angleDelta: number, cx: number, cy: number, initialMap: Map<string, Shape>, options?: {skipHistory?: boolean}) => void,
     spacePressedRef: React.RefObject<boolean>,
     justFinishedRef: React.RefObject<boolean>,
     updateShapes: (updater: (prevShapes: Shape[]) => Shape[]) => void,
-    duplicateShapes: (ids: string[], options?: { offset?: number; skipHistory?: boolean }) => string[]
+    duplicateShapes: (ids: string[], options?: {offset?: number; skipHistory?: boolean}) => string[]
 ) {
     const isDraggingRef = useRef(false);
 
@@ -43,6 +44,10 @@ export function useSelectArea (
     //hasmovedRef is used to check if mouse clicked or draged
     const hasMovedRef = useRef(false);
 
+    // Track total accumulated snapped delta to compute incremental dx/dy for moveShapes
+    const lastSnappedDxRef = useRef(0);
+    const lastSnappedDyRef = useRef(0);
+
     const [selectArea, setSelectArea] = useState<SelectionArea>(null);
 
     const resizeHandleRef = useRef<HandleType | null>(null)
@@ -56,8 +61,13 @@ export function useSelectArea (
         moveStartRef.current = null
         areaRef.current = null
         resizeHandleRef.current = null
+        lastSnappedDxRef.current = 0;
+        lastSnappedDyRef.current = 0;
+        setGuides([])
         setSelectArea(null)
     }
+
+    const [guides, setGuides] = useState<Guide[]>([]);
 
 
 
@@ -69,7 +79,7 @@ export function useSelectArea (
             if(bounds) {
                 const handle = getHandleAtPoint(p, bounds);
                 const isTextOnly = selectedIds.length === 1 && shapes.find(s => s.id === selectedIds[0])?.type === "text";
-                
+
                 if(handle && !isTextOnly) {
                     resizeHandleRef.current = handle;
                     moveStartRef.current = p;
@@ -86,19 +96,27 @@ export function useSelectArea (
                 }
 
                 // If clicked inside the bounding box completely, drag the whole group
-                if (
+                if(
                     p.x >= bounds.x &&
                     p.x <= bounds.x + bounds.width &&
                     p.y >= bounds.y &&
                     p.y <= bounds.y + bounds.height
                 ) {
-                    if (isAltKey) {
-                        const newIds = duplicateShapes(selectedIds, { offset: 0, skipHistory: false });
+                    if(isAltKey) {
+                        const newIds = duplicateShapes(selectedIds, {offset: 0, skipHistory: false});
                         onSelect(newIds);
                     }
                     clickedSelectedRef.current = true;
                     moveStartRef.current = p;
                     hasSavedMoveHistoryRef.current = isAltKey;
+
+                    const map = new Map<string, Shape>();
+                    selectedIds.forEach(id => {
+                        const s = shapes.find(s => s.id === id);
+                        if(s) map.set(id, structuredClone(s));
+                    });
+                    initialShapesRef.current = map;
+
                     return;
                 }
             }
@@ -107,20 +125,27 @@ export function useSelectArea (
         const hitId = getShapeAtPoint(p.x, p.y, shapes);
         if(hitId) {
             clickedSelectedRef.current = true
-            
+
             let idsToMove = selectedIds;
             if(!selectedIds.includes(hitId)) {
                 onSelect([hitId])
                 idsToMove = [hitId];
             }
 
-            if (isAltKey) {
-                const newIds = duplicateShapes(idsToMove, { offset: 0, skipHistory: false });
+            if(isAltKey) {
+                const newIds = duplicateShapes(idsToMove, {offset: 0, skipHistory: false});
                 onSelect(newIds);
             }
 
             moveStartRef.current = p;
             hasSavedMoveHistoryRef.current = isAltKey;
+
+            const map = new Map<string, Shape>();
+            idsToMove.forEach(id => {
+                const s = shapes.find(s => s.id === id);
+                if(s) map.set(id, structuredClone(s));
+            });
+            initialShapesRef.current = map;
 
             return
         }
@@ -176,11 +201,15 @@ export function useSelectArea (
                 case "w":
                     canvas.style.cursor = "ew-resize";
                     return;
+
+                case "rotate":
+                    canvas.style.cursor = "url('/rotate-cursor.svg') 12 12, crosshair";
+                    return;
             }
         }
 
         // Inside bounding box -> Move cursor
-        if (
+        if(
             p.x >= bounds.x &&
             p.x <= bounds.x + bounds.width &&
             p.y >= bounds.y &&
@@ -210,22 +239,37 @@ export function useSelectArea (
             const dy = curr.y - start.y;
 
             // 🔥 Snap current past history before resize so undo reverts accurately!
-            if (!hasSavedMoveHistoryRef.current) {
+            if(!hasSavedMoveHistoryRef.current) {
                 updateShapes(prev => structuredClone(prev)); // Pushes an exact copy as current block
                 hasSavedMoveHistoryRef.current = true;
             }
 
-            resizeShapes(selectedIds, resizeHandleRef.current, dx, dy, initialShapesRef.current, { skipHistory: true });
+            if(resizeHandleRef.current === "rotate") {
+                canvas.style.cursor = "url('/rotate-cursor.svg') 12 12, crosshair";
+                const initialBounds = getSelectionBounds(Array.from(initialShapesRef.current.values()), selectedIds);
+                if(initialBounds) {
+                    const cx = initialBounds.x + initialBounds.width / 2;
+                    const cy = initialBounds.y + initialBounds.height / 2;
+
+                    const startAngle = Math.atan2(start.y - cy, start.x - cx);
+                    const currAngle = Math.atan2(curr.y - cy, curr.x - cx);
+                    const angleDelta = currAngle - startAngle;
+
+                    rotateShapes(selectedIds, angleDelta, cx, cy, initialShapesRef.current, {skipHistory: true});
+                }
+            } else {
+                resizeShapes(selectedIds, resizeHandleRef.current, dx, dy, initialShapesRef.current, {skipHistory: true});
+            }
 
             return;
         }
 
         if(clickedSelectedRef.current && moveStartRef.current) {
-            const prev = moveStartRef.current;
-            const dx = curr.x - prev.x;
-            const dy = curr.y - prev.y;
+            const start = moveStartRef.current;
+            const rawTotalDx = curr.x - start.x;
+            const rawTotalDy = curr.y - start.y;
 
-            if(Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+            if(Math.abs(rawTotalDx) > 2 || Math.abs(rawTotalDy) > 2) {
                 hasMovedRef.current = true;
 
                 if(!hasSavedMoveHistoryRef.current) {
@@ -233,9 +277,60 @@ export function useSelectArea (
                     hasSavedMoveHistoryRef.current = true;
                 }
 
+                const initialBounds = getSelectionBounds(Array.from(initialShapesRef.current.values()), selectedIds);
+                let snappedTotalDx = rawTotalDx;
+                let snappedTotalDy = rawTotalDy;
+                let activeGuides: Guide[] = [];
 
-                moveShapes(selectedIds, dx, dy, { skipHistory: true });
-                moveStartRef.current = curr;
+                if(initialBounds) {
+                    const movingCenterX = initialBounds.x + rawTotalDx + initialBounds.width / 2;
+                    const movingCenterY = initialBounds.y + rawTotalDy + initialBounds.height / 2;
+                    const SNAP_THRESHOLD = 5;
+
+                    let minDiffX = Infinity;
+                    let minDiffY = Infinity;
+
+                    shapes.forEach(shape => {
+                        if(selectedIds.includes(shape.id)) return;
+
+                        const otherBounds = getSelectionBounds([shape], [shape.id]);
+                        if(!otherBounds) return;
+
+                        const otherCenterX = otherBounds.x + otherBounds.width / 2;
+                        const otherCenterY = otherBounds.y + otherBounds.height / 2;
+
+                        const diffX = Math.abs(movingCenterX - otherCenterX);
+                        const diffY = Math.abs(movingCenterY - otherCenterY);
+
+                        if(diffX < SNAP_THRESHOLD && diffX < minDiffX) {
+                            minDiffX = diffX;
+                            snappedTotalDx = otherCenterX - initialBounds.x - initialBounds.width / 2;
+                        }
+
+                        if(diffY < SNAP_THRESHOLD && diffY < minDiffY) {
+                            minDiffY = diffY;
+                            snappedTotalDy = otherCenterY - initialBounds.y - initialBounds.height / 2;
+                        }
+                    });
+
+                    if(minDiffX < SNAP_THRESHOLD) {
+                        activeGuides.push({type: "vertical", position: initialBounds.x + snappedTotalDx + initialBounds.width / 2});
+                    }
+                    if(minDiffY < SNAP_THRESHOLD) {
+                        activeGuides.push({type: "horizontal", position: initialBounds.y + snappedTotalDy + initialBounds.height / 2});
+                    }
+                }
+
+                setGuides(activeGuides);
+
+                const incrementalDx = snappedTotalDx - lastSnappedDxRef.current;
+                const incrementalDy = snappedTotalDy - lastSnappedDyRef.current;
+
+                if(incrementalDx !== 0 || incrementalDy !== 0) {
+                    moveShapes(selectedIds, incrementalDx, incrementalDy, {skipHistory: true});
+                    lastSnappedDxRef.current = snappedTotalDx;
+                    lastSnappedDyRef.current = snappedTotalDy;
+                }
             }
 
             return;
@@ -310,5 +405,6 @@ export function useSelectArea (
         onPointerMove,
         onPointerUp,
         resetSelection: clearInteraction,
+        guides,
     };
 }

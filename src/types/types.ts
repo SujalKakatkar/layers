@@ -16,6 +16,16 @@ export type CanvasTool = {
     cursor?: string;
 };
 
+export type ConnectionState =
+    | {mode: "idle"}
+    | {mode: "hover"; sourceId: string; side: ConnectorSide; ghostShape: Shape}
+    | {mode: "drag"; sourceId: string; side: ConnectorSide; mouseX: number; mouseY: number; targetShapeId: string | null};
+
+export type ConnectionIntent =
+    | {type: "create"; sourceId: string; side: ConnectorSide; newShape: Shape}
+    | {type: "connect"; fromShapeId: string; fromSide: ConnectorSide; toShapeId: string; toSide: ConnectorSide}
+    | null;
+
 //type for selection boundry
 export type Bounds = {
     x: number;
@@ -38,6 +48,7 @@ export type Rectangle = {
     y: number
     width: number
     height: number
+    rotation?: number
 };
 
 export type Circle = {
@@ -47,6 +58,7 @@ export type Circle = {
     cx: number
     cy: number
     r: number
+    rotation?: number
 };
 
 export type Stroke = {
@@ -56,6 +68,7 @@ export type Stroke = {
     points: Point[]
     color: string
     width: number
+    rotation?: number
 }
 
 export type Text = {
@@ -70,6 +83,7 @@ export type Text = {
     height: number
     fontWeight?: string;
     textAlign?: "left" | "center" | "right";
+    rotation?: number
 }
 
 export type EditingText = {
@@ -84,6 +98,7 @@ export type EditingText = {
     isNew: boolean
     fontWeight?: string;
     textAlign?: "left" | "center" | "right";
+    rotation?: number
 }
 
 
@@ -97,6 +112,11 @@ export type SelectionArea = {
     width: number
     height: number
 } | null
+
+export type Guide = {
+    type: "vertical" | "horizontal";
+    position: number;
+};
 
 export type AnchorPosition = "top" | "bottom" | "left" | "right"
 
@@ -120,4 +140,5 @@ export type ConnectorDraft = {
 export type HandleType =
     | "nw" | "ne" | "sw" | "se"
     | "n" | "s"
-    | "e" | "w";
+    | "e" | "w"
+    | "rotate";

@@ -1,8 +1,9 @@
-import type { Connector, ConnectorDraft, ConnectorSide, Point, Shape } from "../../types/types";
+import type { Connector, ConnectorSide, Point, Shape, ConnectionState } from "../../types/types";
 import {
     getConnectionDots,
     getConnectionPoint,
     getClosestSidePair,
+    getShapeBounds,
 } from "../../helpers/connectorHelpers";
 
 // ─── Committed connectors ────────────────────────────────────────────────────
@@ -47,16 +48,27 @@ export function drawConnectors(
 
 export function drawConnectorPreview(
     ctx: CanvasRenderingContext2D,
-    draft: ConnectorDraft,
+    state: ConnectionState,
     shapes: Shape[],
-    targetShapeId: string | null,
     scale: number
 ) {
-    const fromShape = shapes.find(s => s.id === draft.fromShapeId);
+    if (state.mode === "idle") return;
+
+    const fromShape = shapes.find(s => s.id === state.sourceId);
     if (!fromShape) return;
 
-    const p1 = getConnectionPoint(fromShape, draft.fromSide);
-    const p2 = draft.toWorldPoint;
+    const p1 = getConnectionPoint(fromShape, state.side);
+    let p2: Point;
+    let targetShapeId: string | null = null;
+
+    if (state.mode === "hover") {
+        const ghost = state.ghostShape;
+        const b = getShapeBounds(ghost);
+        p2 = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    } else {
+        p2 = { x: state.mouseX, y: state.mouseY };
+        targetShapeId = state.targetShapeId;
+    }
 
     ctx.save();
     drawConnectorLine(ctx, p1, p2, scale, true);

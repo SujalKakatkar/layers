@@ -9,7 +9,6 @@ export function getSelectionBounds (
 ): Bounds | null {
     const selectedShapes = shapes.filter(s => selectedIds.includes(s.id))
 
-
     if(selectedShapes.length === 0) {
         return null;
     }
@@ -20,37 +19,48 @@ export function getSelectionBounds (
     let maxY = -Infinity;
 
     selectedShapes.forEach(shape => {
+        let b = { x: 0, y: 0, width: 0, height: 0 };
+        
         switch(shape.type) {
-
             case "rectangle":
-                minX = Math.min(minX, shape.x)
-                minY = Math.min(minY, shape.y)
-                maxX = Math.max(maxX, shape.x + shape.width)
-                maxY = Math.max(maxY, shape.y + shape.height)
-                break
-
+                b = { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
+                break;
             case "circle":
-                minX = Math.min(minX, shape.cx - shape.r)
-                minY = Math.min(minY, shape.cy - shape.r)
-                maxX = Math.max(maxX, shape.cx + shape.r)
-                maxY = Math.max(maxY, shape.cy + shape.r)
-                break
-
+                b = { x: shape.cx - shape.r, y: shape.cy - shape.r, width: shape.r * 2, height: shape.r * 2 };
+                break;
             case "stroke":
-                const b = getStrokeBounds(shape)
-                minX = Math.min(minX, b.x)
-                minY = Math.min(minY, b.y)
-                maxX = Math.max(maxX, b.x + b.width)
-                maxY = Math.max(maxY, b.y + b.height)
-                break
+                b = getStrokeBounds(shape);
+                break;
             case "text":
-
-                minX = Math.min(minX, shape.x);
-                minY = Math.min(minY, shape.y);
-                maxX = Math.max(maxX, shape.x + shape.width);
-                maxY = Math.max(maxY, shape.y + shape.height);
+                b = { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
                 break;
         }
+
+        const cx = b.x + b.width / 2;
+        const cy = b.y + b.height / 2;
+
+        const corners = [
+            { x: b.x, y: b.y },
+            { x: b.x + b.width, y: b.y },
+            { x: b.x + b.width, y: b.y + b.height },
+            { x: b.x, y: b.y + b.height },
+        ];
+
+        const rotation = (shape as any).rotation || 0;
+        const cosA = Math.cos(rotation);
+        const sinA = Math.sin(rotation);
+
+        corners.forEach(p => {
+            const dx = p.x - cx;
+            const dy = p.y - cy;
+            const rotatedX = cx + dx * cosA - dy * sinA;
+            const rotatedY = cy + dx * sinA + dy * cosA;
+
+            minX = Math.min(minX, rotatedX);
+            minY = Math.min(minY, rotatedY);
+            maxX = Math.max(maxX, rotatedX);
+            maxY = Math.max(maxY, rotatedY);
+        });
     })
 
     return {

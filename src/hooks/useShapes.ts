@@ -1,5 +1,5 @@
 import {useCallback, useState, useEffect} from "react"
-import type {Connector, ConnectorSide, HandleType, Shape} from "../types/types"
+import type {Connector, ConnectorSide, HandleType, Shape, Rectangle, Circle, Stroke, Text} from "../types/types"
 import {measureTextSize} from "../helpers/measureTextSize"
 import {getSelectionBounds} from "../canvas/selectArea"
 
@@ -479,6 +479,75 @@ export function useShapes (canvasId: string = "default") {
         )
     }
 
+    function rotateShapes(
+        ids: string[],
+        angleDelta: number,
+        groupCenterX: number,
+        groupCenterY: number,
+        initialMap: Map<string, Shape>,
+        options?: {skipHistory?: boolean}
+    ) {
+        updateShapes(prevShapes => 
+            prevShapes.map(shape => {
+                if(!ids.includes(shape.id)) return shape;
+                
+                const original = initialMap.get(shape.id);
+                if(!original) return shape;
+
+                const cosA = Math.cos(angleDelta);
+                const sinA = Math.sin(angleDelta);
+
+                const rotatePoint = (px: number, py: number) => {
+                    const dx = px - groupCenterX;
+                    const dy = py - groupCenterY;
+                    return {
+                        x: groupCenterX + dx * cosA - dy * sinA,
+                        y: groupCenterY + dx * sinA + dy * cosA
+                    };
+                };
+
+                switch (shape.type) {
+                    case "rectangle":
+                    case "text": {
+                        const orig = original as Rectangle | Text;
+                        const cx = orig.x + orig.width / 2;
+                        const cy = orig.y + orig.height / 2;
+                        const newCenter = rotatePoint(cx, cy);
+                        return {
+                            ...shape,
+                            x: newCenter.x - orig.width / 2,
+                            y: newCenter.y - orig.height / 2,
+                            rotation: (orig.rotation || 0) + angleDelta
+                        };
+                    }
+                    case "circle": {
+                        const orig = original as Circle;
+                        const newCenter = rotatePoint(orig.cx, orig.cy);
+                        return {
+                            ...shape,
+                            cx: newCenter.x,
+                            cy: newCenter.y,
+                            rotation: (orig.rotation || 0) + angleDelta
+                        };
+                    }
+                    case "stroke": {
+                        const orig = original as Stroke;
+                        const newPoints = orig.points.map(p => {
+                            const newP = rotatePoint(p.x, p.y);
+                            return { x: newP.x, y: newP.y };
+                        });
+                        return {
+                            ...shape,
+                            points: newPoints
+                        };
+                    }
+                    default:
+                        return shape;
+                }
+            }), options
+        );
+    }
+
     function groupShapes (ids: string[]) {
         if(ids.length <= 1) return;
         const groupId = crypto.randomUUID();
@@ -539,6 +608,18 @@ export function useShapes (canvasId: string = "default") {
         });
     }
 
+    function addShapeWithConnector(shape: Shape, connector: Connector) {
+        setHistory(prev => {
+            return {
+                past: [...prev.past, structuredClone(prev.present)],
+                present: {
+                    elements: [...prev.present.elements, shape],
+                    connectors: [...prev.present.connectors, connector]
+                },
+                future: []
+            };
+        });
+    }
 
     // --------------- UNDO / REDO -------------
 
@@ -582,6 +663,7 @@ export function useShapes (canvasId: string = "default") {
         removeShapes,
         moveShapes,
         resizeShapes,
+        rotateShapes,
         getShapeById,
         copyShapes,
         pasteShapes,
@@ -592,6 +674,7 @@ export function useShapes (canvasId: string = "default") {
         ungroupShapes,
         addConnector,
         removeConnector,
+        addShapeWithConnector,
         undo,
         redo
     }
