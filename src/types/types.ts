@@ -49,6 +49,12 @@ export type Rectangle = {
     width: number
     height: number
     rotation?: number
+    isGenerated?: boolean
+    source?: {
+        line: number;
+        start: number;
+        end: number;
+    };
 };
 
 export type Circle = {
@@ -59,6 +65,12 @@ export type Circle = {
     cy: number
     r: number
     rotation?: number
+    isGenerated?: boolean
+    source?: {
+        line: number;
+        start: number;
+        end: number;
+    };
 };
 
 export type Stroke = {
@@ -69,6 +81,7 @@ export type Stroke = {
     color: string
     width: number
     rotation?: number
+    isGenerated?: boolean
 }
 
 export type Text = {
@@ -84,6 +97,12 @@ export type Text = {
     fontWeight?: string;
     textAlign?: "left" | "center" | "right";
     rotation?: number
+    isGenerated?: boolean
+    source?: {
+        line: number;
+        start: number;
+        end: number;
+    };
 }
 
 export type EditingText = {
@@ -128,6 +147,7 @@ export type Connector = {
     toShapeId: string;
     fromSide: ConnectorSide;
     toSide: ConnectorSide;
+    isGenerated?: boolean;
 };
 
 /** Transient state while the user is dragging a new connector */

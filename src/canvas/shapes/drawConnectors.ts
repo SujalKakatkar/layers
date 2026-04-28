@@ -106,7 +106,7 @@ export function drawConnectionDots(
     ctx.save();
 
     for (const shape of shapes) {
-        if (!shapeSet.has(shape.id)) continue;
+        if (!shapeSet.has(shape.id) || (shape as any).isGenerated) continue;
 
         const dots = getConnectionDots(shape);
         for (const { point } of dots) {
@@ -142,8 +142,8 @@ function drawConnectorLine(
         ctx.lineCap = "round";
         ctx.stroke();
     } else {
-        // draw black/blue line first (thicker)
-        ctx.strokeStyle = isSelected ? "#3b82f6" : "black";
+        // draw black/emerald line first (thicker)
+        ctx.strokeStyle = isSelected ? "#10B981" : "black";
         ctx.lineWidth   = (isSelected ? 6 : 4) / scale;
         ctx.lineCap = "round";
         ctx.stroke();
@@ -180,7 +180,7 @@ function drawArrowHead(
     ctx.fill();
     
     ctx.lineWidth = 1.5 / scale;
-    ctx.strokeStyle = isSelected ? "#3b82f6" : "black";
+    ctx.strokeStyle = isSelected ? "#10B981" : "black";
     ctx.stroke();
     ctx.restore();
 }
@@ -196,10 +196,10 @@ function drawDot(ctx: CanvasRenderingContext2D, point: Point, scale: number) {
     ctx.fillStyle = "white";
     ctx.fill();
 
-    // Inner teal/blue fill
+    // Inner emerald fill
     ctx.beginPath();
     ctx.arc(point.x, point.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#3b82f6";
+    ctx.fillStyle = "#10B981";
     ctx.fill();
 
     // "+" cross
@@ -241,7 +241,7 @@ function highlightShape(
     }
 
     const pad = 6 / scale;
-    ctx.strokeStyle = "rgba(99, 179, 237, 0.9)";
+    ctx.strokeStyle = "rgba(16, 185, 129, 0.9)";
     ctx.lineWidth   = 2 / scale;
     ctx.setLineDash([5 / scale, 3 / scale]);
     ctx.strokeRect(x - pad, y - pad, w + pad * 2, h + pad * 2);

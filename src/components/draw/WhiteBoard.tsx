@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useOutletContext, useParams} from "react-router";
 import {useCamera} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
@@ -111,12 +111,69 @@ export default function Whiteboard () {
         cancelDrag: cancelConnectorDrag,
     } = useConnector();
 
-    const { 
-        generatedElements, 
+    const {
+        generatedElements,
         generatedConnectors,
         setGeneratedElements,
-        setGeneratedConnectors
+        setGeneratedConnectors,
+        generatedGroupOffset,
+        setGeneratedGroupOffset,
+        selectedNodeId,
+        setSelectedNodeId,
+        setHighlightedRange,
     } = useDiagramStore();
+
+    // ── Group drag state ──────────────────────────────────────────────────────
+    // We track dragging in a ref (not state) to avoid re-renders mid-drag.
+    const groupDragRef = useRef<{
+        active: boolean;
+        startX: number;  // world coords where drag began
+        startY: number;
+        originX: number; // offset at drag start
+        originY: number;
+    }>({active: false, startX: 0, startY: 0, originX: 0, originY: 0});
+
+    const [groupSelected, setGroupSelected] = useState(false);
+
+    // ── Offset-shifted elements (cheap memo, no layout changes) ───────────────
+    const shiftedGeneratedElements = useMemo(() => {
+        const {x: ox, y: oy} = generatedGroupOffset;
+        if(ox === 0 && oy === 0) return generatedElements;
+        return generatedElements.map((el: any) => {
+            if(el.type === "circle") {
+                return {...el, cx: el.cx + ox, cy: el.cy + oy};
+            }
+            return {...el, x: el.x + ox, y: el.y + oy};
+        });
+    }, [generatedElements, generatedGroupOffset]);
+
+    // ── Helper: hit-test a single shifted element ─────────────────────────────
+    function hitTestElement (el: any, p: {x: number; y: number}): boolean {
+        if(el.type === "circle") {
+            const dx = p.x - el.cx;
+            const dy = p.y - el.cy;
+            return Math.sqrt(dx * dx + dy * dy) <= el.r;
+        }
+        // rectangle / text
+        return p.x >= el.x && p.x <= el.x + el.width && p.y >= el.y && p.y <= el.y + el.height;
+    }
+
+    // ── Helper: get bounding box of entire shifted group ──────────────────────
+    function getGroupBounds () {
+        if(shiftedGeneratedElements.length === 0) return null;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        shiftedGeneratedElements.forEach((el: any) => {
+            let x: number, y: number, w: number, h: number;
+            if(el.type === "circle") {
+                x = el.cx - el.r; y = el.cy - el.r; w = el.r * 2; h = el.r * 2;
+            } else {
+                x = el.x; y = el.y; w = el.width; h = el.height;
+            }
+            minX = Math.min(minX, x); minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h);
+        });
+        return {x: minX, y: minY, width: maxX - minX, height: maxY - minY};
+    }
 
     const shapesRef = useRef(shapes);
     useEffect(() => {shapesRef.current = shapes;}, [shapes]);
@@ -166,7 +223,7 @@ export default function Whiteboard () {
     //Text tool hook
     const {editingText, startText, updateText, finishText} = useText(addShape, updateShape)
 
-    const allElements = [...generatedElements, ...shapes];
+    const allElements = [...shiftedGeneratedElements, ...shapes];
 
     //Select tool hook
     const {
@@ -249,7 +306,34 @@ export default function Whiteboard () {
 
             const p = getWorldPoint(e, canvas, scale, offset);
 
-            // Check if we hit a connector dot first
+            // ── Generated group: intercept before anything else ────────────
+            if(activeTool === "select" && e.isPrimary) {
+                const hitElement = [...shiftedGeneratedElements].reverse().find((el: any) => hitTestElement(el, p));
+                if(hitElement) {
+                    setGroupSelected(true);
+                    setSelectedNodeId(hitElement.id);
+                    if(hitElement.source) {
+                        setHighlightedRange(hitElement.source);
+                    }
+
+                    setSelectedIds([]);
+                    setSelectedConnectorId(null);
+                    groupDragRef.current = {
+                        active: true,
+                        startX: p.x,
+                        startY: p.y,
+                        originX: generatedGroupOffset.x,
+                        originY: generatedGroupOffset.y,
+                    };
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    return; // skip normal selection
+                }
+                // Clicked outside group → deselect group
+                setGroupSelected(false);
+                setSelectedNodeId(null);
+                setHighlightedRange(null);
+            }
+
             if(activeTool === "select" && e.isPrimary) {
                 const consumed = onConnectorPointerDown(p, allElements);
                 if(consumed) return; // skip normal selection logic if starting a connector
@@ -300,6 +384,16 @@ export default function Whiteboard () {
             if(!canvas) return;
             const p = getWorldPoint(e, canvas, scale, offset);
 
+            // ── Group drag ────────────────────────────────────────────────
+            if(groupDragRef.current.active) {
+                const {startX, startY, originX, originY} = groupDragRef.current;
+                setGeneratedGroupOffset({
+                    x: originX + (p.x - startX),
+                    y: originY + (p.y - startY),
+                });
+                return;
+            }
+
             if(activeTool === "select") {
                 onConnectorPointerMove(p, allElements);
             }
@@ -307,6 +401,12 @@ export default function Whiteboard () {
             updateSelect(e);
         },
         onPointerUp: (e) => {
+            // ── End group drag ────────────────────────────────────────────
+            if(groupDragRef.current.active) {
+                groupDragRef.current.active = false;
+                return;
+            }
+
             if(activeTool === "select") {
                 const canvas = canvasRef.current;
                 if(canvas) {
@@ -446,7 +546,7 @@ export default function Whiteboard () {
     useEffect(() => {
         if(!canvasRef.current) return;
 
-        const allElements = [...generatedElements, ...shapes];
+        const allElements = [...shiftedGeneratedElements, ...shapes];
         const allConnectors = [...generatedConnectors, ...connectors];
 
         drawScene(
@@ -465,7 +565,69 @@ export default function Whiteboard () {
             ghostPreview,
             selectedConnectorId
         );
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, generatedElements, generatedConnectors]);
+
+        // ── Draw generated-group selection bounding box ──────────────────
+        if(groupSelected && shiftedGeneratedElements.length > 0) {
+            const ctx = canvasRef.current.getContext("2d");
+            if(ctx) {
+                const dpr = window.devicePixelRatio || 1;
+                const gb = getGroupBounds();
+                if(gb) {
+                    const pad = 14;
+                    ctx.save();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+                    ctx.translate(offset.x, offset.y);
+                    ctx.scale(scale, scale);
+
+                    ctx.strokeStyle = "#10B981"; // Emerald
+                    ctx.lineWidth = 1.5 / scale;
+                    ctx.setLineDash([6 / scale, 3 / scale]);
+                    ctx.strokeRect(gb.x - pad, gb.y - pad, gb.width + pad * 2, gb.height + pad * 2);
+
+                    // ── Move hint label (Emerald Text) ───────────────────
+                    ctx.setLineDash([]);
+                    const labelText = "Drag to move group";
+                    ctx.font = `bold ${Math.max(12, 12 / scale)}px sans-serif`;
+                    
+                    // Draw text at top-left
+                    ctx.fillStyle = "#10B981";
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "bottom";
+                    ctx.fillText(labelText, gb.x - pad, gb.y - pad - 6 / scale);
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        // ── Draw individual generated node highlight ────────────────────
+        if(selectedNodeId) {
+            const el = shiftedGeneratedElements.find((e: any) => e.id === selectedNodeId);
+            if(el) {
+                const ctx = canvasRef.current.getContext("2d");
+                if(ctx) {
+                    const dpr = window.devicePixelRatio || 1;
+                    ctx.save();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+                    ctx.translate(offset.x, offset.y);
+                    ctx.scale(scale, scale);
+
+                    ctx.strokeStyle = "#10B981"; // Emerald
+                    ctx.lineWidth = 3 / scale;
+                    if(el.type === "circle") {
+                        ctx.beginPath();
+                        ctx.arc(el.cx, el.cy, el.r + 5 / scale, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else {
+                        ctx.strokeRect(el.x - 5 / scale, el.y - 5 / scale, el.width + 10 / scale, el.height + 10 / scale);
+                    }
+                    ctx.restore();
+                }
+            }
+        }
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, groupSelected, selectedNodeId]);
 
 
 

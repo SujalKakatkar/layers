@@ -21,7 +21,7 @@ export function drawScene (
     connectors?: Connector[],
     connectionState?: ConnectionState,
     dotShapeId?: string | null,
-    ghostPreview?: { type: "rectangle" | "circle" | "text"; x: number; y: number; width?: number; height?: number; } | null,
+    ghostPreview?: {type: "rectangle" | "circle" | "text"; x: number; y: number; width?: number; height?: number;} | null,
     selectedConnectorId?: string | null
 ) {
 
@@ -38,17 +38,17 @@ export function drawScene (
     const renderShape = (shape: Shape, opacity: number = 1) => {
         ctx.save();
         ctx.globalAlpha = opacity;
-        
-        if (shape.rotation) {
+
+        if(shape.rotation) {
             let cx = 0, cy = 0;
-            if (shape.type === "rectangle" || shape.type === "text") {
+            if(shape.type === "rectangle" || shape.type === "text") {
                 cx = shape.x + shape.width / 2;
                 cy = shape.y + shape.height / 2;
-            } else if (shape.type === "circle") {
+            } else if(shape.type === "circle") {
                 cx = shape.cx;
                 cy = shape.cy;
             }
-            if (cx || cy) {
+            if(cx || cy) {
                 ctx.translate(cx, cy);
                 ctx.rotate(shape.rotation);
                 ctx.translate(-cx, -cy);
@@ -62,7 +62,7 @@ export function drawScene (
             case "text": drawText(ctx, shape); break;
         }
 
-        if ((shape as any).text && shape.type !== "text") {
+        if((shape as any).text && shape.type !== "text") {
             drawText(ctx, shape as any);
         }
 
@@ -83,11 +83,11 @@ export function drawScene (
     }
 
     // ── Unified Connection Rendering ──────────────────────────────────
-    if (connectionState) {
-        if (connectionState.mode === "hover") {
+    if(connectionState) {
+        if(connectionState.mode === "hover") {
             renderShape(connectionState.ghostShape, 0.4);
             drawConnectorPreview(ctx, connectionState, shapes, scale);
-        } else if (connectionState.mode === "drag") {
+        } else if(connectionState.mode === "drag") {
             drawConnectorPreview(ctx, connectionState, shapes, scale);
         }
     }
@@ -149,9 +149,9 @@ export function drawScene (
         ];
 
         // ── Bounding box stroke ────────────────────────────────────────
-        ctx.strokeStyle = "#3b82f6";
+        ctx.strokeStyle = "#10B981";
         ctx.lineWidth = 1 / scale;
-        
+
         ctx.beginPath();
         ctx.moveTo(corners[0].x, corners[0].y);
         ctx.lineTo(corners[1].x, corners[1].y);
@@ -167,7 +167,7 @@ export function drawScene (
 
         corners.forEach(({x, y}) => {
             ctx.fillStyle = "#ffffff";
-            ctx.strokeStyle = "#3b82f6";
+            ctx.strokeStyle = "#10B981";
             ctx.lineWidth = 1.5 / scale;
             ctx.fillRect(x - half, y - half, hSize, hSize);
             ctx.strokeRect(x - half, y - half, hSize, hSize);
@@ -179,7 +179,7 @@ export function drawScene (
     if(selectArea) {
         ctx.save();
 
-        ctx.fillStyle = "rgba(59,130,246,0.2)";
+        ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
         ctx.fillRect(
             selectArea.x,
             selectArea.y,
@@ -187,7 +187,7 @@ export function drawScene (
             selectArea.height
         );
 
-        ctx.strokeStyle = "#3b82f6";
+        ctx.strokeStyle = "#10B981";
         ctx.setLineDash([6, 4]);
         ctx.lineWidth = 1;
         ctx.strokeRect(
@@ -229,16 +229,16 @@ export function drawScene (
     }
 
     // ── Ghost Preview ──────────────────────────────────────────────
-    if (ghostPreview) {
+    if(ghostPreview) {
         ctx.save();
         ctx.globalAlpha = 0.4;
-        ctx.strokeStyle = "#3b82f6"; // or white, assuming light theme or standard
+        ctx.strokeStyle = "#10B981"; // emerald
         ctx.lineWidth = 1.5 / scale;
         ctx.setLineDash([5 / scale, 5 / scale]);
 
         ctx.beginPath();
-        if (ghostPreview.type === "rectangle") {
-            const { x, y, width = 120, height = 80 } = ghostPreview;
+        if(ghostPreview.type === "rectangle") {
+            const {x, y, width = 120, height = 80} = ghostPreview;
             const r = 10;
             ctx.moveTo(x + r, y);
             ctx.lineTo(x + width - r, y);
@@ -249,19 +249,19 @@ export function drawScene (
             ctx.quadraticCurveTo(x, y + height, x, y + height - r);
             ctx.lineTo(x, y + r);
             ctx.quadraticCurveTo(x, y, x + r, y);
-        } else if (ghostPreview.type === "circle") {
+        } else if(ghostPreview.type === "circle") {
             const r = 50;
             const cx = ghostPreview.x + r;
             const cy = ghostPreview.y + r;
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        } else if (ghostPreview.type === "text") {
-            const { x, y, width = 100, height = 30 } = ghostPreview;
-            ctx.rect(x, y, width, height); 
+        } else if(ghostPreview.type === "text") {
+            const {x, y, width = 100, height = 30} = ghostPreview;
+            ctx.rect(x, y, width, height);
         }
         ctx.stroke();
-        
-        if (ghostPreview.type === "text") {
-            ctx.fillStyle = "#3b82f6";
+
+        if(ghostPreview.type === "text") {
+            ctx.fillStyle = "#10B981";
             ctx.font = `${24}px sans-serif`;
             ctx.textBaseline = "top";
             ctx.fillText("Text", ghostPreview.x + 5, ghostPreview.y + 5);

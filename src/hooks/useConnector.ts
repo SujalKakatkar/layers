@@ -81,6 +81,7 @@ export function useConnector () {
     function onPointerDown (point: Point, shapes: Shape[]): boolean {
         for(let i = shapes.length - 1; i >= 0; i--) {
             const shape = shapes[i];
+            if(shape.isGenerated) continue;
             const side = getHoveredDot(point, shape, 12);
             if(side !== null) {
                 downPointRef.current = point;
@@ -105,21 +106,27 @@ export function useConnector () {
             setConnectionState(prev => {
                 if (prev.mode === "hover" && dist > 5) {
                     const hitId = getShapeAtPoint(point.x, point.y, shapes);
+                    const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+                    const isGenerated = targetShape?.isGenerated;
+
                     return {
                         mode: "drag",
                         sourceId: prev.sourceId,
                         side: prev.side,
                         mouseX: point.x,
                         mouseY: point.y,
-                        targetShapeId: hitId !== prev.sourceId ? hitId : null
+                        targetShapeId: (hitId !== prev.sourceId && !isGenerated) ? hitId : null
                     };
                 } else if (prev.mode === "drag") {
                     const hitId = getShapeAtPoint(point.x, point.y, shapes);
+                    const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+                    const isGenerated = targetShape?.isGenerated;
+
                     return {
                         ...prev,
                         mouseX: point.x,
                         mouseY: point.y,
-                        targetShapeId: hitId !== prev.sourceId ? hitId : null
+                        targetShapeId: (hitId !== prev.sourceId && !isGenerated) ? hitId : null
                     };
                 }
                 return prev;
@@ -130,6 +137,7 @@ export function useConnector () {
         // Idle detection
         let foundHover = false;
         for(let i = shapes.length - 1; i >= 0; i--) {
+            if(shapes[i].isGenerated) continue;
             const side = getHoveredDot(point, shapes[i], 14);
             if(side !== null) {
                 setDotShapeId(shapes[i].id);
@@ -147,7 +155,8 @@ export function useConnector () {
         if (!foundHover) {
             setConnectionState({ mode: "idle" });
             const hitId = getShapeAtPoint(point.x, point.y, shapes);
-            setDotShapeId(hitId);
+            const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+            setDotShapeId(targetShape && !targetShape.isGenerated ? hitId : null);
         }
     }
 
@@ -177,7 +186,7 @@ export function useConnector () {
             let toSide: ConnectorSide | undefined;
 
             for(let i = shapes.length - 1; i >= 0; i--) {
-                if(shapes[i].id === state.sourceId) continue;
+                if(shapes[i].id === state.sourceId || shapes[i].isGenerated) continue;
                 const side = getHoveredDot(point, shapes[i], 14);
                 if(side !== null) {
                     toShape = shapes[i];
@@ -190,7 +199,7 @@ export function useConnector () {
                 const hitId = getShapeAtPoint(point.x, point.y, shapes);
                 if(hitId && hitId !== state.sourceId) {
                     const candidate = shapes.find(s => s.id === hitId);
-                    if(candidate && candidate.type !== "text" && candidate.type !== "stroke") {
+                    if(candidate && candidate.type !== "text" && candidate.type !== "stroke" && !candidate.isGenerated) {
                         toShape = candidate;
                     }
                 }

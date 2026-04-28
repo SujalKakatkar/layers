@@ -1,5 +1,6 @@
 import {useEffect} from "react";
 import type {Shape, Tools} from "../types/types";
+import {editorFocus} from "./useEditorFocus.ts";
 
 /**
  * Returns true when focus is inside a text-editing target
@@ -87,8 +88,8 @@ export function useKeyboard ({
         let savedArrowHistory = false;
 
         function handleKeyDown (e: KeyboardEvent) {
-            // Never steal events from text inputs / contenteditable areas
-            if(isTypingTarget(e.target)) return;
+            // Never steal events from text inputs / contenteditable areas or the Monaco editor
+            if(isTypingTarget(e.target) || editorFocus.active) return;
 
             const ctrl = e.ctrlKey || e.metaKey;
 

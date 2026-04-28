@@ -30,7 +30,7 @@ function Canvaslayout () {
             <CodePanel isOpen={isCodePanelOpen} onClose={() => setIsCodePanelOpen(false)} />
 
             <main className="flex-1">
-                <Outlet context={{tool, setTool, setUndoRedo: setHistoryActions}} />
+                <Outlet context={{tool, setTool, setUndoRedo: setHistoryActions, isCodePanelOpen}} />
             </main>
         </div>
     )
