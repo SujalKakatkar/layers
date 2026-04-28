@@ -3,7 +3,7 @@ const measureCtx = measureCanvas.getContext("2d")!;
 
 export function measureTextSize (text: string, fontSize = 20, fontWeight: string = "normal") {
 
-    measureCtx.font = `${fontWeight} ${fontSize}px sans-serif`;
+    measureCtx.font = `${fontWeight} ${fontSize}px 'Patrick Hand', sans-serif`;
 
     const lines = text.split("\n");
 

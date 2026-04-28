@@ -141,4 +141,5 @@ export type HandleType =
     | "nw" | "ne" | "sw" | "se"
     | "n" | "s"
     | "e" | "w"
-    | "rotate";
+    | "rotate"
+    | "rotate-tl" | "rotate-tr" | "rotate-bl" | "rotate-br";

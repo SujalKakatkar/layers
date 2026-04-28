@@ -1,4 +1,4 @@
-import {Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo} from "lucide-react"
+import {Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo, Code, CodeXml} from "lucide-react"
 import type {LucideIcon} from 'lucide-react'
 import type {HelperTools, Tools} from "../../types/types"
 
@@ -7,6 +7,8 @@ type ToolbarProps = {
   activeTool: Tools
   onUndo: () => void,
   onRedo: () => void
+  isCodePanelOpen?: boolean
+  onToggleCodePanel?: () => void
 }
 
 type baseItems = {
@@ -22,7 +24,7 @@ type ToolbarItems = (baseItems & {
   tool: Tools
 })[]
 
-function Toolbar ({onToolChange, activeTool, onUndo, onRedo}: ToolbarProps) {
+function Toolbar ({onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, onToggleCodePanel}: ToolbarProps) {
 
   const icons: ToolbarItems = [
     {
@@ -121,6 +123,19 @@ function Toolbar ({onToolChange, activeTool, onUndo, onRedo}: ToolbarProps) {
           )
         })}
       </ul>
+      
+      {/* Code Toggle */}
+      <div className="w-px h-6 bg-zinc-700 mx-1" />
+      <div className="text-zinc-400 p-1 flex gap-2">
+        <button
+          onClick={onToggleCodePanel}
+          className={`w-9 h-9 flex items-center justify-center rounded-lg transition
+          ${isCodePanelOpen ? "bg-theme-muted text-white" : "text-zinc-300 hover:bg-zinc-800 hover:text-white"}`}
+          title="Code"
+        >
+          <CodeXml size={18} strokeWidth={2} />
+        </button>
+      </div>
     </div>
   )
 }

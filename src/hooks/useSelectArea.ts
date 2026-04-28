@@ -9,6 +9,14 @@ import {getShapeAtPoint} from "../helpers/getShapeAtPoint";
 import {getHandleAtPoint} from "../helpers/getHandleAtPoint";
 import {isTextInside} from "../helpers/isTextInside";
 
+const rotationCursorMap: Record<string, string> = {
+    "rotate-tl": "url('/cursors/rotate-tl.png') 24 24, auto",
+    "rotate-tr": "url('/cursors/rotate-tr.png') 24 24, auto",
+    "rotate-bl": "url('/cursors/rotate-bl.png') 24 24, auto",
+    "rotate-br": "url('/cursors/rotate-br.png') 24 24, auto",
+    "rotate": "url('/cursors/rotate-tl.png') 24 24, auto" // Fallback
+};
+
 export function useSelectArea (
     canvasRef: React.RefObject<HTMLCanvasElement | null>,
     scale: number,
@@ -95,12 +103,22 @@ export function useSelectArea (
                     return;
                 }
 
+                const angle = (bounds as any).rotation || 0;
+                const cx = bounds.x + bounds.width / 2;
+                const cy = bounds.y + bounds.height / 2;
+                const dx = p.x - cx;
+                const dy = p.y - cy;
+                const cosA = Math.cos(-angle);
+                const sinA = Math.sin(-angle);
+                const rx = cx + dx * cosA - dy * sinA;
+                const ry = cy + dx * sinA + dy * cosA;
+
                 // If clicked inside the bounding box completely, drag the whole group
                 if(
-                    p.x >= bounds.x &&
-                    p.x <= bounds.x + bounds.width &&
-                    p.y >= bounds.y &&
-                    p.y <= bounds.y + bounds.height
+                    rx >= bounds.x &&
+                    rx <= bounds.x + bounds.width &&
+                    ry >= bounds.y &&
+                    ry <= bounds.y + bounds.height
                 ) {
                     if(isAltKey) {
                         const newIds = duplicateShapes(selectedIds, {offset: 0, skipHistory: false});
@@ -203,17 +221,31 @@ export function useSelectArea (
                     return;
 
                 case "rotate":
-                    canvas.style.cursor = "url('/rotate-cursor.svg') 12 12, crosshair";
+                case "rotate-tl":
+                case "rotate-tr":
+                case "rotate-bl":
+                case "rotate-br":
+                    canvas.style.cursor = rotationCursorMap[handle] || rotationCursorMap["rotate"];
                     return;
             }
         }
 
+        const angle = (bounds as any).rotation || 0;
+        const cx = bounds.x + bounds.width / 2;
+        const cy = bounds.y + bounds.height / 2;
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        const cosA = Math.cos(-angle);
+        const sinA = Math.sin(-angle);
+        const rx = cx + dx * cosA - dy * sinA;
+        const ry = cy + dx * sinA + dy * cosA;
+
         // Inside bounding box -> Move cursor
         if(
-            p.x >= bounds.x &&
-            p.x <= bounds.x + bounds.width &&
-            p.y >= bounds.y &&
-            p.y <= bounds.y + bounds.height
+            rx >= bounds.x &&
+            rx <= bounds.x + bounds.width &&
+            ry >= bounds.y &&
+            ry <= bounds.y + bounds.height
         ) {
             canvas.style.cursor = "move";
             return;
@@ -244,8 +276,8 @@ export function useSelectArea (
                 hasSavedMoveHistoryRef.current = true;
             }
 
-            if(resizeHandleRef.current === "rotate") {
-                canvas.style.cursor = "url('/rotate-cursor.svg') 12 12, crosshair";
+            if(resizeHandleRef.current.startsWith("rotate")) {
+                canvas.style.cursor = rotationCursorMap[resizeHandleRef.current] || rotationCursorMap["rotate"];
                 const initialBounds = getSelectionBounds(Array.from(initialShapesRef.current.values()), selectedIds);
                 if(initialBounds) {
                     const cx = initialBounds.x + initialBounds.width / 2;

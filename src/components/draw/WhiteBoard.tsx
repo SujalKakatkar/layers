@@ -11,6 +11,7 @@ import {useCircleDraw} from "../../hooks/useCircle";
 import {usePenDraw} from "../../hooks/usePen";
 import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
+import {useDiagramStore} from "../../store/useDiagramStore";
 import {useText} from "../../hooks/useText";
 import {useKeyboard} from "../../hooks/useKeyboard";
 import TextToolbar from "./TextToolbar";
@@ -38,9 +39,23 @@ type OutletContextType = {
 
 
 import {expandSelectionByGroup} from "../../helpers/selectionTools";
+import {
+    getDistanceToBezier,
+    getConnectionPoint,
+    getClosestSidePair,
+    getBezierControl
+} from "../../helpers/connectorHelpers";
 
 export default function Whiteboard () {
     const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
+    const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
+    const [ghostPreview, setGhostPreview] = useState<{
+        type: "rectangle" | "circle" | "text";
+        x: number;
+        y: number;
+        width?: number;
+        height?: number;
+    } | null>(null);
 
     const textRef = useRef<HTMLDivElement | null>(null)
     const justFinishedRef = useRef<boolean>(false);
@@ -83,7 +98,8 @@ export default function Whiteboard () {
         redo,
         connectors,
         addConnector,
-        addShapeWithConnector
+        addShapeWithConnector,
+        removeConnector
     } = useShapes(canvasId)
 
     const {
@@ -94,6 +110,13 @@ export default function Whiteboard () {
         onPointerUp: onConnectorPointerUp,
         cancelDrag: cancelConnectorDrag,
     } = useConnector();
+
+    const { 
+        generatedElements, 
+        generatedConnectors,
+        setGeneratedElements,
+        setGeneratedConnectors
+    } = useDiagramStore();
 
     const shapesRef = useRef(shapes);
     useEffect(() => {shapesRef.current = shapes;}, [shapes]);
@@ -143,6 +166,8 @@ export default function Whiteboard () {
     //Text tool hook
     const {editingText, startText, updateText, finishText} = useText(addShape, updateShape)
 
+    const allElements = [...generatedElements, ...shapes];
+
     //Select tool hook
     const {
         selectArea,
@@ -151,7 +176,7 @@ export default function Whiteboard () {
         onPointerUp: endSelect,
         resetSelection,
         guides
-    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
+    } = useSelectArea(canvasRef, scale, offset, allElements, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
     const clearSelection = useCallback(() => setSelectedIds([]), []);
@@ -160,10 +185,16 @@ export default function Whiteboard () {
         setSelectedIds(shapes.map(s => s.id));
     }, [shapes]);
 
+    const combinedRemoveShapes = useCallback((ids: string[]) => {
+        removeShapes(ids);
+        setGeneratedElements(prev => prev.filter(el => !ids.includes(el.id)));
+        setGeneratedConnectors(prev => prev.filter(conn => !ids.includes(conn.fromShapeId) && !ids.includes(conn.toShapeId)));
+    }, [removeShapes, setGeneratedElements, setGeneratedConnectors]);
+
     useKeyboard({
         selectedIds,
         isEditingText: editingText !== null,
-        removeShapes,
+        removeShapes: combinedRemoveShapes,
         undo,
         redo,
         moveShapes,
@@ -187,9 +218,28 @@ export default function Whiteboard () {
     useEffect(() => {
         if(activeTool != "select") {
             setSelectedIds([]);
+            setSelectedConnectorId(null);
             resetSelection();
         }
+        setGhostPreview(null);
     }, [activeTool])
+
+    useEffect(() => {
+        function onKeyDown (e: KeyboardEvent) {
+            // Prevent interference with input fields
+            if(e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
+
+            if((e.code === "Delete" || e.code === "Backspace") && !editingText) {
+                if(selectedConnectorId) {
+                    e.preventDefault();
+                    removeConnector(selectedConnectorId);
+                    setSelectedConnectorId(null);
+                }
+            }
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [selectedConnectorId, editingText, removeConnector]);
 
     // TOOL ADAPTERS
     const selectTool: CanvasTool = {
@@ -201,8 +251,37 @@ export default function Whiteboard () {
 
             // Check if we hit a connector dot first
             if(activeTool === "select" && e.isPrimary) {
-                const consumed = onConnectorPointerDown(p, shapes);
+                const consumed = onConnectorPointerDown(p, allElements);
                 if(consumed) return; // skip normal selection logic if starting a connector
+
+                // Check connector hit
+                let hitConnectorId: string | null = null;
+                for(const conn of connectors) {
+                    const fromShape = getShapeById(conn.fromShapeId);
+                    const toShape = getShapeById(conn.toShapeId);
+                    if(!fromShape || !toShape) continue;
+
+                    const {fromSide, toSide} = getClosestSidePair(fromShape, toShape);
+                    const p1 = getConnectionPoint(fromShape, fromSide);
+                    const p2 = getConnectionPoint(toShape, toSide);
+                    const cp1 = getBezierControl(p1, p2, 0.35);
+                    const cp2 = getBezierControl(p2, p1, 0.35);
+
+                    const dist = getDistanceToBezier(p, p1, cp1, cp2, p2);
+                    if(dist < 10 / scale) {
+                        hitConnectorId = conn.id;
+                        break;
+                    }
+                }
+
+                if(hitConnectorId) {
+                    setSelectedConnectorId(hitConnectorId);
+                    setSelectedIds([]);
+                    return; // skip normal selection logic
+                }
+
+                // If not hit a connector, clear connector selection
+                setSelectedConnectorId(null);
             }
 
             if(editingText) {
@@ -222,7 +301,7 @@ export default function Whiteboard () {
             const p = getWorldPoint(e, canvas, scale, offset);
 
             if(activeTool === "select") {
-                onConnectorPointerMove(p, shapes);
+                onConnectorPointerMove(p, allElements);
             }
 
             updateSelect(e);
@@ -232,16 +311,16 @@ export default function Whiteboard () {
                 const canvas = canvasRef.current;
                 if(canvas) {
                     const p = getWorldPoint(e, canvas, scale, offset);
-                    const intent = onConnectorPointerUp(p, shapes);
+                    const intent = onConnectorPointerUp(p, allElements);
                     if(intent) {
-                        if (intent.type === "connect") {
+                        if(intent.type === "connect") {
                             addConnector(
                                 intent.fromShapeId,
                                 intent.fromSide,
                                 intent.toShapeId,
                                 intent.toSide
                             );
-                        } else if (intent.type === "create") {
+                        } else if(intent.type === "create") {
                             const newConnector = {
                                 id: crypto.randomUUID(),
                                 fromShapeId: intent.sourceId,
@@ -249,8 +328,8 @@ export default function Whiteboard () {
                                 toShapeId: intent.newShape.id,
                                 toSide: (
                                     intent.side === "top" ? "bottom" :
-                                    intent.side === "bottom" ? "top" :
-                                    intent.side === "left" ? "right" : "left"
+                                        intent.side === "bottom" ? "top" :
+                                            intent.side === "left" ? "right" : "left"
                                 ) as any
                             };
                             addShapeWithConnector(intent.newShape, newConnector);
@@ -278,6 +357,7 @@ export default function Whiteboard () {
             circleDraw(p);
         },
         onPointerUp: () => {
+            setGhostPreview(null);
             const current = circleEndDraw()
 
             if(!current) return
@@ -300,6 +380,7 @@ export default function Whiteboard () {
             draw(p);
         },
         onPointerUp: () => {
+            setGhostPreview(null);
             const created = endDraw();
 
             if(!created) return
@@ -338,6 +419,7 @@ export default function Whiteboard () {
             if(!canvasRef.current) return
             const p = getWorldPoint(e, canvasRef.current, scale, offset)
             startText(p)
+            setGhostPreview(null);
             setTool("select")
         },
         cursor: 'text'
@@ -363,21 +445,27 @@ export default function Whiteboard () {
     // DRAW SCENE
     useEffect(() => {
         if(!canvasRef.current) return;
+
+        const allElements = [...generatedElements, ...shapes];
+        const allConnectors = [...generatedConnectors, ...connectors];
+
         drawScene(
             canvasRef.current,
             currentShape,
-            shapes,
+            allElements,
             scale,
             offset,
             selectArea,
             selectedIds,
             editingText,
             guides,
-            connectors,
+            allConnectors,
             connectionState,
-            connectorDotShapeId
+            connectorDotShapeId,
+            ghostPreview,
+            selectedConnectorId
         );
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId]);
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, generatedElements, generatedConnectors]);
 
 
 
@@ -401,6 +489,26 @@ export default function Whiteboard () {
 
         pan(e.clientX, e.clientY);
 
+        if(canvasRef.current && activeTool !== "select" && activeTool !== "pen") {
+            const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
+            if(e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
+                const p = getWorldPoint(e, canvasRef.current, scale, offset);
+                if(activeTool === "rectangle") {
+                    setGhostPreview({type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80});
+                } else if(activeTool === "circle") {
+                    setGhostPreview({type: "circle", x: p.x - 50, y: p.y - 50});
+                } else if(activeTool === "text") {
+                    setGhostPreview({type: "text", x: p.x, y: p.y});
+                } else {
+                    setGhostPreview(null);
+                }
+            } else {
+                setGhostPreview(null);
+            }
+        } else {
+            setGhostPreview(null);
+        }
+
         tools[activeTool]?.onPointerMove?.(
             e
         );
@@ -420,7 +528,7 @@ export default function Whiteboard () {
 
         const p = getWorldPoint(e, canvasRef.current, scale, offset);
 
-        const hitId = shapes
+        const hitId = allElements
             .slice()
             .reverse()
             .find(shape => {
@@ -476,7 +584,7 @@ export default function Whiteboard () {
         if(newIds.length > 0) setSelectedIds(newIds);
     };
     const handleDelete = () => {
-        removeShapes(selectedIds);
+        combinedRemoveShapes(selectedIds);
         setSelectedIds([]);
     };
     const handleGroup = () => groupShapes(selectedIds);
@@ -537,7 +645,7 @@ export default function Whiteboard () {
                                 minWidth: 40,
                                 whiteSpace: "pre-wrap",
                                 fontSize: `${editingText.fontSize * scale}px`,
-                                fontFamily: "sans-serif"
+                                fontFamily: "'Patrick Hand', sans-serif"
                             }}
                         />
                     )}

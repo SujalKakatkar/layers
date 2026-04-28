@@ -123,3 +123,33 @@ export function getHoveredDot(
     }
     return null;
 }
+
+export function getBezierControl(from: Point, to: Point, t: number): Point {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    const offset = Math.min(len * t, 120);
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+        return { x: from.x + Math.sign(dx) * offset, y: from.y };
+    }
+    return { x: from.x, y: from.y + Math.sign(dy) * offset };
+}
+
+export function getDistanceToBezier(p: Point, p1: Point, cp1: Point, cp2: Point, p2: Point): number {
+    let minD = Infinity;
+    for (let t = 0; t <= 1; t += 0.05) {
+        const u = 1 - t;
+        const tt = t * t;
+        const uu = u * u;
+        const uuu = uu * u;
+        const ttt = tt * t;
+
+        const x = uuu * p1.x + 3 * uu * t * cp1.x + 3 * u * tt * cp2.x + ttt * p2.x;
+        const y = uuu * p1.y + 3 * uu * t * cp1.y + 3 * u * tt * cp2.y + ttt * p2.y;
+
+        const d = Math.hypot(p.x - x, p.y - y);
+        if (d < minD) minD = d;
+    }
+    return minD;
+}

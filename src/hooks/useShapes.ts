@@ -538,7 +538,8 @@ export function useShapes (canvasId: string = "default") {
                         });
                         return {
                             ...shape,
-                            points: newPoints
+                            points: newPoints,
+                            rotation: (orig.rotation || 0) + angleDelta
                         };
                     }
                     default:

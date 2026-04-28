@@ -29,6 +29,26 @@ export function useConnector () {
         let gx = 0;
         let gy = 0;
 
+        let finalWidth = width;
+        let finalHeight = height;
+
+        if (sourceShape.type === "circle") {
+            const r = 50;
+            switch (side) {
+                case "top":    gx = anchor.x; gy = anchor.y - distance - r; break;
+                case "right":  gx = anchor.x + distance + r; gy = anchor.y; break;
+                case "bottom": gx = anchor.x; gy = anchor.y + distance + r; break;
+                case "left":   gx = anchor.x - distance - r; gy = anchor.y; break;
+            }
+            return {
+                id: crypto.randomUUID(),
+                type: "circle",
+                cx: gx,
+                cy: gy,
+                r
+            } as any;
+        }
+
         switch (side) {
             case "top":
                 gx = anchor.x - width / 2;
@@ -50,11 +70,11 @@ export function useConnector () {
 
         return {
             id: crypto.randomUUID(),
-            type: "rectangle",
+            type: "rectangle", // we default to rectangle for text/stroke if any
             x: gx,
             y: gy,
-            width,
-            height
+            width: finalWidth,
+            height: finalHeight
         };
     }
 

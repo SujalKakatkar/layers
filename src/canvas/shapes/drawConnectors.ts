@@ -4,6 +4,7 @@ import {
     getConnectionPoint,
     getClosestSidePair,
     getShapeBounds,
+    getBezierControl,
 } from "../../helpers/connectorHelpers";
 
 // ─── Committed connectors ────────────────────────────────────────────────────
@@ -16,7 +17,8 @@ export function drawConnectors(
     ctx: CanvasRenderingContext2D,
     connectors: Connector[],
     shapes: Shape[],
-    scale: number
+    scale: number,
+    selectedConnectorId?: string | null
 ) {
     if (connectors.length === 0) return;
 
@@ -35,10 +37,11 @@ export function drawConnectors(
         const p1 = getConnectionPoint(fromShape, fromSide);
         const p2 = getConnectionPoint(toShape,   toSide);
 
-        drawConnectorLine(ctx, p1, p2, scale, false);
+        const isSelected = conn.id === selectedConnectorId;
+        drawConnectorLine(ctx, p1, p2, scale, false, isSelected);
 
         // Arrow head at destination
-        drawArrowHead(ctx, p1, p2, scale);
+        drawArrowHead(ctx, p1, p2, scale, isSelected);
     }
 
     ctx.restore();
@@ -121,7 +124,8 @@ function drawConnectorLine(
     p1: Point,
     p2: Point,
     scale: number,
-    isDraft: boolean
+    isDraft: boolean,
+    isSelected?: boolean
 ) {
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
@@ -131,32 +135,33 @@ function drawConnectorLine(
     const cp2 = getBezierControl(p2, p1, 0.35);
     ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y);
 
-    ctx.strokeStyle = isDraft ? "rgba(99, 179, 237, 0.85)" : "#3b82f6";
-    ctx.lineWidth   = (isDraft ? 1.5 : 2) / scale;
-    ctx.setLineDash(isDraft ? [6 / scale, 4 / scale] : []);
-    ctx.lineCap = "round";
-    ctx.stroke();
-    ctx.setLineDash([]);
-}
+    if (isDraft) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.lineWidth   = 1.5 / scale;
+        ctx.setLineDash([6 / scale, 4 / scale]);
+        ctx.lineCap = "round";
+        ctx.stroke();
+    } else {
+        // draw black/blue line first (thicker)
+        ctx.strokeStyle = isSelected ? "#3b82f6" : "black";
+        ctx.lineWidth   = (isSelected ? 6 : 4) / scale;
+        ctx.lineCap = "round";
+        ctx.stroke();
 
-function getBezierControl(from: Point, to: Point, t: number): Point {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const len = Math.hypot(dx, dy);
-    const offset = Math.min(len * t, 120);
-
-    // Push control point in the axis-dominant direction
-    if (Math.abs(dx) > Math.abs(dy)) {
-        return { x: from.x + Math.sign(dx) * offset, y: from.y };
+        // then white line on top
+        ctx.strokeStyle = "white";
+        ctx.lineWidth   = 2 / scale;
+        ctx.stroke();
     }
-    return { x: from.x, y: from.y + Math.sign(dy) * offset };
+    ctx.setLineDash([]);
 }
 
 function drawArrowHead(
     ctx: CanvasRenderingContext2D,
     from: Point,
     to: Point,
-    scale: number
+    scale: number,
+    isSelected?: boolean
 ) {
     const angle  = Math.atan2(to.y - from.y, to.x - from.x);
     const size   = 10 / scale;
@@ -171,8 +176,12 @@ function drawArrowHead(
     ctx.lineTo(-size,  size * 0.4);
     ctx.closePath();
 
-    ctx.fillStyle = "#3b82f6";
+    ctx.fillStyle = "white";
     ctx.fill();
+    
+    ctx.lineWidth = 1.5 / scale;
+    ctx.strokeStyle = isSelected ? "#3b82f6" : "black";
+    ctx.stroke();
     ctx.restore();
 }
 

@@ -6,11 +6,31 @@ import {getStrokeBounds} from "../utils/getStrokeBounds";
 export function getSelectionBounds (
     shapes: Shape[],
     selectedIds: string[]
-): Bounds | null {
+): (Bounds & { rotation?: number }) | null {
     const selectedShapes = shapes.filter(s => selectedIds.includes(s.id))
 
     if(selectedShapes.length === 0) {
         return null;
+    }
+
+    if (selectedShapes.length === 1) {
+        const shape = selectedShapes[0];
+        let b = { x: 0, y: 0, width: 0, height: 0 };
+        switch(shape.type) {
+            case "rectangle":
+                b = { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
+                break;
+            case "circle":
+                b = { x: shape.cx - shape.r, y: shape.cy - shape.r, width: shape.r * 2, height: shape.r * 2 };
+                break;
+            case "stroke":
+                b = getStrokeBounds(shape);
+                break;
+            case "text":
+                b = { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
+                break;
+        }
+        return { ...b, rotation: shape.rotation || 0 };
     }
 
     let minX = Infinity;
@@ -68,5 +88,6 @@ export function getSelectionBounds (
         y: minY,
         width: maxX - minX,
         height: maxY - minY,
+        rotation: 0,
     };
 }

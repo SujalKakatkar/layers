@@ -21,6 +21,8 @@ export function drawScene (
     connectors?: Connector[],
     connectionState?: ConnectionState,
     dotShapeId?: string | null,
+    ghostPreview?: { type: "rectangle" | "circle" | "text"; x: number; y: number; width?: number; height?: number; } | null,
+    selectedConnectorId?: string | null
 ) {
 
     const ctx = canvas.getContext("2d")!;
@@ -60,6 +62,10 @@ export function drawScene (
             case "text": drawText(ctx, shape); break;
         }
 
+        if ((shape as any).text && shape.type !== "text") {
+            drawText(ctx, shape as any);
+        }
+
         ctx.restore();
     };
 
@@ -73,7 +79,7 @@ export function drawScene (
     }
 
     if(connectors) {
-        drawConnectors(ctx, connectors, shapes, scale);
+        drawConnectors(ctx, connectors, shapes, scale, selectedConnectorId);
     }
 
     // ── Unified Connection Rendering ──────────────────────────────────
@@ -122,24 +128,44 @@ export function drawScene (
         const cx = bx + bw / 2;
         const cy = by + bh / 2;
 
+        const angle = (bounds as any).rotation || 0;
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        const getRotated = (px: number, py: number) => {
+            const dx = px - cx;
+            const dy = py - cy;
+            return {
+                x: cx + dx * cosA - dy * sinA,
+                y: cy + dx * sinA + dy * cosA
+            };
+        };
+
+        const corners = [
+            getRotated(bx, by),        // nw
+            getRotated(bx + bw, by),   // ne
+            getRotated(bx + bw, by + bh), // se
+            getRotated(bx, by + bh),   // sw
+        ];
+
         // ── Bounding box stroke ────────────────────────────────────────
         ctx.strokeStyle = "#3b82f6";
         ctx.lineWidth = 1 / scale;
-        ctx.strokeRect(bx, by, bw, bh);
+        
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        ctx.lineTo(corners[1].x, corners[1].y);
+        ctx.lineTo(corners[2].x, corners[2].y);
+        ctx.lineTo(corners[3].x, corners[3].y);
+        ctx.closePath();
+        ctx.stroke();
 
         // ── Resize handles ─────────────────────────────────────────────
         // Handle size stays at 8 CSS px regardless of zoom
         const hSize = 8 / scale;
         const half = hSize / 2;
 
-        const handlePositions = [
-            {x: bx, y: by},        // nw
-            {x: bx + bw, y: by},        // ne
-            {x: bx + bw, y: by + bh},   // se
-            {x: bx, y: by + bh},   // sw
-        ];
-
-        handlePositions.forEach(({x, y}) => {
+        corners.forEach(({x, y}) => {
             ctx.fillStyle = "#ffffff";
             ctx.strokeStyle = "#3b82f6";
             ctx.lineWidth = 1.5 / scale;
@@ -199,6 +225,47 @@ export function drawScene (
             ctx.stroke();
         });
 
+        ctx.restore();
+    }
+
+    // ── Ghost Preview ──────────────────────────────────────────────
+    if (ghostPreview) {
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = "#3b82f6"; // or white, assuming light theme or standard
+        ctx.lineWidth = 1.5 / scale;
+        ctx.setLineDash([5 / scale, 5 / scale]);
+
+        ctx.beginPath();
+        if (ghostPreview.type === "rectangle") {
+            const { x, y, width = 120, height = 80 } = ghostPreview;
+            const r = 10;
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + width - r, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+            ctx.lineTo(x + width, y + height - r);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+            ctx.lineTo(x + r, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+        } else if (ghostPreview.type === "circle") {
+            const r = 50;
+            const cx = ghostPreview.x + r;
+            const cy = ghostPreview.y + r;
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        } else if (ghostPreview.type === "text") {
+            const { x, y, width = 100, height = 30 } = ghostPreview;
+            ctx.rect(x, y, width, height); 
+        }
+        ctx.stroke();
+        
+        if (ghostPreview.type === "text") {
+            ctx.fillStyle = "#3b82f6";
+            ctx.font = `${24}px sans-serif`;
+            ctx.textBaseline = "top";
+            ctx.fillText("Text", ghostPreview.x + 5, ghostPreview.y + 5);
+        }
         ctx.restore();
     }
 
