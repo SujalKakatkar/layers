@@ -1,73 +1,170 @@
-# React + TypeScript + Vite
+# 🧩 Layers — Interactive Whiteboard Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Layers is a high-performance, scalable whiteboard application designed for creating, managing, and rendering diagrams with a clean separation between user-driven interactions and system-generated elements.
 
-Currently, two official plugins are available:
+This project focuses on **architecture, performance, and extensibility**, making it suitable for real-world collaborative tools (even though collaboration is not yet implemented).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- ✏️ Draw and manipulate shapes (rectangles, arrows, etc.)
+- 🧠 Smart separation of manual vs generated elements
+- ⚡ Optimized rendering with minimal re-renders
+- 🗂️ Undo / Redo system (frontend state-based)
+- 📋 Copy / Paste support
+- 🎯 Precise interaction handling (selection, drag, resize)
+- 🧩 Scalable state architecture using Zustand
+- 🔐 Authentication-ready backend structure
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🏗️ Architecture Overview
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 1. State Separation (Core Design Principle)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The system is built around a strict separation:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+#### 🔹 Manual Shapes (User Driven)
+- Stored in: `useShapes` (local state / history)
+- Includes:
+  - Drawing
+  - Moving
+  - Resizing
+  - Deleting
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+#### 🔹 Generated Shapes (System Driven)
+- Stored in: `useDiagramStore` (global Zustand store)
+- Includes:
+  - Derived elements
+  - Computed layouts
+  - Auto-generated connections
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+👉 This separation ensures:
+- Better performance
+- Clear debugging
+- Future scalability (AI, auto-layout, etc.)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+### 2. State Layers
+
+| Layer              | Responsibility                          |
+|-------------------|----------------------------------------|
+| AppState          | Global application-level data           |
+| InteractionState  | Current user interaction (drag, select)|
+| Element Model     | Shape definitions & structure           |
+| Zustand Store     | Global shared state                    |
+| Local State       | Undo/Redo history                      |
+
+---
+
+### 3. Interaction Flow
+
+1. User performs an action (draw, move, resize)
+2. InteractionState updates
+3. Local state (`useShapes`) updates
+4. Render cycle reflects changes
+5. Optional: generated shapes update in global store
+
+---
+
+## 🔁 Undo / Redo System
+
+- Fully handled on the **frontend**
+- Based on **state snapshots**
+- No backend involvement
+
+### How it works:
+- Every action pushes a new state into history
+- Undo → move backward in history
+- Redo → move forward in history
+
+👉 Fast and predictable because:
+- No network calls
+- Pure state transitions
+
+---
+
+## 📋 Copy / Paste
+
+- Operates on selected shapes
+- Clones shape data with new IDs
+- Inserted into local state (`useShapes`)
+
+---
+
+## 🌐 Backend Responsibilities (Planned / Partial)
+
+### Backend Handles:
+- User authentication (JWT-based)
+- Storing diagrams (MongoDB)
+- Sharing diagrams via link (view-only)
+- Persisting canvas state
+
+### Frontend Handles:
+- Rendering engine
+- All interactions
+- Undo/Redo
+- Copy/Paste
+- Temporary state management
+
+👉 Current focus: **Frontend architecture first, backend minimal**
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+- React (Vite)
+- Zustand (state management)
+- Tailwind CSS
+- Canvas / SVG rendering
+
+### Backend (Planned / Partial)
+- Node.js
+- Express
+- MongoDB
+- JWT Authentication
+
+---
+
+## 📁 Project Structure (Conceptual)
+src/
+├── components/ # UI components
+├── canvas/ # Rendering logic
+├── store/ # Zustand stores
+├── hooks/ # useShapes, interactions
+├── models/ # Element definitions
+├── utils/ # Helpers
+└── features/ # Core features (copy, undo, etc.)
+
+
+---
+
+## ⚡ Performance Considerations
+
+- Separation of concerns reduces unnecessary re-renders
+- Local state for high-frequency updates
+- Global store only for shared/generated data
+- Lazy updates where possible
+
+---
+
+## 🔮 Future Improvements
+
+- 🔗 Real-time collaboration
+- 🧠 AI-assisted diagram generation
+- 📦 Export (PNG, SVG, JSON)
+- 📌 Snap-to-grid and alignment tools
+- 🧩 Plugin system
+
+---
+
+## 🧑‍💻 Getting Started
+
+```bash
+git clone https://github.com/your-username/layers.git
+cd layers
+npm install
+npm run dev
