@@ -1,7 +1,8 @@
-import {useCallback, useState, useEffect} from "react"
+import {useCallback, useState, useEffect, useRef} from "react"
 import type {Connector, ConnectorSide, HandleType, Shape, Rectangle, Circle, Stroke, Text} from "../types/types"
 import {measureTextSize} from "../helpers/measureTextSize"
 import {getSelectionBounds} from "../canvas/selectArea"
+import {useDiagramStore} from "../store/useDiagramStore"
 
 type LayerState = {
     elements: Shape[];
@@ -15,6 +16,9 @@ type HistoryState = {
 }
 
 export function useShapes (canvasId: string = "default") {
+    const setManualElements = useDiagramStore(s => s.setManualElements)
+    const setManualConnectors = useDiagramStore(s => s.setManualConnectors)
+
     const [history, setHistory] = useState<HistoryState>(() => {
         try {
             const savedAll = localStorage.getItem("layer-canvases");
@@ -652,6 +656,34 @@ export function useShapes (canvasId: string = "default") {
         });
     }, []);
 
+    const lastPushedElements = useRef<Shape[]>([]);
+    const lastPushedConnectors = useRef<Connector[]>([]);
+
+    useEffect(() => {
+        if (
+            history.present.elements === lastPushedElements.current &&
+            history.present.connectors === lastPushedConnectors.current
+        ) {
+            return;
+        }
+
+        setManualElements(history.present.elements);
+        setManualConnectors(history.present.connectors);
+        
+        lastPushedElements.current = history.present.elements;
+        lastPushedConnectors.current = history.present.connectors;
+    }, [history.present.elements, history.present.connectors, setManualElements, setManualConnectors]);
+
+    const setHistoryFromData = useCallback((elements: Shape[], connectors: Connector[]) => {
+        setHistory({
+            past: [],
+            present: { elements, connectors },
+            future: []
+        });
+        lastPushedElements.current = elements;
+        lastPushedConnectors.current = connectors;
+    }, []);
+
     return {
         shapes: history.present.elements,
         connectors: history.present.connectors,
@@ -677,6 +709,7 @@ export function useShapes (canvasId: string = "default") {
         removeConnector,
         addShapeWithConnector,
         undo,
-        redo
+        redo,
+        setHistoryFromData
     }
 }

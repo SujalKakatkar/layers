@@ -231,3 +231,28 @@
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes scaleFade {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+.animate-scale-fade {
+  animation: scaleFade 2s ease-in-out infinite;
+}

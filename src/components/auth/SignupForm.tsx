@@ -14,32 +14,37 @@ import {useAuthStore} from "@/store/useAuthStore"
 import {zodResolver} from "@hookform/resolvers/zod"
 import {useForm} from "react-hook-form"
 import {Link, useNavigate} from "react-router"
+import {toast} from "sonner"
 
 
 function SignupForm () {
 
-    const Signup = useAuthStore((s) => s.signUp)
-    const googleSignUp = useAuthStore((s)=>s.signInWithGoogle)
+   
     const navigate = useNavigate()
 
     const {register, handleSubmit, formState: {errors}} = useForm<SignupSchemaType>({
         resolver: zodResolver(signupSchema)
     })
 
+    const {signUp} = useAuthStore()
+
     const handleSignup = async (data: SignupSchemaType) => {
-        const {email, password} = data;
+        const {email, password, name} = data;
+        
+        const {error} = await signUp(email, password, name) 
 
-        const {error} = await Signup(email, password)
-
-        if(error) {
-            console.error(error.message);
+        if (error) {
+            toast.error("Signup failed", {
+                description: typeof error === 'string' ? error : "An error occurred"
+            })
             return
         }
 
-        console.log("signup successfull");
-
-        navigate("/dashboard")
-
+        toast.success("Account created!", {
+            description: "Welcome to Layer. Let's start building."
+        })
+        console.log("Signup successful, navigating to /dashboard");
+        navigate("/dashboard", {replace: true})
     }
 
 
@@ -48,11 +53,24 @@ function SignupForm () {
         <form onSubmit={handleSubmit(handleSignup)} className="p-6 md:p-8">
             <FieldGroup>
                 <div className="flex flex-col items-center gap-2 text-center">
-                    <h1 className="text-2xl font-bold">Create your account</h1>
+                    <h1 className="text-2xl font-bold text-emerald-600">Create your account</h1>
                     <p className="text-sm text-balance text-muted-foreground">
-                        Enter your email below to create your account
+                        Enter your details below to create your account
                     </p>
                 </div>
+                <Field>
+                    <FieldLabel htmlFor="name">Full Name</FieldLabel>
+                    <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        {...register("name")}
+                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                    />
+                    {errors.name && (
+                        <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+                    )}
+                </Field>
                 <Field>
                     <FieldLabel htmlFor="email">Email</FieldLabel>
                     <Input
@@ -60,12 +78,9 @@ function SignupForm () {
                         type="email"
                         placeholder="m@example.com"
                         {...register("email")}
-
+                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                     />
-                    <FieldDescription>
-                        We&apos;ll use this to contact you. We will not share your
-                        email with anyone else.
-                    </FieldDescription>
+                    
                 </Field>
                 <Field>
                     <Field className="grid grid-cols-2 gap-4">
@@ -73,6 +88,7 @@ function SignupForm () {
                             <FieldLabel htmlFor="password">Password</FieldLabel>
                             <Input id="password" type="password"
                                 {...register("password")}
+                                className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                             />
                         </Field>
                         <Field>
@@ -81,7 +97,9 @@ function SignupForm () {
                             </FieldLabel>
                             <Input
                                 {...register("confirmPassword")}
-                                id="confirm-password" type="password" />
+                                id="confirm-password" type="password" 
+                                className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                            />
                         </Field>
                     </Field>
                     <FieldDescription>
@@ -89,14 +107,14 @@ function SignupForm () {
                     </FieldDescription>
                 </Field>
                 <Field>
-                    <Button type="submit">Create Account</Button>
+                    <Button type="submit" className="w-full bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500">Create Account</Button>
                 </Field>
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                     Or continue with
                 </FieldSeparator>
                 <Field className="grid grid-cols-1 ">
 
-                    <Button variant="outline" type="button" onClick={googleSignUp}>
+                    <Button variant="outline" type="button" >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                             <path
                                 d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
@@ -109,7 +127,7 @@ function SignupForm () {
 
                 </Field>
                 <FieldDescription className="text-center">
-                    Already have an account? <Link to="/auth/sign-in">Sign in</Link>
+                    Already have an account? <Link to="/auth/sign-in" className="text-emerald-600 hover:text-emerald-500 font-medium">Sign in</Link>
                 </FieldDescription>
             </FieldGroup>
         </form>

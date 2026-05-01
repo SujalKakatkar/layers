@@ -46,7 +46,12 @@ import {
     getBezierControl
 } from "../../helpers/connectorHelpers";
 
-export default function Whiteboard () {
+interface WhiteBoardProps {
+    initialElements?: any[];
+    initialConnectors?: any[];
+}
+
+export default function Whiteboard ({ initialElements, initialConnectors }: WhiteBoardProps) {
     const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
     const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
     const [ghostPreview, setGhostPreview] = useState<{
@@ -73,7 +78,6 @@ export default function Whiteboard () {
     const {id} = useParams<{id: string}>();
     const canvasId = id || "default";
 
-    //shapes
     const {
         shapes,
         currentShape,
@@ -99,8 +103,15 @@ export default function Whiteboard () {
         connectors,
         addConnector,
         addShapeWithConnector,
-        removeConnector
+        removeConnector,
+        setHistoryFromData
     } = useShapes(canvasId)
+
+    useEffect(() => {
+        if (initialElements && initialConnectors) {
+            setHistoryFromData(initialElements, initialConnectors);
+        }
+    }, [initialElements, initialConnectors, setHistoryFromData]);
 
     const {
         connectionState,
@@ -775,6 +786,8 @@ export default function Whiteboard () {
         ];
     }
 
+    const code = useDiagramStore(s => s.code);
+
     return (
         <div className="relative w-full h-full overflow-hidden">
             {selectedIds.length === 1 && getShapeById(selectedIds[0])?.type === "text" && (
@@ -839,6 +852,15 @@ export default function Whiteboard () {
                     ))}
                 </ContextMenuContent>
             </ContextMenu>
+            {/* ─── Welcome Message Overlay ─────────────────────────────────────── */}
+            {shapes.length === 0 && connectors.length === 0 && code === "" && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-center z-10 animate-in fade-in duration-700">
+                    <div className="max-w-md px-6">
+                        <h2 className="text-2xl font-bold text-white/50 mb-2">Start building your diagram...</h2>
+                        <p className="text-white/20 text-sm">Use shapes or write LayerScript to begin</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -13,7 +13,7 @@ function Navbar() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <h1 className="font-black text-xl tracking-tight text-white">
+          <h1 className="font-black text-xl tracking-tight text-emerald-400 ">
             Layer
           </h1>
         </Link>

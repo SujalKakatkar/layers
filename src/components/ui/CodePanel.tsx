@@ -305,11 +305,12 @@ type CodePanelProps = {
 }
 
 function CodePanel ({isOpen, onClose}: CodePanelProps) {
-  const [codeInput, setCodeInput] = useState("");
   const editorRef = useRef<any>(null);
   const monaco = useMonaco();
 
   const {
+    code: codeInput,
+    setCode: setCodeInput,
     setGeneratedElements,
     setGeneratedConnectors,
     previousElements,

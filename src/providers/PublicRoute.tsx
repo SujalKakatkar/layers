@@ -3,12 +3,13 @@ import {useAuthStore} from "../store/useAuthStore";
 import type {ReactNode} from "react";
 import Loading from "@/loading/Loading";
 
-export default function ProtectedRoute ({children}: {children: ReactNode}) {
+export default function PublicRoute ({children}: {children: ReactNode}) {
     const user = useAuthStore((s) => s.user);
     const loading = useAuthStore((s) => s.loading);
 
+    
     if (loading) return <Loading />;
-    if (!user) return <Navigate to="/auth/sign-in" />;
+    if (user) return <Navigate to="/dashboard" />;
 
     return children;
 }

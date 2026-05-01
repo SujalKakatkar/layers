@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import {createBrowserRouter} from "react-router";
 import Canvas from "../pages/Canvas";
 import Mainlayout from "../layouts/Mainlayout";
 import Home from "../pages/Home";
@@ -9,10 +9,16 @@ import Dashboard from "../pages/Dashboard";
 import Blanklayout from "../layouts/Blanklayout";
 import AuthLayout from "@/layouts/AuthLayout";
 import ProtectedRoute from "@/providers/ProtectedRoute";
+import PublicRoute from "@/providers/PublicRoute";
+import NotFound from "../pages/NotFound";
 
 export const routes = createBrowserRouter([
     {
-        element: <Mainlayout />,
+        element: (
+            <PublicRoute>
+                <Mainlayout />
+            </PublicRoute>
+        ),
         children: [
             {
                 path: '/',
@@ -47,7 +53,11 @@ export const routes = createBrowserRouter([
         ]
     },
     {
-        element: <AuthLayout />,
+        element: (
+            <PublicRoute>
+                <AuthLayout />
+            </PublicRoute>
+        ),
         children: [
             {
                 path: '/auth/sign-in',
@@ -59,5 +69,8 @@ export const routes = createBrowserRouter([
             },
         ]
     },
-
+    {
+        path: '*',
+        element: <NotFound />
+    }
 ])

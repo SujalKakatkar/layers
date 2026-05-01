@@ -1,11 +1,10 @@
 import {useParams, useNavigate, useOutletContext} from "react-router";
 import {useEffect, useState, useRef} from "react";
 import WhiteBoard from "../components/draw/WhiteBoard";
-
-type CanvasData = {
-  id: string;
-  title: string;
-};
+import { useDiagramStore } from "@/store/useDiagramStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
+import { toast } from "sonner";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 
 type ContextType = {
     isCodePanelOpen: boolean;
@@ -16,24 +15,26 @@ function Canvas () {
     const navigate = useNavigate();
     const {isCodePanelOpen} = useOutletContext<ContextType>();
     
-    const [canvasTitle, setCanvasTitle] = useState("Untitled Canvas");
+    const { fetchCanvas, updateCanvas, loading, title: canvasTitle, setCanvasId } = useCanvasStore();
+    const { code, manualElements, manualConnectors, generatedGroupOffset, setCode } = useDiagramStore();
+    
     const [isRenaming, setIsRenaming] = useState(false);
     const [tempTitle, setTempTitle] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (id) {
-            const stored = localStorage.getItem("canvases");
-            if (stored) {
-                const canvases: CanvasData[] = JSON.parse(stored);
-                const current = canvases.find(c => c.id === id);
-                if (current) {
-                    setCanvasTitle(current.title);
-                    setTempTitle(current.title);
-                }
-            }
+            setCanvasId(id);
+            fetchCanvas(id).catch(err => {
+                console.error("Failed to fetch canvas", err);
+                toast.error("Failed to load canvas data");
+            });
         }
-    }, [id]);
+    }, [id, fetchCanvas, setCanvasId]);
+
+    useEffect(() => {
+        setTempTitle(canvasTitle);
+    }, [canvasTitle]);
 
     useEffect(() => {
         if (isRenaming && inputRef.current) {
@@ -42,24 +43,36 @@ function Canvas () {
         }
     }, [isRenaming]);
 
+    const handleSave = async () => {
+        try {
+            await updateCanvas({
+                manualElements,
+                manualConnectors,
+                code,
+                generatedGroupOffset
+            });
+            toast.success("Canvas saved successfully");
+        } catch (error) {
+            console.error("Save failed", error);
+            toast.error("Failed to save canvas");
+        }
+    };
+
     const handleShare = () => {
         console.log("Share clicked");
     };
 
     const saveTitle = () => {
         const newTitle = tempTitle.trim() || "Untitled Canvas";
-        setCanvasTitle(newTitle);
+        // setIsRenaming(false);
+        // In a real app, update title via store
+        console.log("Title update requested:", newTitle);
         setIsRenaming(false);
-
-        if (id) {
-            const stored = localStorage.getItem("canvases");
-            if (stored) {
-                const canvases: CanvasData[] = JSON.parse(stored);
-                const updated = canvases.map(c => c.id === id ? {...c, title: newTitle} : c);
-                localStorage.setItem("canvases", JSON.stringify(updated));
-            }
-        }
     };
+
+    if (loading && !manualElements.length) {
+        return <LoadingScreen />;
+    }
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-black">
@@ -111,6 +124,14 @@ function Canvas () {
                     </button>
 
                     <button 
+                        onClick={handleSave}
+                        disabled={loading}
+                        className="px-4 py-2 rounded-lg border border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
+                    >
+                        {loading ? "Saving..." : "Save"}
+                    </button>
+
+                    <button 
                         onClick={handleShare}
                         className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10"
                     >
@@ -120,9 +141,9 @@ function Canvas () {
             </div>
 
             {/* ─── WhiteBoard Component ─────────────────────────────────────── */}
-            <WhiteBoard/>
+            <WhiteBoard initialElements={manualElements} initialConnectors={manualConnectors}/>
         </div>
     );
 }
 
-export default Canvas
+export default Canvas;

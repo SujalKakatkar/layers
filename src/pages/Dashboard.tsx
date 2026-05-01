@@ -2,25 +2,31 @@ import {LogOut, Plus, Layout, Clock, ChevronRight} from "lucide-react"
 import {useEffect, useState} from "react"
 import {useNavigate} from "react-router"
 import {useAuthStore} from "@/store/useAuthStore"
+import LoadingScreen from "@/components/ui/LoadingScreen"
+import { CreateCanvasDialog } from "@/components/ui/CreateCanvasDialog"
+import { toast } from "sonner"
+import { useCanvasStore } from "@/store/useCanvasStore"
 
 type Canvas = {
-  id: string
+  _id: string
   title: string
-  createdAt: number
+  createdAt: string
 }
 
 // ─── Header Component ────────────────────────────────────────────────────────
 function Header ({user, onLogout}: {user: any, onLogout: () => void}) {
+
+
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-white/5 px-6">
       <div className="max-w-6xl mx-auto h-16 flex items-center justify-between">
         {/* Left: User Details */}
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-emerald-700 flex items-center justify-center text-xs font-bold text-white border border-emerald-500/20">
-            {(user?.email?.[0] || 'U').toUpperCase()}
+            {user.fullName[0].toUpperCase()}
           </div>
           <div className="text-left hidden sm:block">
-            <p className="text-xs font-bold text-white">{user?.email?.split('@')[0] || 'User'}</p>
+            <p className="text-xs font-bold text-white">{user?.fullName || 'User'}</p>
             <p className="text-[10px] text-white/40">Personal Workspace</p>
           </div>
         </div>
@@ -49,7 +55,7 @@ function CanvasCard ({canvas, onClick}: {canvas: Canvas, onClick: () => void}) {
   return (
     <div 
       onClick={onClick}
-      className="group relative bg-white/[0.02] border border-white/8 rounded-2xl p-5 hover:border-white/20 hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:-translate-y-1"
+      className="group relative bg-white/2 border border-white/8 rounded-2xl p-5 hover:border-white/20 hover:bg-white/4 transition-all duration-300 cursor-pointer hover:-translate-y-1"
     >
       <div className="aspect-video mb-5 rounded-xl bg-black border border-white/5 flex items-center justify-center overflow-hidden">
         {/* Placeholder for preview */}
@@ -123,32 +129,27 @@ function EmptyState ({onCreate}: {onCreate: () => void}) {
 function Dashboard () {
   const logout = useAuthStore((s) => s.logout)
   const user = useAuthStore((s) => s.user)
-  const [canvases, setCanvases] = useState<Canvas[]>([])
+  const { canvases, listAllCanvases, loading: isLoading } = useCanvasStore()
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
-    const stored = localStorage.getItem("canvases")
-    if (stored) {
-      setCanvases(JSON.parse(stored))
-    }
-  }, [])
+    listAllCanvases().catch(err => {
+      console.error("Failed to list canvases", err)
+      toast.error("Failed to load canvases")
+    })
+  }, [listAllCanvases])
 
   const handleLogout = async () => {
     await logout()
     navigate('/')
   }
 
-  function createCanvas () {
-    const newCanvas: Canvas = {
-      id: crypto.randomUUID(),
-      title: "Untitled Canvas",
-      createdAt: Date.now()
-    }
-    const updated = [newCanvas, ...canvases]
-    setCanvases(updated)
-    localStorage.setItem("canvases", JSON.stringify(updated))
-    navigate(`/canvas/${newCanvas.id}`)
+  function openCreateDialog () {
+    setIsDialogOpen(true)
   }
+
+  if (isLoading) return <LoadingScreen />
 
   return (
     <div className="min-h-screen bg-black text-white font-sans">
@@ -166,15 +167,15 @@ function Dashboard () {
         </div>
 
         {canvases.length === 0 ? (
-          <EmptyState onCreate={createCanvas} />
+          <EmptyState onCreate={openCreateDialog} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <NewCanvasCard onClick={createCanvas} />
+            <NewCanvasCard onClick={openCreateDialog} />
             {canvases.map(canvas => (
               <CanvasCard 
-                key={canvas.id} 
+                key={canvas._id} 
                 canvas={canvas} 
-                onClick={() => navigate(`/canvas/${canvas.id}`)} 
+                onClick={() => navigate(`/canvas/${canvas._id}`)} 
               />
             ))}
           </div>
@@ -184,6 +185,11 @@ function Dashboard () {
       <footer className="mt-20 py-8 border-t border-white/5 text-center">
         <p className="text-white/20 text-xs">Layer Dashboard v1.0 — Productivity for thinkers.</p>
       </footer>
+
+      <CreateCanvasDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+      />
     </div>
   )
 }

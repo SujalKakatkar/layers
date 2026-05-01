@@ -1,10 +1,7 @@
+import LoadingScreen from "@/components/ui/LoadingScreen";
 
 function Loading () {
-    return (
-        <div className='h-screen w-screen flex justify-center items-center'>
-            Layer
-        </div>
-    )
+    return <LoadingScreen />
 }
 
 export default Loading

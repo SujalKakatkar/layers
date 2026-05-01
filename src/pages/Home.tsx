@@ -20,9 +20,9 @@ function DiagramSVG () {
 }
 
 // ─── Code Block ──────────────────────────────────────────────────────────────
-function CodeBlock () {
+function CodeBlock ({ className = "" }: { className?: string }) {
   return (
-    <div className="rounded-xl bg-white/5 border border-white/10 p-5 font-mono text-sm">
+    <div className={`rounded-xl bg-white/5 border border-white/10 p-6 font-mono text-sm ${className}`}>
       <div className="flex items-center gap-1.5 mb-5">
         <div className="w-3 h-3 rounded-full bg-white/15" />
         <div className="w-3 h-3 rounded-full bg-white/15" />
@@ -68,7 +68,7 @@ function Hero () {
           <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-px"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-800 hover:bg-emerald-600 text-white font-semibold transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-px"
             >
               Start Building
               <ArrowRight size={16} />
@@ -127,14 +127,14 @@ function Solution () {
         <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-16">
           Layer changes how<br />you build diagrams.
         </h2>
-        <div className="grid md:grid-cols-2 gap-6 items-start mb-16">
-          <div>
+        <div className="grid md:grid-cols-2 gap-6 mb-16">
+          <div className="flex flex-col">
             <p className="text-xs text-white/25 font-mono mb-3">Input — LayerScript</p>
-            <CodeBlock />
+            <CodeBlock className="flex-1" />
           </div>
-          <div>
+          <div className="flex flex-col">
             <p className="text-xs text-white/25 font-mono mb-3">Output — Diagram</p>
-            <div className="rounded-xl bg-white/4 border border-white/10 p-6">
+            <div className="rounded-xl bg-white/5 border border-white/10 p-6 flex-1 flex items-center justify-center">
               <DiagramSVG />
             </div>
           </div>

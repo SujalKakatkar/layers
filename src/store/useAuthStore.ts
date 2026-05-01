@@ -1,61 +1,89 @@
 import {create} from "zustand";
-import type {User, Session} from "@supabase/supabase-js";
-import {supabase} from "@/lib/supbase";
+import {api} from "@/lib/api";
+
+export type User = {
+    _id: string;
+    email: string;
+    fullName: string;
+};
 
 type AuthState = {
     user: User | null;
-    session: Session | null;
     loading: boolean;
 
     setUser: (user: User | null) => void;
-    setSession: (session: Session | null) => void;
     setLoading: (loading: boolean) => void;
 
-    signUp: (email: string, password: string) => Promise<{error: Error | null}>;
-    login: (email: string, password: string) => Promise<{error: Error | null}>;
-    signInWithGoogle: () => Promise<{error: Error | null}>
+    signUp: (email: string, password: string, fullName: string) => Promise<{error: string | null}>;
+    login: (email: string, password: string) => Promise<{error: string | null}>;
     logout: () => Promise<void>;
+    checkAuth: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
-    session: null,
     loading: true,
 
     setUser: (user) => set({user}),
-    setSession: (session) => set({session}),
     setLoading: (loading) => set({loading}),
 
-    signUp: async (email, password) => {
-        const {error} = await supabase.auth.signUp({
-            email,
-            password,
-        });
-
-        return {error};
+    signUp: async (email, password, fullName) => {
+        try {
+            const response = await api.post("/auth/signup", {
+                fullName,
+                email,
+                password,
+            });
+        
+            set({user: response.data.data});
+            return {error: null};
+        } catch (error: any) {
+            console.error("Signup error:", error);
+            return {
+                error: error.response?.data?.message || "An error occurred during signup",
+            };
+        }finally{
+            set({loading: false})
+        }
     },
 
     login: async (email, password) => {
-        const {error} = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        return {error};
+        try {
+            const response = await api.post("/auth/signin", {
+                email,
+                password,
+            });
+            
+            set({user: response.data.data});
+            return {error: null};
+        } catch (error: any) {
+            console.error("Login error:", error);
+            return {
+                error: error.response?.data?.message || "An error occurred during login",
+            };
+        }finally{
+            set({loading: false})
+        }
     },
 
     logout: async () => {
-        await supabase.auth.signOut();
-        set({user: null, session: null});
+        try {
+            await api.post("/auth/logout");
+        } catch (error) {
+            console.error("Logout error:", error);
+        } finally {
+            set({user: null});
+        }
     },
-    signInWithGoogle: async () => {
-        const {error} = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: {
-                redirectTo: `${window.location.origin}/dashboard/`,
-            },
-        });
 
-        return {error};
+    checkAuth: async () => {
+        try {
+            const response = await api.get("/auth/me");
+            set({user: response.data.data});
+        } catch (error) {
+            set({user: null});
+        } finally {
+            set({loading: false});
+        }
     },
 }));

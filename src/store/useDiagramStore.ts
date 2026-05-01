@@ -22,6 +22,14 @@ type DiagramStore = {
   setSelectedNodeId: (id: string | null) => void;
   highlightedRange: { line: number; start: number; end: number } | null;
   setHighlightedRange: (range: { line: number; start: number; end: number } | null) => void;
+
+  // ── Canvas Content (for Welcome Message & Persistence) ──────────────────
+  code: string;
+  setCode: (code: string) => void;
+  manualElements: Shape[];
+  setManualElements: (elements: Shape[]) => void;
+  manualConnectors: Connector[];
+  setManualConnectors: (connectors: Connector[]) => void;
 };
 
 export const useDiagramStore = create<DiagramStore>((set) => ({
@@ -51,4 +59,12 @@ export const useDiagramStore = create<DiagramStore>((set) => ({
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   highlightedRange: null,
   setHighlightedRange: (range) => set({ highlightedRange: range }),
+
+  // ── Canvas Content ──────────────────────────────────────────────────────
+  code: "",
+  setCode: (code) => set({ code }),
+  manualElements: [],
+  setManualElements: (manualElements) => set({ manualElements }),
+  manualConnectors: [],
+  setManualConnectors: (manualConnectors) => set({ manualConnectors }),
 }));
