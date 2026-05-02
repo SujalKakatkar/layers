@@ -91,7 +91,7 @@ function NewCanvasCard ({onClick}: {onClick: () => void}) {
   return (
     <button 
       onClick={onClick}
-      className="group flex flex-col items-center justify-center aspect-square md:aspect-auto md:h-full min-h-[240px] rounded-2xl border-2 border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/[0.02] transition-all duration-300"
+      className="group flex flex-col items-center justify-center aspect-square md:aspect-auto md:h-full min-h-60 rounded-2xl border-2 border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/2 transition-all duration-300"
     >
       <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-emerald-700 group-hover:border-emerald-600 transition-all">
         <Plus size={24} className="text-white/40 group-hover:text-white" />
@@ -105,7 +105,7 @@ function NewCanvasCard ({onClick}: {onClick: () => void}) {
 function EmptyState ({onCreate}: {onCreate: () => void}) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/8 flex items-center justify-center mb-6">
+      <div className="w-20 h-20 rounded-3xl bg-white/3 border border-white/8 flex items-center justify-center mb-6">
         <Layout size={40} className="text-white/10" />
       </div>
       <h2 className="text-2xl font-bold text-white mb-3">No diagrams yet</h2>

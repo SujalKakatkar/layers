@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { Shape, Connector } from '../types/types';
+import {create} from 'zustand';
+import type {Shape, Connector} from '../types/types';
 
 type DiagramStore = {
   generatedElements: Shape[];
@@ -8,8 +8,8 @@ type DiagramStore = {
   setGeneratedConnectors: (connectors: Connector[] | ((prev: Connector[]) => Connector[])) => void;
 
   // ── Group drag offset ────────────────────────────────────────────────────
-  generatedGroupOffset: { x: number; y: number };
-  setGeneratedGroupOffset: (offset: { x: number; y: number }) => void;
+  generatedGroupOffset: {x: number; y: number};
+  setGeneratedGroupOffset: (offset: {x: number; y: number}) => void;
 
   // ── Reconciliation state ─────────────────────────────────────────────────
   previousElements: Shape[];
@@ -20,8 +20,8 @@ type DiagramStore = {
   // ── Highlighting ─────────────────────────────────────────────────────────
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
-  highlightedRange: { line: number; start: number; end: number } | null;
-  setHighlightedRange: (range: { line: number; start: number; end: number } | null) => void;
+  highlightedRange: {line: number; start: number; end: number} | null;
+  setHighlightedRange: (range: {line: number; start: number; end: number} | null) => void;
 
   // ── Canvas Content (for Welcome Message & Persistence) ──────────────────
   code: string;
@@ -45,26 +45,26 @@ export const useDiagramStore = create<DiagramStore>((set) => ({
     })),
 
   // ── Group drag offset ────────────────────────────────────────────────────
-  generatedGroupOffset: { x: 0, y: 0 },
-  setGeneratedGroupOffset: (offset) => set({ generatedGroupOffset: offset }),
+  generatedGroupOffset: {x: 0, y: 0},
+  setGeneratedGroupOffset: (offset) => set({generatedGroupOffset: offset}),
 
   // ── Reconciliation state ─────────────────────────────────────────────────
   previousElements: [],
   previousConnectors: [],
-  setPreviousElements: (elements) => set({ previousElements: elements }),
-  setPreviousConnectors: (connectors) => set({ previousConnectors: connectors }),
+  setPreviousElements: (elements) => set({previousElements: elements}),
+  setPreviousConnectors: (connectors) => set({previousConnectors: connectors}),
 
   // ── Highlighting ─────────────────────────────────────────────────────────
   selectedNodeId: null,
-  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setSelectedNodeId: (id) => set({selectedNodeId: id}),
   highlightedRange: null,
-  setHighlightedRange: (range) => set({ highlightedRange: range }),
+  setHighlightedRange: (range) => set({highlightedRange: range}),
 
   // ── Canvas Content ──────────────────────────────────────────────────────
   code: "",
-  setCode: (code) => set({ code }),
+  setCode: (code) => set({code}),
   manualElements: [],
-  setManualElements: (manualElements) => set({ manualElements }),
+  setManualElements: (manualElements) => set({manualElements}),
   manualConnectors: [],
-  setManualConnectors: (manualConnectors) => set({ manualConnectors }),
+  setManualConnectors: (manualConnectors) => set({manualConnectors}),
 }));

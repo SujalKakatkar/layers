@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle} from "react";
 import {useOutletContext, useParams} from "react-router";
 import {useCamera} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
@@ -9,7 +9,7 @@ import {useSpaceKey} from "../../hooks/UseSapcekey";
 import {useSelectArea} from "../../hooks/useSelectArea";
 import {useCircleDraw} from "../../hooks/useCircle";
 import {usePenDraw} from "../../hooks/usePen";
-import type {CanvasTool, HistoryActions, Tools} from "../../types/types";
+import type {CanvasTool, HistoryActions, Tools, Shape, Connector} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useDiagramStore} from "../../store/useDiagramStore";
 import {useText} from "../../hooks/useText";
@@ -47,11 +47,15 @@ import {
 } from "../../helpers/connectorHelpers";
 
 interface WhiteBoardProps {
-    initialElements?: any[];
-    initialConnectors?: any[];
+    initialElements?: Shape[];
+    initialConnectors?: Connector[];
 }
 
-export default function Whiteboard ({ initialElements, initialConnectors }: WhiteBoardProps) {
+export interface WhiteBoardRef {
+    getShapes: () => { elements: Shape[]; connectors: Connector[] };
+}
+
+const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements, initialConnectors}: WhiteBoardProps, ref) => {
     const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
     const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
     const [ghostPreview, setGhostPreview] = useState<{
@@ -107,8 +111,12 @@ export default function Whiteboard ({ initialElements, initialConnectors }: Whit
         setHistoryFromData
     } = useShapes(canvasId)
 
+    useImperativeHandle(ref, () => ({
+        getShapes: () => ({ elements: shapes, connectors })
+    }));
+
     useEffect(() => {
-        if (initialElements && initialConnectors) {
+        if(initialElements && initialConnectors) {
             setHistoryFromData(initialElements, initialConnectors);
         }
     }, [initialElements, initialConnectors, setHistoryFromData]);
@@ -600,7 +608,7 @@ export default function Whiteboard ({ initialElements, initialConnectors }: Whit
                     ctx.setLineDash([]);
                     const labelText = "Drag to move group";
                     ctx.font = `bold ${Math.max(12, 12 / scale)}px sans-serif`;
-                    
+
                     // Draw text at top-left
                     ctx.fillStyle = "#10B981";
                     ctx.textAlign = "left";
@@ -863,4 +871,6 @@ export default function Whiteboard ({ initialElements, initialConnectors }: Whit
             )}
         </div>
     );
-}
+})
+
+export default Whiteboard;

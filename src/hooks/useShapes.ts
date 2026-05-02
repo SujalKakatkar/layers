@@ -1,6 +1,5 @@
 import {useCallback, useState, useEffect, useRef} from "react"
 import type {Connector, ConnectorSide, HandleType, Shape, Rectangle, Circle, Stroke, Text} from "../types/types"
-import {measureTextSize} from "../helpers/measureTextSize"
 import {getSelectionBounds} from "../canvas/selectArea"
 import {useDiagramStore} from "../store/useDiagramStore"
 
@@ -15,84 +14,27 @@ type HistoryState = {
     future: LayerState[];
 }
 
+const EMPTY_HISTORY: HistoryState = {
+    past: [],
+    present: {elements: [], connectors: []},
+    future: []
+};
+
 export function useShapes (canvasId: string = "default") {
     const setManualElements = useDiagramStore(s => s.setManualElements)
     const setManualConnectors = useDiagramStore(s => s.setManualConnectors)
 
-    const [history, setHistory] = useState<HistoryState>(() => {
-        try {
-            const savedAll = localStorage.getItem("layer-canvases");
-            if(savedAll) {
-                const parsedAll = JSON.parse(savedAll);
-                if(parsedAll && typeof parsedAll === "object" && parsedAll[canvasId]) {
-                    const parsed = parsedAll[canvasId];
-                    return {
-                        past: parsed.history || [],
-                        present: {
-                            elements: parsed.elements || [],
-                            connectors: parsed.connectors || []
-                        },
-                        future: parsed.future || []
-                    };
-                }
-            }
-        } catch(error) {
-            console.error("Failed to load shapes from localStorage", error);
-        }
+    // History is always empty on mount — hydrated via setHistoryFromData after fetch
+    const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
 
-        return {
-            past: [],
-            present: {elements: [], connectors: []},
-            future: []
-        };
-    });
-
+    // Reset history when canvas changes (e.g. navigating between canvases)
+    const prevCanvasIdRef = useRef<string>(canvasId);
     useEffect(() => {
-        try {
-            const savedAll = localStorage.getItem("layer-canvases");
-            if(savedAll) {
-                const parsedAll = JSON.parse(savedAll);
-                if(parsedAll && typeof parsedAll === "object" && parsedAll[canvasId]) {
-                    const parsed = parsedAll[canvasId];
-                    setHistory({
-                        past: parsed.history || [],
-                        present: {
-                            elements: parsed.elements || [],
-                            connectors: parsed.connectors || []
-                        },
-                        future: parsed.future || []
-                    });
-                    return;
-                }
-            }
-        } catch(error) {
-            console.error("Failed to load shapes on canvas change", error);
+        if(prevCanvasIdRef.current !== canvasId) {
+            prevCanvasIdRef.current = canvasId;
+            setHistory(EMPTY_HISTORY);
         }
-
-        setHistory({past: [], present: {elements: [], connectors: []}, future: []});
     }, [canvasId]);
-
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            const fullState = {
-                elements: history.present.elements,
-                connectors: history.present.connectors,
-                history: history.past,
-                future: history.future
-            };
-
-            try {
-                const savedAll = localStorage.getItem("layer-canvases");
-                const parsedAll = savedAll ? JSON.parse(savedAll) : {};
-                parsedAll[canvasId] = fullState;
-                localStorage.setItem("layer-canvases", JSON.stringify(parsedAll));
-            } catch(err) {
-                console.error("Failed to sync persistence", err);
-            }
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-    }, [history, canvasId]);
 
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
     const [clipboard, setClipboard] = useState<Shape[]>([])
@@ -483,7 +425,7 @@ export function useShapes (canvasId: string = "default") {
         )
     }
 
-    function rotateShapes(
+    function rotateShapes (
         ids: string[],
         angleDelta: number,
         groupCenterX: number,
@@ -491,10 +433,10 @@ export function useShapes (canvasId: string = "default") {
         initialMap: Map<string, Shape>,
         options?: {skipHistory?: boolean}
     ) {
-        updateShapes(prevShapes => 
+        updateShapes(prevShapes =>
             prevShapes.map(shape => {
                 if(!ids.includes(shape.id)) return shape;
-                
+
                 const original = initialMap.get(shape.id);
                 if(!original) return shape;
 
@@ -510,7 +452,7 @@ export function useShapes (canvasId: string = "default") {
                     };
                 };
 
-                switch (shape.type) {
+                switch(shape.type) {
                     case "rectangle":
                     case "text": {
                         const orig = original as Rectangle | Text;
@@ -538,7 +480,7 @@ export function useShapes (canvasId: string = "default") {
                         const orig = original as Stroke;
                         const newPoints = orig.points.map(p => {
                             const newP = rotatePoint(p.x, p.y);
-                            return { x: newP.x, y: newP.y };
+                            return {x: newP.x, y: newP.y};
                         });
                         return {
                             ...shape,
@@ -613,7 +555,7 @@ export function useShapes (canvasId: string = "default") {
         });
     }
 
-    function addShapeWithConnector(shape: Shape, connector: Connector) {
+    function addShapeWithConnector (shape: Shape, connector: Connector) {
         setHistory(prev => {
             return {
                 past: [...prev.past, structuredClone(prev.present)],
@@ -656,11 +598,15 @@ export function useShapes (canvasId: string = "default") {
         });
     }, []);
 
-    const lastPushedElements = useRef<Shape[]>([]);
-    const lastPushedConnectors = useRef<Connector[]>([]);
+    // --------------- SYNC TO DIAGRAM STORE -------------
+    // Mirrors present → useDiagramStore so Canvas.tsx can read it for saving.
+    // Guards against re-triggering when the reference hasn't actually changed.
+
+    const lastPushedElements = useRef<Shape[]>(EMPTY_HISTORY.present.elements);
+    const lastPushedConnectors = useRef<Connector[]>(EMPTY_HISTORY.present.connectors);
 
     useEffect(() => {
-        if (
+        if(
             history.present.elements === lastPushedElements.current &&
             history.present.connectors === lastPushedConnectors.current
         ) {
@@ -669,20 +615,29 @@ export function useShapes (canvasId: string = "default") {
 
         setManualElements(history.present.elements);
         setManualConnectors(history.present.connectors);
-        
+
         lastPushedElements.current = history.present.elements;
         lastPushedConnectors.current = history.present.connectors;
     }, [history.present.elements, history.present.connectors, setManualElements, setManualConnectors]);
 
+    // --------------- INITIALIZATION -------------
+    // Called once after backend data is fetched. Clears past/future, sets present.
+    // Does NOT trigger the sync effect (refs are updated immediately).
+
     const setHistoryFromData = useCallback((elements: Shape[], connectors: Connector[]) => {
         setHistory({
             past: [],
-            present: { elements, connectors },
+            present: {elements, connectors},
             future: []
         });
+        
+        setManualElements(elements);
+        setManualConnectors(connectors);
+
+        // Pre-populate refs so the sync effect doesn't fire an extra update
         lastPushedElements.current = elements;
         lastPushedConnectors.current = connectors;
-    }, []);
+    }, [setManualElements, setManualConnectors]);
 
     return {
         shapes: history.present.elements,
