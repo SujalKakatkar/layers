@@ -30,3 +30,18 @@ export async function listCanvases () {
   const response = await api.get("/canvas");
   return response.data.data;
 }
+
+export async function generateShareLink(id: string) {
+  const response = await api.post(`/canvas/${id}/share`);
+  return response.data.data; // Returns { shareUrl: string, expiry: number }
+}
+
+export async function revokeShareLink(id: string) {
+  const response = await api.delete(`/canvas/${id}/share`);
+  return response.data.data;
+}
+
+export async function getSharedCanvas(token: string) {
+  const response = await api.get(`/canvas/shared/${token}`);
+  return response.data.data as CanvasResponse;
+}

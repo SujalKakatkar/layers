@@ -54,6 +54,17 @@ export const routes = createBrowserRouter([
     },
     {
         element: (
+            <Canvaslayout />
+        ),
+        children: [
+            {
+                path: '/shared/:token',
+                element: <Canvas />
+            }
+        ]
+    },
+    {
+        element: (
             <PublicRoute>
                 <AuthLayout />
             </PublicRoute>

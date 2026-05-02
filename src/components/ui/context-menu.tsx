@@ -17,8 +17,12 @@ function ContextMenuPortal({ ...props }: ContextMenuPrimitive.Portal.Props) {
 
 function ContextMenuTrigger({
   className,
+  disabled,
   ...props
-}: ContextMenuPrimitive.Trigger.Props) {
+}: ContextMenuPrimitive.Trigger.Props & { disabled?: boolean }) {
+  if (disabled) {
+    return <div className={cn("select-none", className)} {...(props as any)} />
+  }
   return (
     <ContextMenuPrimitive.Trigger
       data-slot="context-menu-trigger"

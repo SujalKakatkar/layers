@@ -1,5 +1,6 @@
 import type { Shape, Text } from "../../types/types";
 import { measureTextSize } from "../../helpers/measureTextSize";
+import { Bold, AlignLeft, AlignCenter, AlignRight, Minus, Plus } from "lucide-react";
 
 type TextToolbarProps = {
     shape: Text;
@@ -43,78 +44,89 @@ export default function TextToolbar({ shape, updateShape }: TextToolbarProps) {
 
     return (
         <div
-            className="absolute z-10 flex items-center justify-between gap-1 p-1 bg-neutral-900 border border-neutral-800 rounded-md shadow-lg bottom-16 left-1/2 transform -translate-x-1/2 pointer-events-auto"
+            className="absolute z-50 flex items-center gap-2 px-3 h-12 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-xl shadow-xl bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4"
             style={{ touchAction: 'none' }}
         >
+            {/* Bold Toggle */}
             <button
                 onClick={handleBold}
-                className={`p-1 w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                    shape.fontWeight === "bold" ? "bg-blue-600 text-white" : "text-neutral-400 hover:bg-neutral-800"
+                className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                    shape.fontWeight === "bold" 
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                    : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                 }`}
                 title="Bold"
             >
-                <b className="font-serif">B</b>
+                <Bold size={16} strokeWidth={shape.fontWeight === "bold" ? 3 : 2} />
             </button>
 
-            <div className="w-px h-6 bg-neutral-700 mx-1" />
+            <div className="w-px h-6 bg-zinc-800 mx-1" />
 
-            <button
-                onClick={() => handleAlign("left")}
-                className={`p-1 w-8 h-8 rounded flex flex-col items-center justify-center gap-[2px] transition-colors ${
-                    (!shape.textAlign || shape.textAlign === "left") ? "bg-neutral-700 text-white" : "text-neutral-400 hover:bg-neutral-800"
-                }`}
-                title="Align Left"
-            >
-                <div className="w-4 h-[2px] bg-current mr-auto" />
-                <div className="w-3 h-[2px] bg-current mr-auto" />
-                <div className="w-4 h-[2px] bg-current mr-auto" />
-            </button>
+            {/* Alignment Group */}
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={() => handleAlign("left")}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                        (!shape.textAlign || shape.textAlign === "left") 
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                    }`}
+                    title="Align Left"
+                >
+                    <AlignLeft size={16} />
+                </button>
 
-            <button
-                onClick={() => handleAlign("center")}
-                className={`p-1 w-8 h-8 rounded flex flex-col items-center justify-center gap-[2px] transition-colors ${
-                    shape.textAlign === "center" ? "bg-neutral-700 text-white" : "text-neutral-400 hover:bg-neutral-800"
-                }`}
-                title="Align Center"
-            >
-                <div className="w-4 h-[2px] bg-current mx-auto" />
-                <div className="w-3 h-[2px] bg-current mx-auto" />
-                <div className="w-4 h-[2px] bg-current mx-auto" />
-            </button>
+                <button
+                    onClick={() => handleAlign("center")}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                        shape.textAlign === "center" 
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                    }`}
+                    title="Align Center"
+                >
+                    <AlignCenter size={16} />
+                </button>
 
-            <button
-                onClick={() => handleAlign("right")}
-                className={`p-1 w-8 h-8 rounded flex flex-col items-center justify-center gap-[2px] transition-colors ${
-                    shape.textAlign === "right" ? "bg-neutral-700 text-white" : "text-neutral-400 hover:bg-neutral-800"
-                }`}
-                title="Align Right"
-            >
-                <div className="w-4 h-[2px] bg-current ml-auto" />
-                <div className="w-3 h-[2px] bg-current ml-auto" />
-                <div className="w-4 h-[2px] bg-current ml-auto" />
-            </button>
+                <button
+                    onClick={() => handleAlign("right")}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
+                        shape.textAlign === "right" 
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                    }`}
+                    title="Align Right"
+                >
+                    <AlignRight size={16} />
+                </button>
+            </div>
 
-            <div className="w-[1px] h-6 bg-neutral-700 mx-1" />
+            <div className="w-px h-6 bg-zinc-800 mx-1" />
 
-            <button
-                onClick={handleDecreaseSize}
-                className="p-1 w-8 h-8 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-800 transition-colors text-sm font-semibold"
-                title="Decrease Font Size"
-            >
-                A-
-            </button>
+            {/* Font Size Control */}
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={handleDecreaseSize}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all"
+                    title="Decrease Font Size"
+                >
+                    <Minus size={14} strokeWidth={3} />
+                </button>
 
-            <span className="text-white text-xs px-1 tabular-nums font-mono">
-                {Math.round(shape.fontSize || 20)}
-            </span>
+                <div className="min-w-[28px] flex justify-center">
+                    <span className="text-zinc-200 text-xs font-mono font-medium tabular-nums">
+                        {Math.round(shape.fontSize || 20)}
+                    </span>
+                </div>
 
-            <button
-                onClick={handleIncreaseSize}
-                className="p-1 w-8 h-8 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-800 transition-colors text-base font-bold"
-                title="Increase Font Size"
-            >
-                A+
-            </button>
+                <button
+                    onClick={handleIncreaseSize}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all"
+                    title="Increase Font Size"
+                >
+                    <Plus size={14} strokeWidth={3} />
+                </button>
+            </div>
         </div>
     );
 }

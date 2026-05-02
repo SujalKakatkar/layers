@@ -12,6 +12,7 @@ import {usePenDraw} from "../../hooks/usePen";
 import type {CanvasTool, HistoryActions, Tools, Shape, Connector} from "../../types/types";
 import {useShapes} from "../../hooks/useShapes";
 import {useDiagramStore} from "../../store/useDiagramStore";
+import {useCanvasStore} from "../../store/useCanvasStore";
 import {useText} from "../../hooks/useText";
 import {useKeyboard} from "../../hooks/useKeyboard";
 import TextToolbar from "./TextToolbar";
@@ -110,6 +111,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         removeConnector,
         setHistoryFromData
     } = useShapes(canvasId)
+
+    const {isReadOnly} = useCanvasStore();
 
     useImperativeHandle(ref, () => ({
         getShapes: () => ({ elements: shapes, connectors })
@@ -302,6 +305,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     useEffect(() => {
         function onKeyDown (e: KeyboardEvent) {
+            if (isReadOnly) return;
             // Prevent interference with input fields
             if(e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
 
@@ -315,7 +319,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         }
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [selectedConnectorId, editingText, removeConnector]);
+    }, [selectedConnectorId, editingText, removeConnector, isReadOnly]);
 
     // TOOL ADAPTERS
     const selectTool: CanvasTool = {
@@ -652,6 +656,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
 
     function onPointerDown (e: React.PointerEvent<HTMLCanvasElement>) {
+        if (isReadOnly && !spacePressedRef.current) return;
 
         if(!e.isPrimary) return;
 
@@ -669,6 +674,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     function onPointerMove (e: React.PointerEvent<HTMLCanvasElement>) {
 
         pan(e.clientX, e.clientY);
+
+        if (isReadOnly) return;
 
         if(canvasRef.current && activeTool !== "select" && activeTool !== "pen") {
             const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
@@ -699,12 +706,15 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
         endPan();
 
+        if (isReadOnly) return;
+
         e.currentTarget.releasePointerCapture(e.pointerId);
 
         tools[activeTool]?.onPointerUp?.(e);
     }
 
     function onDoubleClick (e: React.MouseEvent<HTMLCanvasElement>) {
+        if (isReadOnly) return;
         if(!canvasRef.current) return;
 
         const p = getWorldPoint(e, canvasRef.current, scale, offset);
@@ -798,14 +808,14 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     return (
         <div className="relative w-full h-full overflow-hidden">
-            {selectedIds.length === 1 && getShapeById(selectedIds[0])?.type === "text" && (
+            {selectedIds.length === 1 && getShapeById(selectedIds[0])?.type === "text" && !isReadOnly && (
                 <TextToolbar
                     shape={getShapeById(selectedIds[0])! as any}
                     updateShape={updateShape}
                 />
             )}
             <ContextMenu>
-                <ContextMenuTrigger className="block w-full h-full">
+                <ContextMenuTrigger disabled={isReadOnly} className="block w-full h-full">
 
                     {editingText && (
                         <div

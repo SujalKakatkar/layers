@@ -19,12 +19,12 @@ type ContextType = {
 };
 
 function Canvas () {
-    const {id} = useParams<{id: string}>();
+    const {id, token} = useParams<{id: string, token: string}>();
     const navigate = useNavigate();
     const {isCodePanelOpen} = useOutletContext<ContextType>();
     const whiteboardRef = useRef<WhiteBoardRef>(null);
 
-    const {fetchCanvas, updateCanvas, loading, title: canvasTitle, setCanvasId, isHydrated} = useCanvasStore();
+    const {fetchCanvas, fetchSharedCanvas, updateCanvas, getShareToken, revokeShareToken, loading, title: canvasTitle, setCanvasId, isHydrated, shareToken, isReadOnly} = useCanvasStore();
     // manualElements / manualConnectors are read from the store only for Save.
     // They must NOT be passed directly as initialElements to WhiteBoard —
     // that would create a feedback loop that resets undo history on every draw.
@@ -34,6 +34,8 @@ function Canvas () {
     const [tempTitle, setTempTitle] = useState("");
     const [isFetched, setIsFetched] = useState(false);
     const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+    const [showShareDialog, setShowShareDialog] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Stable snapshot of data fetched from the backend.
@@ -56,7 +58,26 @@ function Canvas () {
     const pendingNavigationRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if(id) {
+        if(token) {
+            setIsFetched(false);
+            setCanvasInitData(null);
+            setHasUnsavedChanges(false);
+            fetchSharedCanvas(token)
+                .then(data => {
+                    setCanvasInitData({
+                        elements: data.elements,
+                        connectors: data.connectors
+                    });
+                    lastSavedElementsRef.current = data.elements;
+                    lastSavedConnectorsRef.current = data.connectors;
+                    setIsFetched(true);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch shared canvas", err);
+                    toast.error("Invalid or expired share link");
+                    navigate("/");
+                });
+        } else if(id) {
             setIsFetched(false);
             setCanvasInitData(null);
             setHasUnsavedChanges(false);
@@ -80,15 +101,23 @@ function Canvas () {
                     setIsFetched(true);
                 });
         }
-    }, [id, fetchCanvas, setCanvasId]);
+    }, [id, token, fetchCanvas, fetchSharedCanvas, setCanvasId, navigate]);
 
     // Detect edits: any reference change to manualElements/manualConnectors
     // after the initial fetch marks the canvas as having unsaved changes.
     useEffect(() => {
         if(!isFetched) return;
+        
+        // Use stringification for a robust "deep" comparison to avoid reference-mismatch false positives on mount
+        const currentElementsJson = JSON.stringify(manualElements);
+        const savedElementsJson = JSON.stringify(lastSavedElementsRef.current);
+        const currentConnectorsJson = JSON.stringify(manualConnectors);
+        const savedConnectorsJson = JSON.stringify(lastSavedConnectorsRef.current);
+
         const changed =
-            manualElements !== lastSavedElementsRef.current ||
-            manualConnectors !== lastSavedConnectorsRef.current;
+            currentElementsJson !== savedElementsJson ||
+            currentConnectorsJson !== savedConnectorsJson;
+            
         setHasUnsavedChanges(changed);
     }, [manualElements, manualConnectors, isFetched]);
 
@@ -105,6 +134,8 @@ function Canvas () {
 
     // ── Save ─────────────────────────────────────────────────────────────────
     const handleSave = useCallback(async () => {
+        if (!hasUnsavedChanges) return;
+
         const {isHydrated} = useCanvasStore.getState();
         if(!isHydrated) {
             toast.error("Canvas still loading");
@@ -143,11 +174,42 @@ function Canvas () {
             console.error("Save failed", error);
             toast.error("Failed to save canvas");
         }
-    }, [updateCanvas]);
+    }, [updateCanvas, hasUnsavedChanges]);
 
-    // ── Ctrl+S keyboard shortcut ─────────────────────────────────────────────
+    // ── Share ────────────────────────────────────────────────────────────────
+    const handleShare = async () => {
+        setIsSharing(true);
+        try {
+            await getShareToken();
+            setShowShareDialog(true);
+        } catch (error) {
+            toast.error("Failed to generate share link");
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const handleRevokeShare = async () => {
+        try {
+            await revokeShareToken();
+            toast.success("Share link revoked");
+            setShowShareDialog(false);
+        } catch (error) {
+            toast.error("Failed to revoke share link");
+        }
+    };
+
+    const copyShareLink = () => {
+        if (!shareToken) return;
+        const url = `${window.location.origin}/shared/${shareToken}`;
+        navigator.clipboard.writeText(url);
+        toast.success("Share link copied to clipboard");
+    };
+
+    // ── Keyboard shortcuts ───────────────────────────────────────────────────
     useEffect(() => {
         function onKeyDown (e: KeyboardEvent) {
+            if (isReadOnly) return;
             const isInput = e.target instanceof HTMLElement &&
                 (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable);
             if(isInput) return;
@@ -159,7 +221,7 @@ function Canvas () {
         }
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [handleSave]);
+    }, [handleSave, isReadOnly]);
 
     // ── Warn on browser reload / tab close ───────────────────────────────────
     useEffect(() => {
@@ -201,9 +263,6 @@ function Canvas () {
         pendingNavigationRef.current = null;
     };
 
-    const handleShare = () => {
-        console.log("Share clicked");
-    };
 
     const saveTitle = () => {
         const newTitle = tempTitle.trim() || "Untitled Canvas";
@@ -217,6 +276,42 @@ function Canvas () {
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-black">
+
+            {/* ─── Share Dialog ─────────────────────────────────────────────────── */}
+            <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Share Canvas</DialogTitle>
+                        <DialogDescription>
+                            Anyone with this link can view this canvas in read-only mode.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="flex items-center gap-2">
+                            <input
+                                readOnly
+                                value={shareToken ? `${window.location.origin}/shared/${shareToken}` : "Generating..."}
+                                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white/80 focus:outline-none"
+                            />
+                            <button
+                                onClick={copyShareLink}
+                                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                            <p className="text-[10px] text-white/40 italic">Link expires if revoked manually.</p>
+                            <button
+                                onClick={handleRevokeShare}
+                                className="text-[10px] text-red-400 hover:text-red-300 font-semibold transition-all underline underline-offset-4"
+                            >
+                                Revoke Link
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* ─── Unsaved Changes Dialog ───────────────────────────────────────── */}
             <Dialog open={showUnsavedDialog} onOpenChange={(open) => {if(!open) handleDialogCancel();}}>
@@ -306,22 +401,25 @@ function Canvas () {
 
                     <button
                         onClick={handleSave}
-                        disabled={loading || !isHydrated}
+                        disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
                         className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                            ${hasUnsavedChanges
+                            ${hasUnsavedChanges && !isReadOnly
                                 ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                                : "border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5"
+                                : "border-white/10 bg-black/40 text-white/70"
                             }`}
                     >
-                        {loading ? "Saving…" : hasUnsavedChanges ? "Save*" : "Save"}
+                        {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
                     </button>
 
-                    <button
-                        onClick={handleShare}
-                        className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10"
-                    >
-                        Share
-                    </button>
+                    {!isReadOnly && (
+                        <button
+                            onClick={handleShare}
+                            disabled={isSharing}
+                            className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                        >
+                            {isSharing ? "Sharing..." : "Share"}
+                        </button>
+                    )}
                 </div>
             </div>
 
