@@ -18,6 +18,8 @@ type AuthState = {
     login: (email: string, password: string) => Promise<{error: string | null}>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    forgotPassword: (email: string) => Promise<{error: string | null}>;
+    resetPassword: (token: string, password: string) => Promise<{error: string | null}>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -84,6 +86,30 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({user: null});
         } finally {
             set({loading: false});
+        }
+    },
+
+    forgotPassword: async (email: string) => {
+        try {
+            await api.post("/auth/forgot-password", {email});
+            return {error: null};
+        } catch (error: any) {
+            console.error("Forgot password error:", error);
+            return {
+                error: error.response?.data?.message || "Failed to send reset link",
+            };
+        }
+    },
+
+    resetPassword: async (token: string, password: string) => {
+        try {
+            await api.post(`/auth/reset-password?token=${token}`, { password});
+            return {error: null};
+        } catch (error: any) {
+            console.error("Reset password error:", error);
+            return {
+                error: error.response?.data?.message || "Failed to reset password",
+            };
         }
     },
 }));

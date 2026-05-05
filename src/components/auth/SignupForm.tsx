@@ -18,7 +18,6 @@ import {toast} from "sonner"
 
 
 function SignupForm () {
-
    
     const navigate = useNavigate()
 
@@ -35,7 +34,7 @@ function SignupForm () {
 
         if (error) {
             toast.error("Signup failed", {
-                description: typeof error === 'string' ? error : "An error occurred"
+                description: typeof error === 'string' ? error : "An error occurred during signup."
             })
             return
         }
@@ -80,7 +79,9 @@ function SignupForm () {
                         {...register("email")}
                         className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                     />
-                    
+                    {errors.email && (
+                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                    )}
                 </Field>
                 <Field>
                     <Field className="grid grid-cols-2 gap-4">
@@ -90,6 +91,9 @@ function SignupForm () {
                                 {...register("password")}
                                 className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                             />
+                            {errors.password && (
+                                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                            )}
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="confirm-password">
@@ -100,6 +104,9 @@ function SignupForm () {
                                 id="confirm-password" type="password" 
                                 className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                             />
+                            {errors.confirmPassword && (
+                                <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>
+                            )}
                         </Field>
                     </Field>
                     <FieldDescription>

@@ -13,8 +13,9 @@ import {useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {useAuthStore} from "@/store/useAuthStore"
 
+import {toast} from "sonner"
+
 function LoginForm () {
-    
     const navigate = useNavigate()
     const {register, handleSubmit, formState: {errors}} = useForm<SigninSchemaType>({
         resolver: zodResolver(SigninSchema)
@@ -23,11 +24,11 @@ function LoginForm () {
     const login = useAuthStore((s) => s.login);
 
     const handleSignin = async (data: SigninSchemaType) => {
-        
         const {error} = await login(data.email, data.password);
         if (error) {
-            console.error("Login failed:", error);
-            // You might want to show a toast or error message here
+            toast.error("Login failed", {
+                description: typeof error === 'string' ? error : "Invalid email or password."
+            });
             return;
         }
         
@@ -50,25 +51,30 @@ function LoginForm () {
                         type="email"
                         placeholder="m@example.com"
                         {...register("email")}
-                        required
                         className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                     />
+                    {errors.email && (
+                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                    )}
                 </Field>
                 <Field>
                     <div className="flex items-center">
                         <FieldLabel htmlFor="password">Password</FieldLabel>
-                        <a
-                            href="#"
+                        <Link
+                            to="/auth/forgot-password"
                             className="ml-auto text-sm text-emerald-600 hover:text-emerald-500 font-medium underline-offset-2 hover:underline"
                         >
                             Forgot your password?
-                        </a>
+                        </Link>
                     </div>
                     <Input
                         {...register("password")}
-                        id="password" type="password" required 
+                        id="password" type="password" 
                         className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
                     />
+                    {errors.password && (
+                        <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                    )}
                 </Field>
                 <Field>
                     <Button type="submit" className="w-full bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500">Login</Button>

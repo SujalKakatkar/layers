@@ -11,6 +11,8 @@ import AuthLayout from "@/layouts/AuthLayout";
 import ProtectedRoute from "@/providers/ProtectedRoute";
 import PublicRoute from "@/providers/PublicRoute";
 import NotFound from "../pages/NotFound";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 export const routes = createBrowserRouter([
     {
@@ -77,6 +79,14 @@ export const routes = createBrowserRouter([
             {
                 path: '/auth/sign-up',
                 element: <Signup />
+            },
+            {
+                path: '/auth/forgot-password',
+                element: <ForgotPassword />
+            },
+            {
+                path: '/reset-password',
+                element: <ResetPassword />
             },
         ]
     },
