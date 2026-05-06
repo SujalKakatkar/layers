@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle} from "react";
 import {useOutletContext, useParams} from "react-router";
-import {useCamera} from "../../hooks/useCamera";
+import {useCamera, useCameraSync} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
 import {drawScene} from "../../canvas/draw";
 import {getWorldPoint} from "../../canvas/transform";
@@ -78,6 +78,22 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     // Global hooks (always active)
     const {scale, offset, startPan, pan, endPan, zoom} = useCamera();
+    useCameraSync(scale);
+
+    useEffect(() => {
+        const handleZoomIn = () => {
+            if(canvasRef.current) zoom(-100, canvasRef.current);
+        };
+        const handleZoomOut = () => {
+            if(canvasRef.current) zoom(100, canvasRef.current);
+        };
+        window.addEventListener('trigger-zoom-in', handleZoomIn);
+        window.addEventListener('trigger-zoom-out', handleZoomOut);
+        return () => {
+            window.removeEventListener('trigger-zoom-in', handleZoomIn);
+            window.removeEventListener('trigger-zoom-out', handleZoomOut);
+        };
+    }, [zoom]);
     const {pressedRef: spacePressedRef, pressed} = useSpaceKey();
 
     const {id} = useParams<{id: string}>();

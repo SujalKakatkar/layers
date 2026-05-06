@@ -61,3 +61,10 @@ export function useCamera () {
     }
 
 }
+
+import {useEffect} from "react";
+export function useCameraSync(scale: number) {
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('canvas-zoom', { detail: scale }));
+    }, [scale]);
+}

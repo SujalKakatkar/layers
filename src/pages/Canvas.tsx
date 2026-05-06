@@ -1,5 +1,6 @@
 import {useParams, useNavigate, useOutletContext} from "react-router";
 import {useCallback, useEffect, useRef, useState} from "react";
+import {Plus, Minus} from "lucide-react";
 import WhiteBoard, { type WhiteBoardRef } from "../components/draw/WhiteBoard";
 import {useDiagramStore} from "@/store/useDiagramStore";
 import {useCanvasStore} from "@/store/useCanvasStore";
@@ -38,6 +39,13 @@ function Canvas () {
     const [isSharing, setIsSharing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [currentZoom, setCurrentZoom] = useState(1);
+
+    useEffect(() => {
+        const handleZoom = (e: any) => setCurrentZoom(e.detail);
+        window.addEventListener('canvas-zoom', handleZoom);
+        return () => window.removeEventListener('canvas-zoom', handleZoom);
+    }, []);
 
     useEffect(() => {
         const handleResize = () => {
@@ -434,6 +442,29 @@ function Canvas () {
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3 pointer-events-auto">
+                    {/* Zoom Controls */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-out'))}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white/50 hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                            title="Zoom Out"
+                        >
+                            <Minus size={14} />
+                        </button>
+                        
+                        <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/40 text-white/50 backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
+                            {Math.round(currentZoom * 100)}%
+                        </div>
+
+                        <button
+                            onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-in'))}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white/50 hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                            title="Zoom In"
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </div>
+
                     <button
                         onClick={handleDashboardClick}
                         className="px-4 py-2 rounded-lg border border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
