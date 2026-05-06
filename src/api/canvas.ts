@@ -7,6 +7,10 @@ export type CanvasResponse = {
   manualConnectors: any[];
   code: string;
   createdAt: number;
+  camera?: {
+    scale: number;
+    offset: { x: number; y: number };
+  };
 };
 
 export async function createCanvas (title: string) {

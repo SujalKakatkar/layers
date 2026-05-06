@@ -3,7 +3,8 @@ import type {Text} from "../../types/types"
 
 export function drawText (
     ctx: CanvasRenderingContext2D,
-    shape: Text | any
+    shape: Text | any,
+    scale: number
 ) {
     if (!shape.text) return;
 

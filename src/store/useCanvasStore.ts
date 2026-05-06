@@ -20,15 +20,16 @@ interface CanvasState {
 
   setCanvasId: (id: string) => void;
   createCanvas: (title: string) => Promise<string>;
-  fetchCanvas: (id: string) => Promise<{elements: any[]; connectors: any[]}>;
+  fetchCanvas: (id: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
   listAllCanvases: () => Promise<void>;
   updateCanvas: (data: {
     manualElements: any[];
     manualConnectors: any[];
     code: string;
     generatedGroupOffset: {x: number; y: number};
+    camera: { scale: number; offset: { x: number; y: number } };
   }) => Promise<void>;
-  fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]}>;
+  fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
   getShareToken: () => Promise<string>;
   revokeShareToken: () => Promise<void>;
   setIsReadOnly: (val: boolean) => void;
@@ -81,7 +82,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       // Return the raw data so callers can initialize history directly
       return {
         elements: manualElements,
-        connectors: manualConnectors
+        connectors: manualConnectors,
+        camera: data.camera
       };
     } catch(err: any) {
       set({error: err.message, loading: false});
@@ -107,7 +109,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       return {
         elements: manualElements,
-        connectors: manualConnectors
+        connectors: manualConnectors,
+        camera: data.camera
       };
     } catch(err: any) {
       set({error: err.message, loading: false});
@@ -143,7 +146,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         manualElements: sanitizedElements,
         manualConnectors: data.manualConnectors,
         code: data.code,
-        generatedGroupOffset: data.generatedGroupOffset
+        generatedGroupOffset: data.generatedGroupOffset,
+        camera: data.camera
       });
       set({loading: false});
     } catch(err: any) {

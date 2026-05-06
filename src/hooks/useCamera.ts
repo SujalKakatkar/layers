@@ -53,6 +53,8 @@ export function useCamera () {
     return {
         scale,
         offset,
+        setScale,
+        setOffset,
         startPan,
         pan,
         endPan,

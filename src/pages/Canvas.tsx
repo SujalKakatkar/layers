@@ -72,6 +72,7 @@ function Canvas () {
     const [canvasInitData, setCanvasInitData] = useState<{
         elements: any[];
         connectors: any[];
+        camera?: { scale: number; offset: { x: number; y: number } };
     } | null>(null);
 
     // ── Unsaved-changes tracking ──────────────────────────────────────────────
@@ -94,7 +95,8 @@ function Canvas () {
                 .then(data => {
                     setCanvasInitData({
                         elements: data.elements,
-                        connectors: data.connectors
+                        connectors: data.connectors,
+                        camera: data.camera
                     });
                     lastSavedElementsRef.current = data.elements;
                     lastSavedConnectorsRef.current = data.connectors;
@@ -114,7 +116,8 @@ function Canvas () {
                 .then((data) => {
                     setCanvasInitData({
                         elements: data.elements,
-                        connectors: data.connectors
+                        connectors: data.connectors,
+                        camera: (data as any).camera
                     });
                     // Snapshot what the store contains right after fetch
                     const snap = useDiagramStore.getState();
@@ -172,6 +175,7 @@ function Canvas () {
 
         const state = useDiagramStore.getState();
         const uiShapes = whiteboardRef.current?.getShapes();
+        const camera = whiteboardRef.current?.getCamera();
         
         const manualElements = uiShapes ? uiShapes.elements : state.manualElements;
         const manualConnectors = uiShapes ? uiShapes.connectors : state.manualConnectors;
@@ -191,7 +195,8 @@ function Canvas () {
                 manualElements,
                 manualConnectors,
                 code,
-                generatedGroupOffset
+                generatedGroupOffset,
+                camera: camera || { scale: 1, offset: { x: 0, y: 0 } }
             });
             // Snapshot saved state so the unsaved-changes tracker resets
             lastSavedElementsRef.current = manualElements;
@@ -501,6 +506,7 @@ function Canvas () {
                 ref={whiteboardRef}
                 initialElements={canvasInitData?.elements ?? []}
                 initialConnectors={canvasInitData?.connectors ?? []}
+                initialCamera={canvasInitData?.camera}
             />
         </div>
     );

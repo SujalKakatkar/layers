@@ -50,13 +50,16 @@ import {
 interface WhiteBoardProps {
     initialElements?: Shape[];
     initialConnectors?: Connector[];
+    initialCamera?: { scale: number; offset: { x: number; y: number } };
 }
 
 export interface WhiteBoardRef {
     getShapes: () => { elements: Shape[]; connectors: Connector[] };
+    getCamera: () => { scale: number; offset: { x: number; y: number } };
+    setCamera: (camera: { scale: number; offset: { x: number; y: number } }) => void;
 }
 
-const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements, initialConnectors}: WhiteBoardProps, ref) => {
+const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements, initialConnectors, initialCamera}: WhiteBoardProps, ref) => {
     const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
     const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
     const [ghostPreview, setGhostPreview] = useState<{
@@ -77,7 +80,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     useCanvasResize(canvasRef);
 
     // Global hooks (always active)
-    const {scale, offset, startPan, pan, endPan, zoom} = useCamera();
+    const {scale, offset, setScale, setOffset, startPan, pan, endPan, zoom} = useCamera();
     useCameraSync(scale);
 
     useEffect(() => {
@@ -131,8 +134,22 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     const {isReadOnly} = useCanvasStore();
 
     useImperativeHandle(ref, () => ({
-        getShapes: () => ({ elements: shapes, connectors })
+        getShapes: () => ({ elements: shapes, connectors }),
+        getCamera: () => ({ scale, offset }),
+        setCamera: (cam) => {
+            if (cam) {
+                if (cam.scale) setScale(cam.scale);
+                if (cam.offset) setOffset(cam.offset);
+            }
+        }
     }));
+
+    useEffect(() => {
+        if (initialCamera) {
+            if (initialCamera.scale) setScale(initialCamera.scale);
+            if (initialCamera.offset) setOffset(initialCamera.offset);
+        }
+    }, [initialCamera, setScale, setOffset]);
 
     useEffect(() => {
         if(initialElements && initialConnectors) {

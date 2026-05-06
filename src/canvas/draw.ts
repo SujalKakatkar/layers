@@ -56,14 +56,14 @@ export function drawScene (
         }
 
         switch(shape.type) {
-            case "rectangle": drawRect(ctx, shape); break;
-            case "circle": drawCircle(ctx, shape); break;
-            case "stroke": drawStroke(ctx, shape); break;
-            case "text": drawText(ctx, shape); break;
+            case "rectangle": drawRect(ctx, shape, scale); break;
+            case "circle": drawCircle(ctx, shape, scale); break;
+            case "stroke": drawStroke(ctx, shape, scale); break;
+            case "text": drawText(ctx, shape, scale); break;
         }
 
         if((shape as any).text && shape.type !== "text") {
-            drawText(ctx, shape as any);
+            drawText(ctx, shape as any, scale);
         }
 
         ctx.restore();

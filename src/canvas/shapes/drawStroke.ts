@@ -3,6 +3,7 @@ import type {Stroke} from "../../types/types"
 export function drawStroke (
     ctx: CanvasRenderingContext2D,
     stroke: Stroke,
+    scale: number
 ) {
     if(stroke.points.length < 2) return
 
@@ -10,7 +11,7 @@ export function drawStroke (
 
     // --- draw the stroke ---
     ctx.beginPath()
-    ctx.lineWidth = stroke.width
+    ctx.lineWidth = stroke.width / scale
     ctx.strokeStyle = stroke.color
     ctx.lineCap = "round"
     ctx.lineJoin = "round"

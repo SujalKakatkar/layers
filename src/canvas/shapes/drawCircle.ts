@@ -3,11 +3,12 @@ import type {Circle} from "../../types/types";
 export function drawCircle (
     ctx: CanvasRenderingContext2D,
     circle: Circle,
+    scale: number
 ) {
     const {cx, cy, r} = circle;
     ctx.save();
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5 / scale;
     ctx.setLineDash([])
 
     ctx.beginPath();

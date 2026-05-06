@@ -3,6 +3,7 @@ import type {Rectangle} from "../../types/types";
 export function drawRect (
     ctx: CanvasRenderingContext2D,
     rect: Rectangle,
+    scale: number,
     radius = 10,
 ) {
     ctx.save();
@@ -15,7 +16,7 @@ export function drawRect (
 
 
     ctx.strokeStyle = "white";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5 / scale;
     ctx.setLineDash([])
 
     ctx.beginPath();
