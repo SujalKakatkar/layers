@@ -221,7 +221,7 @@ function Canvas () {
 
     const copyShareLink = () => {
         if (!shareToken) return;
-        const url = `${window.location.origin}/shared/${shareToken}`;
+        const url = shareToken;
         navigator.clipboard.writeText(url);
         toast.success("Share link copied to clipboard");
     };
@@ -332,7 +332,7 @@ function Canvas () {
                         <div className="flex items-center gap-2">
                             <input
                                 readOnly
-                                value={shareToken ? `${window.location.origin}/shared/${shareToken}` : "Generating..."}
+                                value={shareToken ? `${shareToken}` : "Generating..."}
                                 className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white/80 focus:outline-none"
                             />
                             <button

@@ -8,5 +8,6 @@ export const PUBLIC_ROUTES = [
 ]
 
 export function isPublicRoute (pathname: string) {
+    if (pathname.startsWith('/shared/')) return true;
     return PUBLIC_ROUTES.includes(pathname)
 }
