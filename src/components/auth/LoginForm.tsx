@@ -25,6 +25,7 @@ function LoginForm () {
 
     const handleSignin = async (data: SigninSchemaType) => {
         const {error} = await login(data.email, data.password);
+        
         if (error) {
             toast.error("Login failed", {
                 description: typeof error === 'string' ? error : "Invalid email or password."

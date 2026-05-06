@@ -279,7 +279,7 @@ function Canvas () {
 
             {/* ─── Share Dialog ─────────────────────────────────────────────────── */}
             <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md dark">
                     <DialogHeader>
                         <DialogTitle>Share Canvas</DialogTitle>
                         <DialogDescription>

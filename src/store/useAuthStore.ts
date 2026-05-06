@@ -57,9 +57,11 @@ export const useAuthStore = create<AuthState>((set) => ({
             });
             
             set({user: response.data.data});
+            
             return {error: null};
         } catch (error: any) {
-            console.error("Login error:", error);
+            
+            
             return {
                 error: error.response?.data?.message || "An error occurred during login",
             };
