@@ -2,7 +2,7 @@ import { Link } from "react-router"
 
 function Navbar() {
   return (
-    <nav className="sticky bg-black/80 top-0 z-50 flex justify-center px-4 pt-4">
+    <nav className="sticky bg-black top-0 z-50 flex justify-center px-4 pt-4">
       <main className="w-full max-w-6xl flex items-center justify-between
         rounded-2xl
         bg-black/80
