@@ -24,7 +24,7 @@ function Canvas () {
     const {isCodePanelOpen} = useOutletContext<ContextType>();
     const whiteboardRef = useRef<WhiteBoardRef>(null);
 
-    const {fetchCanvas, fetchSharedCanvas, updateCanvas, getShareToken, revokeShareToken, loading, title: canvasTitle, setCanvasId, isHydrated, shareToken, isReadOnly} = useCanvasStore();
+    const {fetchCanvas, fetchSharedCanvas, updateCanvas, getShareToken, revokeShareToken, loading, title: canvasTitle, setCanvasId, isHydrated, shareToken, isReadOnly, setIsReadOnly} = useCanvasStore();
     // manualElements / manualConnectors are read from the store only for Save.
     // They must NOT be passed directly as initialElements to WhiteBoard —
     // that would create a feedback loop that resets undo history on every draw.
@@ -37,6 +37,26 @@ function Canvas () {
     const [showShareDialog, setShowShareDialog] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const small = window.innerWidth < 1024;
+            setIsMobile(small);
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (isMobile) {
+            setIsReadOnly(true);
+        } else {
+            // Restore original read-only state when moving back to larger screen
+            setIsReadOnly(!!token);
+        }
+    }, [isMobile, setIsReadOnly, isFetched, token]); 
 
     // Stable snapshot of data fetched from the backend.
     // Only updated when a fetch completes — never on user edits.
@@ -276,6 +296,28 @@ function Canvas () {
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-black">
+
+            {/* ─── Mobile Restriction Dialog ────────────────────────────────────── */}
+            <Dialog open={isMobile} onOpenChange={() => {}}>
+                <DialogContent showCloseButton={false} className="max-w-sm dark border-white/10 bg-zinc-950/90 backdrop-blur-xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-white flex items-center gap-2 text-xl">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                            </div>
+                            Larger Device Required
+                        </DialogTitle>
+                        <DialogDescription className="text-white/60 text-sm leading-relaxed pt-2">
+                            Please use a larger device to use this canvas. The editor is optimized for desktop and larger tablet screens to ensure the best experience.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-center py-8">
+                         <div className="w-24 h-24 rounded-3xl bg-emerald-500/5 flex items-center justify-center text-emerald-500 border border-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* ─── Share Dialog ─────────────────────────────────────────────────── */}
             <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

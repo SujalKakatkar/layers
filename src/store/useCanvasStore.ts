@@ -31,6 +31,7 @@ interface CanvasState {
   fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]}>;
   getShareToken: () => Promise<string>;
   revokeShareToken: () => Promise<void>;
+  setIsReadOnly: (val: boolean) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
@@ -176,5 +177,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       set({error: err.message});
       throw err;
     }
-  }
+  },
+
+  setIsReadOnly: (val: boolean) => set({isReadOnly: val})
 }));
