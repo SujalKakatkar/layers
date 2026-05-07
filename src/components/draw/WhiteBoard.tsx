@@ -171,36 +171,35 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         generatedConnectors,
         setGeneratedElements,
         setGeneratedConnectors,
-        generatedGroupOffset,
-        setGeneratedGroupOffset,
+        generatedGroupOffsets,
+        setGeneratedGroupOffsets,
         selectedNodeId,
         setSelectedNodeId,
         setHighlightedRange,
     } = useDiagramStore();
 
     // ── Group drag state ──────────────────────────────────────────────────────
-    // We track dragging in a ref (not state) to avoid re-renders mid-drag.
     const groupDragRef = useRef<{
         active: boolean;
-        startX: number;  // world coords where drag began
+        componentId: string | null;
+        startX: number;
         startY: number;
-        originX: number; // offset at drag start
+        originX: number;
         originY: number;
-    }>({active: false, startX: 0, startY: 0, originX: 0, originY: 0});
+    }>({active: false, componentId: null, startX: 0, startY: 0, originX: 0, originY: 0});
 
-    const [groupSelected, setGroupSelected] = useState(false);
+    const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
 
-    // ── Offset-shifted elements (cheap memo, no layout changes) ───────────────
+    // ── Offset-shifted elements (per-component offsets) ──────────────────────
     const shiftedGeneratedElements = useMemo(() => {
-        const {x: ox, y: oy} = generatedGroupOffset;
-        if(ox === 0 && oy === 0) return generatedElements;
         return generatedElements.map((el: any) => {
+            const offset = generatedGroupOffsets[el.componentId || "default"] || {x: 0, y: 0};
             if(el.type === "circle") {
-                return {...el, cx: el.cx + ox, cy: el.cy + oy};
+                return {...el, cx: el.cx + offset.x, cy: el.cy + offset.y};
             }
-            return {...el, x: el.x + ox, y: el.y + oy};
+            return {...el, x: el.x + offset.x, y: el.y + offset.y};
         });
-    }, [generatedElements, generatedGroupOffset]);
+    }, [generatedElements, generatedGroupOffsets]);
 
     // ── Helper: hit-test a single shifted element ─────────────────────────────
     function hitTestElement (el: any, p: {x: number; y: number}): boolean {
@@ -213,11 +212,14 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         return p.x >= el.x && p.x <= el.x + el.width && p.y >= el.y && p.y <= el.y + el.height;
     }
 
-    // ── Helper: get bounding box of entire shifted group ──────────────────────
-    function getGroupBounds () {
-        if(shiftedGeneratedElements.length === 0) return null;
+    // ── Helper: get bounding box of a specific shifted component ─────────────
+    function getGroupBounds (componentId: string | null) {
+        if(!componentId) return null;
+        const componentElements = shiftedGeneratedElements.filter((el: any) => (el.componentId || "default") === componentId);
+        if(componentElements.length === 0) return null;
+
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        shiftedGeneratedElements.forEach((el: any) => {
+        componentElements.forEach((el: any) => {
             let x: number, y: number, w: number, h: number;
             if(el.type === "circle") {
                 x = el.cx - el.r; y = el.cy - el.r; w = el.r * 2; h = el.r * 2;
@@ -288,7 +290,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         onPointerUp: endSelect,
         resetSelection,
         guides
-    } = useSelectArea(canvasRef, scale, offset, allElements, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
+    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
     const clearSelection = useCallback(() => setSelectedIds([]), []);
@@ -366,7 +368,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             if(activeTool === "select" && e.isPrimary) {
                 const hitElement = [...shiftedGeneratedElements].reverse().find((el: any) => hitTestElement(el, p));
                 if(hitElement) {
-                    setGroupSelected(true);
+                    const componentId = hitElement.componentId || "default";
+                    setSelectedComponentId(componentId);
                     setSelectedNodeId(hitElement.id);
                     if(hitElement.source) {
                         setHighlightedRange(hitElement.source);
@@ -374,18 +377,21 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
                     setSelectedIds([]);
                     setSelectedConnectorId(null);
+                    
+                    const currentOffset = generatedGroupOffsets[componentId] || {x: 0, y: 0};
                     groupDragRef.current = {
                         active: true,
+                        componentId,
                         startX: p.x,
                         startY: p.y,
-                        originX: generatedGroupOffset.x,
-                        originY: generatedGroupOffset.y,
+                        originX: currentOffset.x,
+                        originY: currentOffset.y,
                     };
                     e.currentTarget.setPointerCapture(e.pointerId);
                     return; // skip normal selection
                 }
-                // Clicked outside group → deselect group
-                setGroupSelected(false);
+                // Clicked outside any diagram element → deselect diagram
+                setSelectedComponentId(null);
                 setSelectedNodeId(null);
                 setHighlightedRange(null);
             }
@@ -442,11 +448,16 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
             // ── Group drag ────────────────────────────────────────────────
             if(groupDragRef.current.active) {
-                const {startX, startY, originX, originY} = groupDragRef.current;
-                setGeneratedGroupOffset({
-                    x: originX + (p.x - startX),
-                    y: originY + (p.y - startY),
-                });
+                const {startX, startY, originX, originY, componentId} = groupDragRef.current;
+                if(componentId) {
+                    setGeneratedGroupOffsets(prev => ({
+                        ...prev,
+                        [componentId]: {
+                            x: originX + (p.x - startX),
+                            y: originY + (p.y - startY),
+                        }
+                    }));
+                }
                 return;
             }
 
@@ -623,11 +634,11 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         );
 
         // ── Draw generated-group selection bounding box ──────────────────
-        if(groupSelected && shiftedGeneratedElements.length > 0) {
+        if(selectedComponentId && shiftedGeneratedElements.length > 0) {
             const ctx = canvasRef.current.getContext("2d");
             if(ctx) {
                 const dpr = window.devicePixelRatio || 1;
-                const gb = getGroupBounds();
+                const gb = getGroupBounds(selectedComponentId);
                 if(gb) {
                     const pad = 14;
                     ctx.save();
@@ -643,7 +654,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
                     // ── Move hint label (Emerald Text) ───────────────────
                     ctx.setLineDash([]);
-                    const labelText = "Drag to move group";
+                    const labelText = "Drag to move diagram";
                     ctx.font = `bold ${Math.max(12, 12 / scale)}px sans-serif`;
 
                     // Draw text at top-left
@@ -683,7 +694,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 }
             }
         }
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, groupSelected, selectedNodeId]);
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, selectedComponentId, selectedNodeId]);
 
 
 
@@ -752,7 +763,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
         const p = getWorldPoint(e, canvasRef.current, scale, offset);
 
-        const hitId = allElements
+        const hitId = shapes
             .slice()
             .reverse()
             .find(shape => {

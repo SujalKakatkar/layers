@@ -78,11 +78,46 @@ function parseToShapes (input: string): ParsedDiagram {
   return {nodes, edges};
 }
 
+// ── Component discovery ───────────────────────────────────────────────────────
+function findComponents(nodes: Map<string, any>, edges: Set<string>): Map<string, string> {
+  const adj = new Map<string, string[]>();
+  nodes.forEach((_, id) => adj.set(id, []));
+  edges.forEach(edgeId => {
+    const parts = edgeId.split(/conn-|__/);
+    const from = parts[1];
+    const to = parts[2];
+    if (from && to && nodes.has(from) && nodes.has(to)) {
+      adj.get(from)?.push(to);
+      adj.get(to)?.push(from);
+    }
+  });
+
+  const components = new Map<string, string>(); // nodeId -> componentId
+  const visited = new Set<string>();
+
+  nodes.forEach((_, id) => {
+    if (!visited.has(id)) {
+      const componentId = id; // use first encountered nodeId as componentId
+      const stack = [id];
+      while (stack.length > 0) {
+        const curr = stack.pop()!;
+        if (visited.has(curr)) continue;
+        visited.add(curr);
+        components.set(curr, componentId);
+        adj.get(curr)?.forEach(neighbor => stack.push(neighbor));
+      }
+    }
+  });
+  return components;
+}
+
 // ── Layout engine ─────────────────────────────────────────────────────────────
 function mapParsedToShapes (parsed: ParsedDiagram) {
   const elements: any[] = [];
   const connectors: any[] = [];
   const nodeMap = new Map<string, any>();
+  
+  const componentMap = findComponents(parsed.nodes, parsed.edges);
 
   // ── Step 1: Build shape objects (no positions yet) ────────────────────────
   parsed.nodes.forEach((node) => {
@@ -92,6 +127,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       text: node.text,
       fontSize: 16,
       isGenerated: true,
+      componentId: componentMap.get(node.id),
     };
 
     if(node.type === "circle") {
@@ -237,6 +273,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       fromSide: "right",
       toSide: "left",
       isGenerated: true,
+      componentId: componentMap.get(fromId),
     });
   });
 

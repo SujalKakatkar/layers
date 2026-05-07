@@ -26,7 +26,7 @@ interface CanvasState {
     manualElements: any[];
     manualConnectors: any[];
     code: string;
-    generatedGroupOffset: {x: number; y: number};
+    generatedGroupOffsets: Record<string, {x: number; y: number}>;
     camera: { scale: number; offset: { x: number; y: number } };
   }) => Promise<void>;
   fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
@@ -73,8 +73,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       diagramStore.setManualElements(manualElements);
       diagramStore.setManualConnectors(manualConnectors);
       diagramStore.setCode(data.code || "");
-      if((data as any).generatedGroupOffset) {
-        diagramStore.setGeneratedGroupOffset((data as any).generatedGroupOffset);
+      
+      const rawOffset = (data as any).generatedGroupOffset;
+      const rawOffsets = (data as any).generatedGroupOffsets;
+
+      if(rawOffsets) {
+        diagramStore.setGeneratedGroupOffsets(rawOffsets);
+      } else if(rawOffset) {
+        // Migration: treat old single offset as the default component's offset
+        diagramStore.setGeneratedGroupOffsets({ "default": rawOffset });
+      } else {
+        diagramStore.setGeneratedGroupOffsets({});
       }
 
       set({isHydrated: true});
@@ -146,7 +155,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         manualElements: sanitizedElements,
         manualConnectors: data.manualConnectors,
         code: data.code,
-        generatedGroupOffset: data.generatedGroupOffset,
+        generatedGroupOffsets: data.generatedGroupOffsets,
         camera: data.camera
       });
       set({loading: false});

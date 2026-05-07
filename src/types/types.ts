@@ -50,6 +50,7 @@ export type Rectangle = {
     height: number
     rotation?: number
     isGenerated?: boolean
+    componentId?: string
     source?: {
         line: number;
         start: number;
@@ -66,6 +67,7 @@ export type Circle = {
     r: number
     rotation?: number
     isGenerated?: boolean
+    componentId?: string
     source?: {
         line: number;
         start: number;
@@ -98,6 +100,7 @@ export type Text = {
     textAlign?: "left" | "center" | "right";
     rotation?: number
     isGenerated?: boolean
+    componentId?: string
     source?: {
         line: number;
         start: number;
@@ -148,6 +151,7 @@ export type Connector = {
     fromSide: ConnectorSide;
     toSide: ConnectorSide;
     isGenerated?: boolean;
+    componentId?: string;
 };
 
 /** Transient state while the user is dragging a new connector */

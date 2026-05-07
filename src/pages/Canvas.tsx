@@ -29,7 +29,7 @@ function Canvas () {
     // manualElements / manualConnectors are read from the store only for Save.
     // They must NOT be passed directly as initialElements to WhiteBoard —
     // that would create a feedback loop that resets undo history on every draw.
-    const {code, manualElements, manualConnectors, generatedGroupOffset} = useDiagramStore();
+    const {code, manualElements, manualConnectors, generatedGroupOffsets} = useDiagramStore();
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [tempTitle, setTempTitle] = useState("");
@@ -81,6 +81,8 @@ function Canvas () {
     // change means the user has made edits that aren't persisted yet.
     const lastSavedElementsRef = useRef<any[]>([]);
     const lastSavedConnectorsRef = useRef<any[]>([]);
+    const lastSavedCodeRef = useRef<string>("");
+    const lastSavedOffsetsRef = useRef<Record<string, {x: number; y: number}>>({});
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Where the user wants to go if they choose "Leave" in the dialog
@@ -100,6 +102,9 @@ function Canvas () {
                     });
                     lastSavedElementsRef.current = data.elements;
                     lastSavedConnectorsRef.current = data.connectors;
+                    const snap = useDiagramStore.getState();
+                    lastSavedCodeRef.current = snap.code;
+                    lastSavedOffsetsRef.current = snap.generatedGroupOffsets;
                     setIsFetched(true);
                 })
                 .catch(err => {
@@ -123,6 +128,8 @@ function Canvas () {
                     const snap = useDiagramStore.getState();
                     lastSavedElementsRef.current = snap.manualElements;
                     lastSavedConnectorsRef.current = snap.manualConnectors;
+                    lastSavedCodeRef.current = snap.code;
+                    lastSavedOffsetsRef.current = snap.generatedGroupOffsets;
                     setIsFetched(true);
                 })
                 .catch(err => {
@@ -147,10 +154,12 @@ function Canvas () {
 
         const changed =
             currentElementsJson !== savedElementsJson ||
-            currentConnectorsJson !== savedConnectorsJson;
+            currentConnectorsJson !== savedConnectorsJson ||
+            code !== lastSavedCodeRef.current ||
+            JSON.stringify(generatedGroupOffsets) !== JSON.stringify(lastSavedOffsetsRef.current);
             
         setHasUnsavedChanges(changed);
-    }, [manualElements, manualConnectors, isFetched]);
+    }, [manualElements, manualConnectors, code, generatedGroupOffsets, isFetched]);
 
     useEffect(() => {
         setTempTitle(canvasTitle);
@@ -179,7 +188,7 @@ function Canvas () {
         
         const manualElements = uiShapes ? uiShapes.elements : state.manualElements;
         const manualConnectors = uiShapes ? uiShapes.connectors : state.manualConnectors;
-        const {code, generatedGroupOffset} = state;
+        const {code, generatedGroupOffsets} = state;
 
         console.log("Saving Canvas", {
             shapesFromUI: uiShapes?.elements.length,
@@ -195,12 +204,14 @@ function Canvas () {
                 manualElements,
                 manualConnectors,
                 code,
-                generatedGroupOffset,
+                generatedGroupOffsets,
                 camera: camera || { scale: 1, offset: { x: 0, y: 0 } }
             });
             // Snapshot saved state so the unsaved-changes tracker resets
             lastSavedElementsRef.current = manualElements;
             lastSavedConnectorsRef.current = manualConnectors;
+            lastSavedCodeRef.current = code;
+            lastSavedOffsetsRef.current = generatedGroupOffsets;
             setHasUnsavedChanges(false);
             toast.success("Canvas saved  ✓");
         } catch(error) {
