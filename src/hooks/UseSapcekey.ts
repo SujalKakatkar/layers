@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from "react";
+import {editorFocus} from "./useEditorFocus";
 
 function isTypingTarget (target: EventTarget | null) {
     if(!(target instanceof HTMLElement)) return false;
@@ -16,8 +17,9 @@ export function useSpaceKey () {
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
-
-            if(isTypingTarget(e.target)) return; // 🔥 ignore typing
+            // 🔥 ignore typing in normal inputs AND Monaco editor
+            if(isTypingTarget(e.target)) return;
+            if(editorFocus.active) return;
 
             if(e.code === "Space" && !pressedRef.current) {
                 e.preventDefault();
@@ -27,9 +29,7 @@ export function useSpaceKey () {
         };
 
         const up = (e: KeyboardEvent) => {
-
-            if(isTypingTarget(e.target)) return; // 🔥 ignore typing
-
+            // Always release on keyup so we don't get stuck in pan mode
             if(e.code === "Space") {
                 pressedRef.current = false;
                 setPressed(false);

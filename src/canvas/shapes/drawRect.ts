@@ -33,5 +33,5 @@ export function drawRect (
     ctx.stroke();
     ctx.restore();
 
-    
+
 }

@@ -78,46 +78,13 @@ function parseToShapes (input: string): ParsedDiagram {
   return {nodes, edges};
 }
 
-// ── Component discovery ───────────────────────────────────────────────────────
-function findComponents(nodes: Map<string, any>, edges: Set<string>): Map<string, string> {
-  const adj = new Map<string, string[]>();
-  nodes.forEach((_, id) => adj.set(id, []));
-  edges.forEach(edgeId => {
-    const parts = edgeId.split(/conn-|__/);
-    const from = parts[1];
-    const to = parts[2];
-    if (from && to && nodes.has(from) && nodes.has(to)) {
-      adj.get(from)?.push(to);
-      adj.get(to)?.push(from);
-    }
-  });
-
-  const components = new Map<string, string>(); // nodeId -> componentId
-  const visited = new Set<string>();
-
-  nodes.forEach((_, id) => {
-    if (!visited.has(id)) {
-      const componentId = id; // use first encountered nodeId as componentId
-      const stack = [id];
-      while (stack.length > 0) {
-        const curr = stack.pop()!;
-        if (visited.has(curr)) continue;
-        visited.add(curr);
-        components.set(curr, componentId);
-        adj.get(curr)?.forEach(neighbor => stack.push(neighbor));
-      }
-    }
-  });
-  return components;
-}
+// ── Component discovery removed (Single Diagram) ──────────────────────────────
 
 // ── Layout engine ─────────────────────────────────────────────────────────────
 function mapParsedToShapes (parsed: ParsedDiagram) {
   const elements: any[] = [];
   const connectors: any[] = [];
   const nodeMap = new Map<string, any>();
-  
-  const componentMap = findComponents(parsed.nodes, parsed.edges);
 
   // ── Step 1: Build shape objects (no positions yet) ────────────────────────
   parsed.nodes.forEach((node) => {
@@ -127,7 +94,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       text: node.text,
       fontSize: 16,
       isGenerated: true,
-      componentId: componentMap.get(node.id),
+      componentId: "default",
     };
 
     if(node.type === "circle") {
@@ -176,12 +143,16 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
 
   // ── Step 4: DFS to assign levels (max-depth wins for shared nodes) ────────
   const levels = new Map<string, number>();
+  const dfsInStack = new Set<string>(); // Cycle guard
 
   function dfs (nodeId: string, level: number) {
+    if(dfsInStack.has(nodeId)) return; // Back-edge: skip to break cycle
     const current = levels.get(nodeId) ?? -1;
     if(level <= current) return;
     levels.set(nodeId, level);
+    dfsInStack.add(nodeId);
     childrenMap.get(nodeId)?.forEach(child => dfs(child, level + 1));
+    dfsInStack.delete(nodeId);
   }
 
   roots.forEach(root => dfs(root, 0));
@@ -191,45 +162,39 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
     if(!levels.has(id)) dfs(id, 0);
   });
 
-  // ── Step 5: Subtree-aware recursive layout ───────────────────────────────
+  // ── Step 5: Column-based layout — group by level, stack vertically ───────
+  // This approach is cycle-safe: no recursion, no back-edge issues.
+  // All nodes at the same depth level form a column; nodes are stacked top-to-bottom.
   const spacingX = 250;
-  const spacingY = 120;
-  let currentY = 100;
+  const spacingY = 130;
+  const originY = 100;
 
-  function layoutNode (nodeId: string, level: number) {
-    const shape = nodeMap.get(nodeId);
-    const children = childrenMap.get(nodeId) ?? [];
+  // Group nodes by level
+  const levelGroups = new Map<number, string[]>();
+  levels.forEach((level, nodeId) => {
+    if(!levelGroups.has(level)) levelGroups.set(level, []);
+    levelGroups.get(level)!.push(nodeId);
+  });
+
+  // Place each column
+  levelGroups.forEach((nodeIds, level) => {
     const x = 100 + level * spacingX;
-
-    if(children.length === 0) {
+    nodeIds.forEach((nodeId, index) => {
+      const shape = nodeMap.get(nodeId);
+      if(!shape) return;
+      const y = originY + index * spacingY;
       if(shape.type === "circle") {
         shape.cx = x + shape.r;
-        shape.cy = currentY + shape.r;
+        shape.cy = y + shape.r;
       } else {
         shape.x = x;
-        shape.y = currentY;
+        shape.y = y;
       }
-      currentY += spacingY;
-      return;
-    }
+    });
+  });
 
-    const startY = currentY;
-    children.forEach(child => layoutNode(child, level + 1));
-    const endY = currentY - spacingY;
-    const midY = (startY + endY) / 2;
-
-    if(shape.type === "circle") {
-      shape.cx = x + shape.r;
-      shape.cy = midY + shape.r;
-    } else {
-      shape.x = x;
-      shape.y = midY;
-    }
-  }
-
-  roots.forEach(root => layoutNode(root, 0));
-
-  // Fallback: place any node still without coordinates (disconnected nodes)
+  // Fallback: place any node still without coordinates (isolated / unreachable nodes)
+  let fallbackY = originY + levelGroups.size * spacingY;
   parsed.nodes.forEach((_, id) => {
     const shape = nodeMap.get(id);
     if(!shape) return;
@@ -240,12 +205,12 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
 
     if(shape.type === "circle") {
       shape.cx = 100 + shape.r;
-      shape.cy = currentY + shape.r;
+      shape.cy = fallbackY + shape.r;
     } else {
       shape.x = 100;
-      shape.y = currentY;
+      shape.y = fallbackY;
     }
-    currentY += spacingY;
+    fallbackY += spacingY;
   });
 
   // ── Safety check ─────────────────────────────────────────────────────────
@@ -273,7 +238,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       fromSide: "right",
       toSide: "left",
       isGenerated: true,
-      componentId: componentMap.get(fromId),
+      componentId: "default",
     });
   });
 
@@ -293,6 +258,8 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
 // • Existing nodes:  keep old position, update everything else.
 // • New nodes:       use layout position as-is.
 // • Removed nodes:   not present in newElements → naturally dropped.
+// • Fresh paste:     if >55% of nodes are brand new, skip reconciliation entirely
+//                    so stale positions from a previous diagram don't corrupt layout.
 function reconcile (
   oldElements: Shape[],
   newElements: Shape[],
@@ -300,9 +267,18 @@ function reconcile (
   newConnectors: Connector[]
 ): {elements: Shape[]; connectors: Connector[]} {
 
-  // ── Reconcile elements ──────────────────────────────────────────────────
+  // ── Guard: mostly-new diagram → skip reconciliation ─────────────────────
   const oldMap = new Map(oldElements.map(el => [el.id, el]));
+  const newNodeCount = newElements.filter(el => !oldMap.has(el.id)).length;
+  const freshRatio = newNodeCount / Math.max(newElements.length, 1);
 
+  // If more than 55% of nodes are brand new, use fresh layout positions for all.
+  // This prevents stale positions from confusing a newly pasted diagram.
+  if(freshRatio > 0.55) {
+    return {elements: newElements as Shape[], connectors: newConnectors as Connector[]};
+  }
+
+  // ── Reconcile elements ──────────────────────────────────────────────────
   const finalElements = newElements.map((el: any) => {
     const old = oldMap.get(el.id) as any;
     if(!old) return el; // brand-new node → use layout position
@@ -311,11 +287,9 @@ function reconcile (
     const merged: any = {...old, ...el};
 
     if(el.type === "circle") {
-      // Circles use cx/cy
       if(old.cx != null) merged.cx = old.cx;
       if(old.cy != null) merged.cy = old.cy;
     } else {
-      // Rectangles / text use x/y
       if(old.x != null) merged.x = old.x;
       if(old.y != null) merged.y = old.y;
     }
@@ -519,10 +493,10 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
           onMount={(editor) => {
             editorRef.current = editor;
             editor.onDidChangeCursorPosition(handleCursorChange);
-            
+
             // ── Monaco focus tracking ──────────────────────────────────────
-            editor.onDidFocusEditorText(() => { editorFocus.active = true; });
-            editor.onDidBlurEditorText(() => { editorFocus.active = false; });
+            editor.onDidFocusEditorText(() => {editorFocus.active = true;});
+            editor.onDidBlurEditorText(() => {editorFocus.active = false;});
           }}
           options={{
             fontSize: 13,
