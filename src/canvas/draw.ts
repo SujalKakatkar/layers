@@ -22,7 +22,8 @@ export function drawScene (
     connectionState?: ConnectionState,
     dotShapeId?: string | null,
     ghostPreview?: {type: "rectangle" | "circle" | "text"; x: number; y: number; width?: number; height?: number;} | null,
-    selectedConnectorId?: string | null
+    selectedConnectorId?: string | null,
+    requestRedraw?: () => void
 ) {
 
     const ctx = canvas.getContext("2d")!;
@@ -79,7 +80,7 @@ export function drawScene (
     }
 
     if(connectors) {
-        drawConnectors(ctx, connectors, shapes, scale, selectedConnectorId);
+        drawConnectors(ctx, connectors, shapes, scale, selectedConnectorId, requestRedraw);
     }
 
     // ── Unified Connection Rendering ──────────────────────────────────

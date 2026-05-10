@@ -72,6 +72,10 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     const textRef = useRef<HTMLDivElement | null>(null)
     const justFinishedRef = useRef<boolean>(false);
+    const rafIdRef = useRef<number | null>(null);
+
+    const [redrawCount, setRedrawCount] = useState(0);
+    const requestRedraw = useCallback(() => setRedrawCount(c => c + 1), []);
 
     const {tool: activeTool, setTool, setUndoRedo} = useOutletContext<OutletContextType>();
 
@@ -630,7 +634,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             connectionState,
             connectorDotShapeId,
             ghostPreview,
-            selectedConnectorId
+            selectedConnectorId,
+            requestRedraw
         );
 
         // ── Draw generated-group selection bounding box ──────────────────
@@ -694,7 +699,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 }
             }
         }
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, selectedComponentId, selectedNodeId]);
+    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, selectedComponentId, selectedNodeId, redrawCount]);
 
 
 
@@ -716,34 +721,40 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     }
 
     function onPointerMove (e: React.PointerEvent<HTMLCanvasElement>) {
+        if (rafIdRef.current !== null) {
+            console.log("⏳ Throttled: Skipped a mouse move event!");
+            return;
+        }
+        rafIdRef.current = requestAnimationFrame(() => {
+            rafIdRef.current = null;
+            pan(e.clientX, e.clientY);
 
-        pan(e.clientX, e.clientY);
+            if (isReadOnly) return;
 
-        if (isReadOnly) return;
-
-        if(canvasRef.current && activeTool !== "select" && activeTool !== "pen") {
-            const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
-            if(e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
-                const p = getWorldPoint(e, canvasRef.current, scale, offset);
-                if(activeTool === "rectangle") {
-                    setGhostPreview({type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80});
-                } else if(activeTool === "circle") {
-                    setGhostPreview({type: "circle", x: p.x - 50, y: p.y - 50});
-                } else if(activeTool === "text") {
-                    setGhostPreview({type: "text", x: p.x, y: p.y});
+            if(canvasRef.current && activeTool !== "select" && activeTool !== "pen") {
+                const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
+                if(e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
+                    const p = getWorldPoint(e, canvasRef.current, scale, offset);
+                    if(activeTool === "rectangle") {
+                        setGhostPreview({type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80});
+                    } else if(activeTool === "circle") {
+                        setGhostPreview({type: "circle", x: p.x - 50, y: p.y - 50});
+                    } else if(activeTool === "text") {
+                        setGhostPreview({type: "text", x: p.x, y: p.y});
+                    } else {
+                        setGhostPreview(null);
+                    }
                 } else {
                     setGhostPreview(null);
                 }
             } else {
                 setGhostPreview(null);
             }
-        } else {
-            setGhostPreview(null);
-        }
 
-        tools[activeTool]?.onPointerMove?.(
-            e
-        );
+            tools[activeTool]?.onPointerMove?.(
+                e
+            );
+        });
     }
 
     function onPointerUp (e: React.PointerEvent<HTMLCanvasElement>) {
