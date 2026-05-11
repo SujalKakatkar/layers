@@ -13,6 +13,7 @@ import PublicRoute from "@/providers/PublicRoute";
 import NotFound from "../pages/NotFound";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
+import LearnLayers from "../pages/LearnLayers";
 
 export const routes = createBrowserRouter([
     {
@@ -25,6 +26,17 @@ export const routes = createBrowserRouter([
             {
                 path: '/',
                 element: <Home />
+            },
+        ]
+    },
+    {
+        element: (
+            <Mainlayout />
+        ),
+        children: [
+            {
+                path: '/learn',
+                element: <LearnLayers />
             },
         ]
     },

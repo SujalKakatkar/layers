@@ -1,4 +1,4 @@
-import {Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo, Code, CodeXml} from "lucide-react"
+import {Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo, Code, CodeXml, BookOpen} from "lucide-react"
 import type {LucideIcon} from 'lucide-react'
 import type {HelperTools, Tools} from "../../types/types"
 
@@ -127,6 +127,15 @@ function Toolbar ({onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
       {/* Code Toggle */}
       <div className="w-px h-6 bg-zinc-700 mx-1" />
       <div className="text-zinc-400 p-1 flex gap-2">
+        <a 
+          href="/learn"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-9 h-9 flex items-center justify-center rounded-lg transition text-emerald-400/80 hover:bg-emerald-500/10 hover:text-emerald-400"
+          title="Learn LayerScript"
+        >
+          <BookOpen size={18} strokeWidth={2} />
+        </a>
         <button
           onClick={onToggleCodePanel}
           className={`w-9 h-9 flex items-center justify-center rounded-lg transition

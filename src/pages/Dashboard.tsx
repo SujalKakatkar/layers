@@ -1,6 +1,6 @@
-import {LogOut, Plus, Layout, Clock, ChevronRight} from "lucide-react"
+import {LogOut, Plus, Layout, Clock, ChevronRight, BookOpen} from "lucide-react"
 import {useEffect, useState} from "react"
-import {useNavigate} from "react-router"
+import {useNavigate, Link} from "react-router"
 import {useAuthStore} from "@/store/useAuthStore"
 import LoadingScreen from "@/components/ui/LoadingScreen"
 import { CreateCanvasDialog } from "@/components/ui/CreateCanvasDialog"
@@ -31,14 +31,23 @@ function Header ({user, onLogout}: {user: any, onLogout: () => void}) {
           </div>
         </div>
 
-        {/* Right: Logout */}
-        <button 
-          onClick={onLogout}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
-        >
-          <LogOut size={14} />
-          <span>Logout</span>
-        </button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
+          <Link 
+            to="/learn"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-all"
+          >
+            <BookOpen size={14} />
+            <span>Learn LayerScript</span>
+          </Link>
+          <button 
+            onClick={onLogout}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
     </header>
   )
