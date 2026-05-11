@@ -1,20 +1,36 @@
-import type { Shape, Text } from "../../types/types";
+import type { Shape, Text, EditingText } from "../../types/types";
 import { measureTextSize } from "../../helpers/measureTextSize";
 import { Bold, AlignLeft, AlignCenter, AlignRight, Minus, Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type TextToolbarProps = {
     shape: Text;
     updateShape: (id: string, updater: (shape: Shape) => Shape) => void;
+    editingText: EditingText | null;
+    setEditingText: (val: EditingText | null) => void;
 };
 
-export default function TextToolbar({ shape, updateShape }: TextToolbarProps) {
+export default function TextToolbar({ shape, updateShape, editingText, setEditingText }: TextToolbarProps) {
     const handleBold = () => {
+        const newWeight = shape.fontWeight === "bold" ? "normal" : "bold";
+        
+        // Update store
         updateShape(shape.id, (s) => {
             if (s.type !== "text") return s;
-            const newWeight = s.fontWeight === "bold" ? "normal" : "bold";
             const metrics = measureTextSize(s.text, s.fontSize, newWeight);
             return { ...s, fontWeight: newWeight, width: metrics.width, height: metrics.height };
         });
+
+        // Sync with editing state if active
+        if (editingText && editingText.id === shape.id) {
+            const metrics = measureTextSize(editingText.text, editingText.fontSize, newWeight);
+            setEditingText({
+                ...editingText,
+                fontWeight: newWeight,
+                width: metrics.width,
+                height: metrics.height
+            } as any);
+        }
     };
 
     const handleAlign = (align: "left" | "center" | "right") => {
@@ -22,110 +38,172 @@ export default function TextToolbar({ shape, updateShape }: TextToolbarProps) {
             if (s.type !== "text") return s;
             return { ...s, textAlign: align };
         });
+        
+        if (editingText && editingText.id === shape.id) {
+            setEditingText({ ...editingText, textAlign: align } as any);
+        }
     };
 
     const handleIncreaseSize = () => {
+        const newFontSize = (shape.fontSize || 20) + 4;
+        
         updateShape(shape.id, (s) => {
             if (s.type !== "text") return s;
-            const newFontSize = (s.fontSize || 20) + 4;
             const metrics = measureTextSize(s.text, newFontSize, s.fontWeight);
             return { ...s, fontSize: newFontSize, width: metrics.width, height: metrics.height };
         });
+
+        if (editingText && editingText.id === shape.id) {
+            const metrics = measureTextSize(editingText.text, newFontSize, editingText.fontWeight);
+            setEditingText({
+                ...editingText,
+                fontSize: newFontSize,
+                width: metrics.width,
+                height: metrics.height
+            });
+        }
     };
 
     const handleDecreaseSize = () => {
+        const newFontSize = Math.max(8, (shape.fontSize || 20) - 4);
+        
         updateShape(shape.id, (s) => {
             if (s.type !== "text") return s;
-            const newFontSize = Math.max(8, (s.fontSize || 20) - 4);
             const metrics = measureTextSize(s.text, newFontSize, s.fontWeight);
             return { ...s, fontSize: newFontSize, width: metrics.width, height: metrics.height };
         });
+
+        if (editingText && editingText.id === shape.id) {
+            const metrics = measureTextSize(editingText.text, newFontSize, editingText.fontWeight);
+            setEditingText({
+                ...editingText,
+                fontSize: newFontSize,
+                width: metrics.width,
+                height: metrics.height
+            });
+        }
     };
 
     return (
         <div
-            className="absolute z-50 flex items-center gap-2 px-3 h-12 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-xl shadow-xl bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4"
+            className="absolute z-50 flex items-center gap-2 px-4 h-14 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-2xl shadow-xl bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4"
             style={{ touchAction: 'none' }}
         >
             {/* Bold Toggle */}
-            <button
-                onClick={handleBold}
-                className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                    shape.fontWeight === "bold" 
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
-                    : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                }`}
-                title="Bold"
-            >
-                <Bold size={16} strokeWidth={shape.fontWeight === "bold" ? 3 : 2} />
-            </button>
+            <Tooltip>
+                <TooltipTrigger render={ <button
+                        onClick={handleBold}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                            shape.fontWeight === "bold" 
+                            ? "bg-emerald-600 text-white shadow-sm" 
+                            : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                        }`}
+                    >
+                        <Bold size={18} strokeWidth={shape.fontWeight === "bold" ? 3 : 2} />
+                    </button>}>
+                   
+                </TooltipTrigger>
+                <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    Bold
+                </TooltipContent>
+            </Tooltip>
 
-            <div className="w-px h-6 bg-zinc-800 mx-1" />
+            <div className="w-px h-6 bg-zinc-700/50 mx-1" />
 
             {/* Alignment Group */}
             <div className="flex items-center gap-1">
-                <button
-                    onClick={() => handleAlign("left")}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                        (!shape.textAlign || shape.textAlign === "left") 
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
-                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                    }`}
-                    title="Align Left"
-                >
-                    <AlignLeft size={16} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger render={<button
+                            onClick={() => handleAlign("left")}
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                                (!shape.textAlign || shape.textAlign === "left") 
+                                ? "bg-emerald-600 text-white shadow-sm" 
+                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                            }`}
+                        >
+                            <AlignLeft size={18} />
+                        </button>}>
+                        
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                        Align Left
+                    </TooltipContent>
+                </Tooltip>
 
-                <button
-                    onClick={() => handleAlign("center")}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                        shape.textAlign === "center" 
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
-                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                    }`}
-                    title="Align Center"
-                >
-                    <AlignCenter size={16} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger render={ <button
+                            onClick={() => handleAlign("center")}
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                                shape.textAlign === "center" 
+                                ? "bg-emerald-600 text-white shadow-sm" 
+                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                            }`}
+                        >
+                            <AlignCenter size={18} />
+                        </button>}>
+                       
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                        Align Center
+                    </TooltipContent>
+                </Tooltip>
 
-                <button
-                    onClick={() => handleAlign("right")}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                        shape.textAlign === "right" 
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
-                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                    }`}
-                    title="Align Right"
-                >
-                    <AlignRight size={16} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger render={<button
+                            onClick={() => handleAlign("right")}
+                            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                                shape.textAlign === "right" 
+                                ? "bg-emerald-600 text-white shadow-sm" 
+                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                            }`}
+                        >
+                            <AlignRight size={18} />
+                        </button>}>
+                        
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                        Align Right
+                    </TooltipContent>
+                </Tooltip>
             </div>
 
-            <div className="w-px h-6 bg-zinc-800 mx-1" />
+            <div className="w-px h-6 bg-zinc-700/50 mx-1" />
 
             {/* Font Size Control */}
             <div className="flex items-center gap-2">
-                <button
-                    onClick={handleDecreaseSize}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all"
-                    title="Decrease Font Size"
-                >
-                    <Minus size={14} strokeWidth={3} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger render={<button
+                            onClick={handleDecreaseSize}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-white transition-all"
+                        >
+                            <Minus size={16} strokeWidth={3} />
+                        </button>}>
+                        
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                        Decrease Font Size
+                    </TooltipContent>
+                </Tooltip>
 
-                <div className="min-w-[28px] flex justify-center">
-                    <span className="text-zinc-200 text-xs font-mono font-medium tabular-nums">
+                <div className="min-w-[32px] flex justify-center">
+                    <span className="text-white font-mono font-bold tabular-nums">
                         {Math.round(shape.fontSize || 20)}
                     </span>
                 </div>
 
-                <button
-                    onClick={handleIncreaseSize}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all"
-                    title="Increase Font Size"
-                >
-                    <Plus size={14} strokeWidth={3} />
-                </button>
+                <Tooltip>
+                    <TooltipTrigger render={ <button
+                            onClick={handleIncreaseSize}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-white transition-all"
+                        >
+                            <Plus size={16} strokeWidth={3} />
+                        </button>}>
+                       
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                        Increase Font Size
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </div>
     );

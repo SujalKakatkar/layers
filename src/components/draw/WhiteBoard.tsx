@@ -282,7 +282,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     } = usePenDraw(currentShape, addCurrentShape, addShape)
 
     //Text tool hook
-    const {editingText, startText, updateText, finishText} = useText(addShape, updateShape)
+    const {editingText, setEditingText, startText, updateText, finishText} = useText(addShape, updateShape)
 
     const allElements = [...shiftedGeneratedElements, ...shapes];
 
@@ -867,6 +867,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 <TextToolbar
                     shape={getShapeById(selectedIds[0])! as any}
                     updateShape={updateShape}
+                    editingText={editingText}
+                    setEditingText={setEditingText}
                 />
             )}
             <ContextMenu>

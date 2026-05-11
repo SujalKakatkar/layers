@@ -46,7 +46,11 @@ export function useText (
     function updateText (value: string) {
         if(!editingText) return
 
-        const {width, height} = measureTextSize(value || '')
+        const {width, height} = measureTextSize(
+            value || '', 
+            editingText.fontSize, 
+            editingText.fontWeight
+        )
 
         setEditingText({
             ...editingText,
@@ -59,7 +63,11 @@ export function useText (
 
     function finishText () {
         if(!editingText) return
-        const {width, height} = measureTextSize(editingText.text)
+        const {width, height} = measureTextSize(
+            editingText.text, 
+            editingText.fontSize, 
+            editingText.fontWeight
+        )
         if(editingText.text.trim() !== "") {
 
             if(editingText.isNew) {
@@ -70,7 +78,8 @@ export function useText (
                     x: editingText.x + PAD_OFFSET_X,
                     y: editingText.y + PAD_OFFSETS_Y,
                     text: editingText.text,
-                    fontSize: 20,
+                    fontSize: editingText.fontSize,
+                    fontWeight: editingText.fontWeight,
                     width,
                     height
                 })
@@ -80,6 +89,8 @@ export function useText (
                 updateShape(editingText.id, (shape) => ({
                     ...shape,
                     text: editingText.text,
+                    fontSize: editingText.fontSize,
+                    fontWeight: editingText.fontWeight,
                     width,
                     height
                 }))
@@ -96,6 +107,7 @@ export function useText (
 
     return {
         editingText,
+        setEditingText,
         startText,
         updateText,
         finishText
