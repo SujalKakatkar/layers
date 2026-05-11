@@ -17,9 +17,10 @@ import { useCanvasStore } from "@/store/useCanvasStore"
 interface CreateCanvasDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
-export function CreateCanvasDialog({ open, onOpenChange }: CreateCanvasDialogProps) {
+export function CreateCanvasDialog({ open, onOpenChange, onSuccess }: CreateCanvasDialogProps) {
   const [name, setName] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const navigate = useNavigate()
@@ -42,6 +43,7 @@ export function CreateCanvasDialog({ open, onOpenChange }: CreateCanvasDialogPro
     try {
       const id = await createCanvas(trimmedName)
       toast.success("Canvas created successfully")
+      onSuccess?.()
       onOpenChange(false)
       navigate(`/canvas/${id}`)
     } catch (error: any) {

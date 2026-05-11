@@ -1,5 +1,14 @@
 import {create} from 'zustand';
-import {createCanvas as apiCreateCanvas, getCanvas, updateCanvas as apiUpdateCanvas, listCanvases, getSharedCanvas, generateShareLink as apiGenerateShareLink, revokeShareLink as apiRevokeShareLink} from '@/api/canvas';
+import {
+  createCanvas as apiCreateCanvas, 
+  getCanvas, 
+  updateCanvas as apiUpdateCanvas, 
+  listCanvases, 
+  getSharedCanvas, 
+  generateShareLink as apiGenerateShareLink, 
+  revokeShareLink as apiRevokeShareLink,
+  deleteCanvas as apiDeleteCanvas
+} from '@/api/canvas';
 import {useDiagramStore} from './useDiagramStore';
 
 interface CanvasListItem {
@@ -22,6 +31,7 @@ interface CanvasState {
   createCanvas: (title: string) => Promise<string>;
   fetchCanvas: (id: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
   listAllCanvases: () => Promise<void>;
+  removeCanvas: (id: string) => Promise<void>;
   updateCanvas: (data: {
     manualElements: any[];
     manualConnectors: any[];
@@ -132,6 +142,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     try {
       const data = await listCanvases();
       set({canvases: data, loading: false});
+    } catch(err: any) {
+      set({error: err.message, loading: false});
+      throw err;
+    }
+  },
+
+  removeCanvas: async (id: string) => {
+    set({loading: true, error: null});
+    try {
+      await apiDeleteCanvas(id);
+      set((state) => ({
+        canvases: state.canvases.filter((c) => c._id !== id),
+        loading: false
+      }));
     } catch(err: any) {
       set({error: err.message, loading: false});
       throw err;

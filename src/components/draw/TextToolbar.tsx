@@ -95,7 +95,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                         onClick={handleBold}
                         className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                             shape.fontWeight === "bold" 
-                            ? "bg-emerald-600 text-white shadow-sm" 
+                            ? "active-tool-glow text-white shadow-sm" 
                             : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                         }`}
                     >
@@ -117,7 +117,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("left")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 (!shape.textAlign || shape.textAlign === "left") 
-                                ? "bg-emerald-600 text-white shadow-sm" 
+                                ? "active-tool-glow text-white shadow-sm" 
                                 : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                             }`}
                         >
@@ -135,7 +135,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("center")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 shape.textAlign === "center" 
-                                ? "bg-emerald-600 text-white shadow-sm" 
+                                ? "active-tool-glow text-white shadow-sm" 
                                 : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                             }`}
                         >
@@ -153,7 +153,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("right")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 shape.textAlign === "right" 
-                                ? "bg-emerald-600 text-white shadow-sm" 
+                                ? "active-tool-glow text-white shadow-sm" 
                                 : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                             }`}
                         >

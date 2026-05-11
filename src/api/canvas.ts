@@ -49,3 +49,9 @@ export async function getSharedCanvas(token: string) {
   const response = await api.get(`/canvas/shared/${token}`);
   return response.data.data as CanvasResponse;
 }
+
+export async function deleteCanvas(id: string) {
+  const response = await api.delete(`/canvas/${id}`);
+  // As per requirement, response.data.data is null for 200 OK
+  return response.data.data;
+}

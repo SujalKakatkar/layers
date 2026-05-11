@@ -94,7 +94,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
                 <TooltipTrigger render={<button
                   onClick={() => onToolChange(item.tool)}
                   className={`w-10 h-10 flex items-center justify-center rounded-xl transition
-                ${isActive ? "bg-emerald-600/80 text-white shadow-sm" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                ${isActive ? "active-tool-glow text-white shadow-sm" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
                 >
                   <Icon
                     size={20}
