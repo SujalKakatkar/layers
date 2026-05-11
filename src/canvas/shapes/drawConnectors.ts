@@ -1,4 +1,4 @@
-import type {Connector, ConnectorSide, Point, Shape, ConnectionState} from "../../types/types";
+import type {Connector, Point, Shape, ConnectionState} from "../../types/types";
 import { getAStarPath } from "./astar.worker";
 import {
     getConnectionDots,
@@ -8,7 +8,7 @@ import {
     getBezierControl,
 } from "../../helpers/connectorHelpers";
 
-// ─── Committed connectors ────────────────────────────────────────────────────
+// Committed connectors 
 
 let astarWorker: Worker | null = null;
 if (typeof Worker !== 'undefined') {
@@ -59,10 +59,10 @@ export function drawConnectors (
         const isSelected = conn.id === selectedConnectorId;
 
         if(conn.isGenerated) {
-            // ── Smart routing for LayerScript connectors ─────────────────
+            // ── Smart routing for LayerScript connectors
             drawGeneratedConnector(ctx, conn.id, fromShape, toShape, shapes, scale, isSelected, usageMap);
         } else {
-            // ── Manual connectors: use closest geometric side pair ────────
+            // Manual connectors: use closest geometric side pair 
             const {fromSide, toSide} = getClosestSidePair(fromShape, toShape);
             const p1 = getConnectionPoint(fromShape, fromSide);
             const p2 = getConnectionPoint(toShape, toSide);
@@ -76,7 +76,7 @@ export function drawConnectors (
     ctx.restore();
 }
 
-// ─── Orthogonal Line Drawing ──────────────────────────────────────────────
+//Orthogonal Line Drawing 
 
 function drawOrthogonalLine(
     ctx: CanvasRenderingContext2D,
