@@ -26,7 +26,7 @@ export default function Root () {
     return (
         <>
             <TooltipProvider>
-                <Toaster richColors closeButton position="top-right" />
+                <Toaster richColors closeButton position="bottom-right" />
                 <RouterProvider router={routes} />
             </TooltipProvider>
         </>

@@ -1,8 +1,8 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle} from "react";
+import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle} from "react";
 import {useOutletContext, useParams} from "react-router";
 import {useCamera, useCameraSync} from "../../hooks/useCamera";
 import {useRectangleDraw} from "../../hooks/useRectangle";
-import {drawScene} from "../../canvas/draw";
+import {drawShapesLayer, drawConnectorsLayer, drawOverlayLayer} from "../../canvas/draw";
 import {getWorldPoint} from "../../canvas/transform";
 import {useCanvasResize} from "../../hooks/useResizeCanvas";
 import {useSpaceKey} from "../../hooks/UseSapcekey";
@@ -80,8 +80,10 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     const {tool: activeTool, setTool, setUndoRedo} = useOutletContext<OutletContextType>();
 
 
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    useCanvasResize(canvasRef);
+    const shapesCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const connectorsCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    useCanvasResize(shapesCanvasRef, connectorsCanvasRef, overlayCanvasRef);
 
     // Global hooks (always active)
     const {scale, offset, setScale, setOffset, startPan, pan, endPan, zoom} = useCamera();
@@ -89,10 +91,10 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     useEffect(() => {
         const handleZoomIn = () => {
-            if(canvasRef.current) zoom(-100, canvasRef.current);
+            if(overlayCanvasRef.current) zoom(-100, overlayCanvasRef.current);
         };
         const handleZoomOut = () => {
-            if(canvasRef.current) zoom(100, canvasRef.current);
+            if(overlayCanvasRef.current) zoom(100, overlayCanvasRef.current);
         };
         window.addEventListener('trigger-zoom-in', handleZoomIn);
         window.addEventListener('trigger-zoom-out', handleZoomOut);
@@ -284,7 +286,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     //Text tool hook
     const {editingText, setEditingText, startText, updateText, finishText} = useText(addShape, updateShape)
 
-    const allElements = [...shiftedGeneratedElements, ...shapes];
+    const allElements = useMemo(() => [...shiftedGeneratedElements, ...shapes], [shiftedGeneratedElements, shapes]);
+    const allConnectors = useMemo(() => [...generatedConnectors, ...connectors], [generatedConnectors, connectors]);
 
     //Select tool hook
     const {
@@ -294,7 +297,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         onPointerUp: endSelect,
         resetSelection,
         guides
-    } = useSelectArea(canvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
+    } = useSelectArea(overlayCanvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
     const clearSelection = useCallback(() => setSelectedIds([]), []);
@@ -363,7 +366,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     // TOOL ADAPTERS
     const selectTool: CanvasTool = {
         onPointerDown: (e) => {
-            const canvas = canvasRef.current;
+            const canvas = overlayCanvasRef.current;
             if(!canvas) return;
 
             const p = getWorldPoint(e, canvas, scale, offset);
@@ -446,7 +449,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             startSelect(p, e.altKey)
         },
         onPointerMove: (e) => {
-            const canvas = canvasRef.current;
+            const canvas = overlayCanvasRef.current;
             if(!canvas) return;
             const p = getWorldPoint(e, canvas, scale, offset);
 
@@ -479,7 +482,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             }
 
             if(activeTool === "select") {
-                const canvas = canvasRef.current;
+                const canvas = overlayCanvasRef.current;
                 if(canvas) {
                     const p = getWorldPoint(e, canvas, scale, offset);
                     const intent = onConnectorPointerUp(p, allElements);
@@ -518,13 +521,13 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     //circle tool
     const circleTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!canvasRef.current) return;
-            const p = getWorldPoint(e, canvasRef.current, scale, offset);
+            if(!overlayCanvasRef.current) return;
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             circleStartDraw(p);
         },
         onPointerMove: (e) => {
-            if(!canvasRef.current || !isCircleDrawingRef.current) return;
-            const p = getWorldPoint(e, canvasRef.current, scale, offset);
+            if(!overlayCanvasRef.current || !isCircleDrawingRef.current) return;
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             circleDraw(p);
         },
         onPointerUp: () => {
@@ -541,13 +544,13 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     const rectangleTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!canvasRef.current) return;
-            const p = getWorldPoint(e, canvasRef.current, scale, offset);
+            if(!overlayCanvasRef.current) return;
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             startDraw(p);
         },
         onPointerMove: (e) => {
-            if(!canvasRef.current || !isDrawingRef.current) return;
-            const p = getWorldPoint(e, canvasRef.current, scale, offset);
+            if(!overlayCanvasRef.current || !isDrawingRef.current) return;
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             draw(p);
         },
         onPointerUp: () => {
@@ -565,13 +568,13 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     //Pen tool
     const penTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!canvasRef.current) return
-            const p = getWorldPoint(e, canvasRef.current, scale, offset)
+            if(!overlayCanvasRef.current) return
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             startPenDraw(p)
         },
         onPointerMove: (e) => {
-            if(!canvasRef.current || !isPenDrawingRef.current) return
-            const p = getWorldPoint(e, canvasRef.current, scale, offset)
+            if(!overlayCanvasRef.current || !isPenDrawingRef.current) return
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             penDraw(p)
         },
         onPointerUp: () => {
@@ -587,8 +590,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     const textTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!canvasRef.current) return
-            const p = getWorldPoint(e, canvasRef.current, scale, offset)
+            if(!overlayCanvasRef.current) return
+            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             startText(p)
             setGhostPreview(null);
             setTool("select")
@@ -607,99 +610,44 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     // CURSOR
     useEffect(() => {
-        if(!canvasRef.current) return
-        canvasRef.current.style.cursor = spacePressedRef.current
+        if(!overlayCanvasRef.current) return
+        overlayCanvasRef.current.style.cursor = spacePressedRef.current
             ? "grab"
             : tools[activeTool]?.cursor ?? "default";
     }, [activeTool, pressed]);
 
-    // DRAW SCENE
-    useEffect(() => {
-        if(!canvasRef.current) return;
+    // LAYER 1 — Connectors: Bottom layer (so lines appear behind shapes)
+    useLayoutEffect(() => {
+        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        drawConnectorsLayer(connectorsCanvasRef.current, allConnectors, allElements, scale, offset, selectedConnectorId, requestRedraw);
+        console.log('[Layer: Connectors] redrawn'); // DEV only
+    }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount]);
 
-        const allElements = [...shiftedGeneratedElements, ...shapes];
-        const allConnectors = [...generatedConnectors, ...connectors];
+    // LAYER 2 — Shapes: Middle layer
+    useLayoutEffect(() => {
+        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        drawShapesLayer(shapesCanvasRef.current, currentShape, allElements, scale, offset, editingText);
+        console.log('[Layer: Shapes] redrawn'); // DEV only
+    }, [currentShape, allElements, scale, offset, editingText]);
 
-        drawScene(
-            canvasRef.current,
-            currentShape,
-            allElements,
-            scale,
-            offset,
-            selectArea,
-            selectedIds,
-            editingText,
-            guides,
-            allConnectors,
-            connectionState,
-            connectorDotShapeId,
-            ghostPreview,
-            selectedConnectorId,
-            requestRedraw
+    // LAYER 3 — Overlay: Top layer (Selection, dots, interactive UI)
+    useLayoutEffect(() => {
+        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        drawOverlayLayer(
+            overlayCanvasRef.current,
+            allElements, scale, offset,
+            selectArea, selectedIds,
+            editingText, guides,
+            connectionState, connectorDotShapeId,
+            ghostPreview, selectedConnectorId,
+            selectedComponentId, selectedNodeId,
+            shiftedGeneratedElements,
+            getGroupBounds
         );
-
-        // ── Draw generated-group selection bounding box ──────────────────
-        if(selectedComponentId && shiftedGeneratedElements.length > 0) {
-            const ctx = canvasRef.current.getContext("2d");
-            if(ctx) {
-                const dpr = window.devicePixelRatio || 1;
-                const gb = getGroupBounds(selectedComponentId);
-                if(gb) {
-                    const pad = 14;
-                    ctx.save();
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.scale(dpr, dpr);
-                    ctx.translate(offset.x, offset.y);
-                    ctx.scale(scale, scale);
-
-                    ctx.strokeStyle = "#10B981"; // Emerald
-                    ctx.lineWidth = 1.5 / scale;
-                    ctx.setLineDash([6 / scale, 3 / scale]);
-                    ctx.strokeRect(gb.x - pad, gb.y - pad, gb.width + pad * 2, gb.height + pad * 2);
-
-                    // ── Move hint label (Emerald Text) ───────────────────
-                    ctx.setLineDash([]);
-                    const labelText = "Drag to move diagram";
-                    ctx.font = `bold ${Math.max(12, 12 / scale)}px sans-serif`;
-
-                    // Draw text at top-left
-                    ctx.fillStyle = "#10B981";
-                    ctx.textAlign = "left";
-                    ctx.textBaseline = "bottom";
-                    ctx.fillText(labelText, gb.x - pad, gb.y - pad - 6 / scale);
-
-                    ctx.restore();
-                }
-            }
-        }
-
-        // ── Draw individual generated node highlight ────────────────────
-        if(selectedNodeId) {
-            const el = shiftedGeneratedElements.find((e: any) => e.id === selectedNodeId);
-            if(el) {
-                const ctx = canvasRef.current.getContext("2d");
-                if(ctx) {
-                    const dpr = window.devicePixelRatio || 1;
-                    ctx.save();
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.scale(dpr, dpr);
-                    ctx.translate(offset.x, offset.y);
-                    ctx.scale(scale, scale);
-
-                    ctx.strokeStyle = "#10B981"; // Emerald
-                    ctx.lineWidth = 3 / scale;
-                    if(el.type === "circle") {
-                        ctx.beginPath();
-                        ctx.arc(el.cx, el.cy, el.r + 5 / scale, 0, Math.PI * 2);
-                        ctx.stroke();
-                    } else {
-                        ctx.strokeRect(el.x - 5 / scale, el.y - 5 / scale, el.width + 10 / scale, el.height + 10 / scale);
-                    }
-                    ctx.restore();
-                }
-            }
-        }
-    }, [currentShape, shapes, scale, offset, selectArea, selectedIds, editingText, guides, connectors, connectionState, connectorDotShapeId, ghostPreview, selectedConnectorId, shiftedGeneratedElements, generatedConnectors, selectedComponentId, selectedNodeId, redrawCount]);
+        console.log('[Layer: Overlay] redrawn'); // DEV only
+    }, [selectArea, selectedIds, editingText, guides, connectionState,
+        connectorDotShapeId, ghostPreview, selectedConnectorId,
+        selectedComponentId, selectedNodeId, scale, offset, allElements]);
 
 
 
@@ -731,10 +679,10 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
             if (isReadOnly) return;
 
-            if(canvasRef.current && activeTool !== "select" && activeTool !== "pen") {
+            if(overlayCanvasRef.current && activeTool !== "select" && activeTool !== "pen") {
                 const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
                 if(e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
-                    const p = getWorldPoint(e, canvasRef.current, scale, offset);
+                    const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
                     if(activeTool === "rectangle") {
                         setGhostPreview({type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80});
                     } else if(activeTool === "circle") {
@@ -770,11 +718,11 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     function onDoubleClick (e: React.MouseEvent<HTMLCanvasElement>) {
         if (isReadOnly) return;
-        if(!canvasRef.current) return;
+        if (!overlayCanvasRef.current) return;
 
-        const p = getWorldPoint(e, canvasRef.current, scale, offset);
+        const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
 
-        const hitId = shapes
+        const hitId = allElements
             .slice()
             .reverse()
             .find(shape => {
@@ -900,24 +848,25 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                             }}
                         />
                     )}
-                    <canvas
-                        ref={canvasRef}
-                        // width={1000}
-                        // height={1000}
-                        className="w-full h-full"
-                        onPointerDown={onPointerDown}
-                        onPointerMove={onPointerMove}
-                        onPointerUp={onPointerUp}
-                        onPointerCancel={onPointerUp}
-                        onDoubleClick={onDoubleClick}
-                        // style={{cursor: tools[activeTool]?.cursor}}
-                        onWheel={(e) => zoom(e.deltaY, canvasRef.current!)}
-                        style={{
-                            cursor: tools[activeTool]?.cursor,
-                            touchAction: "none",
-                            userSelect: "none"
-                        }}
-                    />
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                        <canvas ref={connectorsCanvasRef}
+                            style={{ position: 'absolute', top: 0, left: 0,
+                                width: '100%', height: '100%', pointerEvents: 'none' }} />
+                        <canvas ref={shapesCanvasRef}
+                            style={{ position: 'absolute', top: 0, left: 0,
+                                width: '100%', height: '100%', pointerEvents: 'none' }} />
+                        <canvas ref={overlayCanvasRef}
+                            style={{ position: 'absolute', top: 0, left: 0,
+                                width: '100%', height: '100%',
+                                cursor: tools[activeTool]?.cursor,
+                                touchAction: 'none', userSelect: 'none' }}
+                            onPointerDown={onPointerDown}
+                            onPointerMove={onPointerMove}
+                            onPointerUp={onPointerUp}
+                            onPointerCancel={onPointerUp}
+                            onDoubleClick={onDoubleClick}
+                            onWheel={(e) => zoom(e.deltaY, overlayCanvasRef.current!)} />
+                    </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-48">
                     {menuItems.map((item, idx) => (

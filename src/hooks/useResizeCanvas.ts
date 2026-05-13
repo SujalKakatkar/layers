@@ -1,30 +1,36 @@
-import {useEffect} from "react";
+import {useLayoutEffect} from "react";
 
 export function useCanvasResize (
-    canvasRef: React.RefObject<HTMLCanvasElement | null>
+    shapesRef: React.RefObject<HTMLCanvasElement | null>,
+    connectorsRef: React.RefObject<HTMLCanvasElement | null>,
+    overlayRef: React.RefObject<HTMLCanvasElement | null>
 ) {
-    useEffect(() => {
+    useLayoutEffect(() => {
 
         function resize () {
-            const canvas = canvasRef.current;
-            if(!canvas) return;
-
             const dpr = window.devicePixelRatio || 1;
 
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            canvas.style.width = `${width}px`;
-            canvas.style.height = `${height}px`;
+            const refs = [shapesRef, connectorsRef, overlayRef];
 
-            canvas.width = Math.floor(width * dpr);
-            canvas.height = Math.floor(height * dpr);
+            refs.forEach(ref => {
+                const canvas = ref.current;
+                if (!canvas) return;
 
-            const ctx = canvas.getContext("2d");
-            if(!ctx) return;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
 
-            // Reset + scale for retina displays
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+
+                // Reset + scale for retina displays
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            });
         }
 
         resize();
@@ -33,5 +39,5 @@ export function useCanvasResize (
 
         return () => window.removeEventListener("resize", resize);
 
-    }, [canvasRef]);
+    }, [shapesRef, connectorsRef, overlayRef]);
 }

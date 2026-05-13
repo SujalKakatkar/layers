@@ -33,11 +33,12 @@ interface CanvasState {
   listAllCanvases: () => Promise<void>;
   removeCanvas: (id: string) => Promise<void>;
   updateCanvas: (data: {
-    manualElements: any[];
-    manualConnectors: any[];
-    code: string;
-    generatedGroupOffsets: Record<string, {x: number; y: number}>;
-    camera: { scale: number; offset: { x: number; y: number } };
+    title?: string;
+    manualElements?: any[];
+    manualConnectors?: any[];
+    code?: string;
+    generatedGroupOffsets?: Record<string, {x: number; y: number}>;
+    camera?: { scale: number; offset: { x: number; y: number } };
   }) => Promise<void>;
   fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
   getShareToken: () => Promise<string>;
@@ -163,25 +164,31 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   updateCanvas: async (data) => {
-    const {canvasId} = get();
+    const {canvasId, title: currentTitle} = get();
     if(!canvasId) return;
 
     set({loading: true, error: null});
     try {
-      // Strip runtime-only fields from elements before saving
-      const sanitizedElements = data.manualElements.map(el => {
-        const {isGenerated, source, ...rest} = el;
-        return rest;
-      });
+      // If elements are provided, sanitize them. Otherwise, we're just updating metadata like the title.
+      const sanitizedElements = data.manualElements 
+        ? data.manualElements.map(el => {
+            const {isGenerated, source, ...rest} = el;
+            return rest;
+          })
+        : undefined;
 
-      // Backend DB field is "manualConnectors" — send it with the correct name
-      await apiUpdateCanvas(canvasId, {
-        manualElements: sanitizedElements,
-        manualConnectors: data.manualConnectors,
-        code: data.code,
-        generatedGroupOffsets: data.generatedGroupOffsets,
-        camera: data.camera
-      });
+      const payload: any = { ...data };
+      if (sanitizedElements) {
+        payload.manualElements = sanitizedElements;
+      }
+
+      await apiUpdateCanvas(canvasId, payload);
+      
+      // Update local state if title changed
+      if (data.title) {
+        set({ title: data.title });
+      }
+      
       set({loading: false});
     } catch(err: any) {
       set({error: err.message, loading: false});

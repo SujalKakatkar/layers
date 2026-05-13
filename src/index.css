@@ -277,3 +277,14 @@
 .animate-scale-fade {
   animation: scaleFade 2s ease-in-out infinite;
 }
+
+/* ── Active tool indicator ───────────────────────────────────────────────── */
+.active-tool-glow {
+  background-color: rgba(6, 78, 59, 0.6);             /* Dark emerald with opacity */
+  backdrop-filter: blur(8px);                         /* Blur effect */
+  -webkit-backdrop-filter: blur(8px);                 /* Safari support */
+  color: #ffffff;
+  border-radius: 0.75rem;                             /* matches rounded-xl */
+  border: 1px solid rgba(16, 185, 129, 0.3);          /* Subtle emerald border */
+  transition: all 0.15s ease;
+}

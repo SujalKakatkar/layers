@@ -1,6 +1,6 @@
 import {useParams, useNavigate, useOutletContext} from "react-router";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {Plus, Minus, BookOpen, LogOut, Layout, Clock, ChevronRight} from "lucide-react";
+import {Plus, Minus} from "lucide-react";
 import WhiteBoard, { type WhiteBoardRef } from "../components/draw/WhiteBoard";
 import {useDiagramStore} from "@/store/useDiagramStore";
 import {useCanvasStore} from "@/store/useCanvasStore";
@@ -76,7 +76,7 @@ function Canvas () {
         camera?: { scale: number; offset: { x: number; y: number } };
     } | null>(null);
 
-    // ── Unsaved-changes tracking ──────────────────────────────────────────────
+    //  Unsaved-changes tracking 
     // We compare Zustand array references (not deep equality) to detect edits.
     // After each save / fetch, we snapshot the refs. Any subsequent reference
     // change means the user has made edits that aren't persisted yet.
@@ -173,7 +173,7 @@ function Canvas () {
         }
     }, [isRenaming]);
 
-    // ── Save ─────────────────────────────────────────────────────────────────
+    //  Save
     const handleSave = useCallback(async () => {
         if (!hasUnsavedChanges) return;
 
@@ -221,7 +221,7 @@ function Canvas () {
         }
     }, [updateCanvas, hasUnsavedChanges]);
 
-    // ── Share ────────────────────────────────────────────────────────────────
+    //  Share
     const handleShare = async () => {
         setIsSharing(true);
         try {
@@ -251,7 +251,7 @@ function Canvas () {
         toast.success("Share link copied to clipboard");
     };
 
-    // ── Keyboard shortcuts ───────────────────────────────────────────────────
+    //  Keyboard shortcuts
     useEffect(() => {
         function onKeyDown (e: KeyboardEvent) {
             if (isReadOnly) return;
@@ -268,7 +268,7 @@ function Canvas () {
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [handleSave, isReadOnly]);
 
-    // ── Warn on browser reload / tab close ───────────────────────────────────
+    //  Warn on browser reload / tab close
     useEffect(() => {
         function onBeforeUnload (e: BeforeUnloadEvent) {
             if(!hasUnsavedChanges) return;
@@ -278,7 +278,7 @@ function Canvas () {
         return () => window.removeEventListener("beforeunload", onBeforeUnload);
     }, [hasUnsavedChanges]);
 
-    // ── Dashboard navigation (in-app) ────────────────────────────────────────
+    //  Dashboard navigation (in-app)
     const handleDashboardClick = () => {
         if(hasUnsavedChanges) {
             pendingNavigationRef.current = "/dashboard";
@@ -309,9 +309,21 @@ function Canvas () {
     };
 
 
-    const saveTitle = () => {
+    const saveTitle = async () => {
         const newTitle = tempTitle.trim() || "Untitled Canvas";
-        console.log("Title update requested:", newTitle);
+        if(newTitle === canvasTitle) {
+            setIsRenaming(false);
+            return;
+        }
+
+        try {
+            await updateCanvas({ title: newTitle });
+            toast.success("Title updated");
+        } catch(error) {
+            console.error("Failed to update title", error);
+            toast.error("Failed to update title");
+            setTempTitle(canvasTitle);
+        }
         setIsRenaming(false);
     };
 
@@ -322,7 +334,7 @@ function Canvas () {
     return (
         <div className="relative w-full h-screen overflow-hidden bg-black">
 
-            {/* ─── Mobile Restriction Dialog ────────────────────────────────────── */}
+            {/*  Mobile Restriction Dialog  */}
             <Dialog open={isMobile} onOpenChange={() => {}}>
                 <DialogContent showCloseButton={false} className="max-w-sm dark border-white/10 bg-zinc-950/90 backdrop-blur-xl">
                     <DialogHeader>
@@ -344,7 +356,7 @@ function Canvas () {
                 </DialogContent>
             </Dialog>
 
-            {/* ─── Share Dialog ─────────────────────────────────────────────────── */}
+            {/*  Share Dialog  */}
             <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
                 <DialogContent className="max-w-md dark">
                     <DialogHeader>
@@ -380,7 +392,7 @@ function Canvas () {
                 </DialogContent>
             </Dialog>
 
-            {/* ─── Unsaved Changes Dialog ───────────────────────────────────────── */}
+            {/*  Unsaved Changes Dialog  */}
             <Dialog open={showUnsavedDialog} onOpenChange={(open) => {if(!open) handleDialogCancel();}}>
                 <DialogContent showCloseButton={false} className="max-w-sm">
                     <DialogHeader>
@@ -413,7 +425,7 @@ function Canvas () {
                 </DialogContent>
             </Dialog>
 
-            {/* ─── Top Header Overlay ────────────────────────────────────────── */}
+            {/* ─── Top Header Overlay  */}
             <div
                 className={`absolute top-0 left-0 w-full flex items-center justify-between px-6 py-4 z-50 pointer-events-none transition-all duration-300 ease-in-out ${isCodePanelOpen ? 'pr-91' : 'pr-6'}`}
             >
@@ -458,102 +470,105 @@ function Canvas () {
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex items-center gap-3 pointer-events-auto">
-                    {/* Zoom Controls */}
+                <div className="flex flex-col items-center gap-4 pointer-events-auto">
+                    {/* Buttons Row */}
+                    <div className="flex items-center gap-3">
+                        <Tooltip>
+                            <TooltipTrigger render={ <button
+                                    onClick={handleDashboardClick}
+                                    className="px-4 py-2 rounded-lg border border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
+                                >
+                                    Dashboard
+                                </button>}>
+                               
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
+                                Back to Dashboard
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger render={   <button
+                                    onClick={handleSave}
+                                    disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
+                                    className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+                                        ${hasUnsavedChanges && !isReadOnly
+                                            ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                                            : "border-white/10 bg-black/40 text-white/70"
+                                        }`}
+                                >
+                                    {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
+                                </button>}>
+                             
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="flex items-center gap-3 px-3 py-1.5 font-medium text-white/90">
+                                {isReadOnly ? (
+                                    <span>Read Only mode</span>
+                                ) : !hasUnsavedChanges ? (
+                                    <span>Nothing to save</span>
+                                ) : (
+                                    <>
+                                        <span>Save changes</span>
+                                        <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/40 border border-white/5 leading-none">
+                                            Ctrl+S
+                                        </kbd>
+                                    </>
+                                )}
+                            </TooltipContent>
+                        </Tooltip>
+
+                        {!isReadOnly && (
+                            <Tooltip>
+                                <TooltipTrigger render={ <button
+                                        onClick={handleShare}
+                                        disabled={isSharing}
+                                        className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                                    >
+                                        {isSharing ? "Sharing..." : "Share"}
+                                    </button>}>
+                                   
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
+                                    Share Canvas
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
+
+                    {/* Zoom Row */}
                     <div className="flex items-center gap-1">
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
+                            <TooltipTrigger render={<button
                                     onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-out'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white/50 hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
                                 >
                                     <Minus size={14} />
-                                </button>
+                                </button>}>
+                                
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                 Zoom Out
                             </TooltipContent>
                         </Tooltip>
                         
-                        <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/40 text-white/50 backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
+                        <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/40 text-white backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
                             {Math.round(currentZoom * 100)}%
                         </div>
 
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
+                            <TooltipTrigger render={<button
                                     onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-in'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white/50 hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
                                 >
                                     <Plus size={14} />
-                                </button>
+                                </button>}>
+                                
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                 Zoom In
                             </TooltipContent>
                         </Tooltip>
                     </div>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={handleDashboardClick}
-                                className="px-4 py-2 rounded-lg border border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
-                            >
-                                Dashboard
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
-                            Back to Dashboard
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <button
-                                onClick={handleSave}
-                                disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
-                                className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                                    ${hasUnsavedChanges && !isReadOnly
-                                        ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                                        : "border-white/10 bg-black/40 text-white/70"
-                                    }`}
-                            >
-                                {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
-                            </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="flex items-center gap-3 px-3 py-1.5 font-medium text-white/90">
-                            {isReadOnly ? (
-                                <span>Read Only mode</span>
-                            ) : !hasUnsavedChanges ? (
-                                <span>Nothing to save</span>
-                            ) : (
-                                <>
-                                    <span>Save changes</span>
-                                    <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/40 border border-white/5 leading-none">
-                                        Ctrl+S
-                                    </kbd>
-                                </>
-                            )}
-                        </TooltipContent>
-                    </Tooltip>
-
-                    {!isReadOnly && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
-                                    onClick={handleShare}
-                                    disabled={isSharing}
-                                    className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10 disabled:opacity-50"
-                                >
-                                    {isSharing ? "Sharing..." : "Share"}
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
-                                Share Canvas
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
                 </div>
             </div>
 
