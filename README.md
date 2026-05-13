@@ -6,26 +6,26 @@ This project focuses on **architecture, performance, and extensibility**, making
 
 ---
 
-## 🚀 Features
+##  Features
 
-- ✏️ Draw and manipulate shapes (rectangles, arrows, etc.)
-- 🧠 Smart separation of manual vs generated elements
-- ⚡ Optimized rendering with minimal re-renders
-- 🗂️ Undo / Redo system (frontend state-based)
-- 📋 Copy / Paste support
-- 🎯 Precise interaction handling (selection, drag, resize)
-- 🧩 Scalable state architecture using Zustand
-- 🔐 Authentication-ready backend structure
+-  Draw and manipulate shapes (rectangles, arrows, etc.)
+-  Smart separation of manual vs generated elements
+-  Optimized rendering with minimal re-renders
+-  Undo / Redo system (frontend state-based)
+-  Copy / Paste support
+-  Precise interaction handling (selection, drag, resize)
+-  Scalable state architecture using Zustand
+-  Authentication-ready backend structure
 
 ---
 
-## 🏗️ Architecture Overview
+##  Architecture Overview
 
 ### 1. State Separation (Core Design Principle)
 
 The system is built around a strict separation:
 
-#### 🔹 Manual Shapes (User Driven)
+####  Manual Shapes (User Driven)
 - Stored in: `useShapes` (local state / history)
 - Includes:
   - Drawing
@@ -40,7 +40,7 @@ The system is built around a strict separation:
   - Computed layouts
   - Auto-generated connections
 
-👉 This separation ensures:
+ This separation ensures:
 - Better performance
 - Clear debugging
 - Future scalability (AI, auto-layout, etc.)
@@ -69,7 +69,7 @@ The system is built around a strict separation:
 
 ---
 
-## 🔁 Undo / Redo System
+##  Undo / Redo System
 
 - Fully handled on the **frontend**
 - Based on **state snapshots**
@@ -80,13 +80,13 @@ The system is built around a strict separation:
 - Undo → move backward in history
 - Redo → move forward in history
 
-👉 Fast and predictable because:
+ Fast and predictable because:
 - No network calls
 - Pure state transitions
 
 ---
 
-## 📋 Copy / Paste
+##  Copy / Paste
 
 - Operates on selected shapes
 - Clones shape data with new IDs
@@ -94,7 +94,7 @@ The system is built around a strict separation:
 
 ---
 
-## 🌐 Backend Responsibilities (Planned / Partial)
+##  Backend Responsibilities (Planned / Partial)
 
 ### Backend Handles:
 - User authentication (JWT-based)
@@ -109,11 +109,11 @@ The system is built around a strict separation:
 - Copy/Paste
 - Temporary state management
 
-👉 Current focus: **Frontend architecture first, backend minimal**
+Current focus: **Frontend architecture first, backend minimal**
 
 ---
 
-## 🧰 Tech Stack
+##  Tech Stack
 
 ### Frontend
 - React (Vite)
@@ -129,7 +129,7 @@ The system is built around a strict separation:
 
 ---
 
-## 📁 Project Structure (Conceptual)
+##  Project Structure (Conceptual)
 src/
 ├── components/ # UI components
 ├── canvas/ # Rendering logic
@@ -142,7 +142,7 @@ src/
 
 ---
 
-## ⚡ Performance Considerations
+##  Performance Considerations
 
 - Separation of concerns reduces unnecessary re-renders
 - Local state for high-frequency updates
@@ -151,20 +151,12 @@ src/
 
 ---
 
-## 🔮 Future Improvements
+##  Future Improvements
 
-- 🔗 Real-time collaboration
-- 🧠 AI-assisted diagram generation
-- 📦 Export (PNG, SVG, JSON)
-- 📌 Snap-to-grid and alignment tools
-- 🧩 Plugin system
+-  Real-time collaboration
+-  AI-assisted diagram generation
+-  Export (PNG, SVG, JSON)
+-  Snap-to-grid and alignment tools
+-  Plugin system
 
 ---
-
-## 🧑‍💻 Getting Started
-
-```bash
-git clone https://github.com/your-username/layers.git
-cd layers
-npm install
-npm run dev

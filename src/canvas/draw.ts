@@ -17,7 +17,6 @@ export function drawScene (
     selectedIds: string[],
     editingText?: EditingText | null,
     guides?: Guide[],
-    // ── connector params ──
     connectors?: Connector[],
     connectionState?: ConnectionState,
     dotShapeId?: string | null,
@@ -83,7 +82,6 @@ export function drawScene (
         drawConnectors(ctx, connectors, shapes, scale, selectedConnectorId, requestRedraw);
     }
 
-    // ── Unified Connection Rendering ──────────────────────────────────
     if(connectionState) {
         if(connectionState.mode === "hover") {
             renderShape(connectionState.ghostShape, 0.4);
@@ -149,7 +147,6 @@ export function drawScene (
             getRotated(bx, by + bh),   // sw
         ];
 
-        // ── Bounding box stroke ────────────────────────────────────────
         ctx.strokeStyle = "#10B981";
         ctx.lineWidth = 1 / scale;
 
@@ -161,7 +158,7 @@ export function drawScene (
         ctx.closePath();
         ctx.stroke();
 
-        // ── Resize handles ─────────────────────────────────────────────
+   
         // Handle size stays at 8 CSS px regardless of zoom
         const hSize = 8 / scale;
         const half = hSize / 2;
