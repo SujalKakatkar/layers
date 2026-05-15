@@ -1,16 +1,18 @@
 import {api} from "@/lib/api";
+import type { Shape, Connector } from "../types/types";
 
 export type CanvasResponse = {
   id: string;
   title: string;
-  manualElements: any[];
-  manualConnectors: any[];
+  manualElements: Shape[];
+  manualConnectors: Connector[];
   code: string;
   createdAt: number;
   camera?: {
     scale: number;
     offset: { x: number; y: number };
   };
+  generatedGroupOffset?: { x: number; y: number };
 };
 
 export async function createCanvas (title: string) {
@@ -24,7 +26,8 @@ export async function getCanvas (id: string) {
   return response.data.data as CanvasResponse;
 }
 
-export async function updateCanvas (id: string, data: any) {
+export async function updateCanvas (id: string, data: Partial<CanvasResponse>) {
+  console.log("Updating canvas", id, data); 
   const response = await api.put(`/canvas/${id}`, data);
   return response.data.data;
 }
@@ -47,6 +50,8 @@ export async function revokeShareLink(id: string) {
 
 export async function getSharedCanvas(token: string) {
   const response = await api.get(`/canvas/shared/${token}`);
+  console.log(response);
+  
   return response.data.data as CanvasResponse;
 }
 

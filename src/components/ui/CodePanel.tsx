@@ -1,5 +1,5 @@
 import {X} from "lucide-react"
-import {useState, useEffect, useRef} from "react"
+import {useEffect, useRef} from "react"
 import {useDiagramStore} from "../../store/useDiagramStore"
 import type {Shape, Connector} from "../../types/types"
 import {editorFocus} from "../../hooks/useEditorFocus.ts"
@@ -30,15 +30,22 @@ function parseNode (raw: string) {
   return {type: "rectangle", text: raw, rawText: raw};
 }
 
+type ParsedNode = {
+  id: string;
+  type: "rectangle" | "circle";
+  text: string;
+  source: {line: number; start: number; end: number};
+};
+
 type ParsedDiagram = {
-  nodes: Map<string, any>;
+  nodes: Map<string, ParsedNode>;
   edges: Set<string>;
 };
 
 function parseToShapes (input: string): ParsedDiagram {
   const lines = input.split("\n");
 
-  const nodes = new Map<string, any>();
+  const nodes = new Map<string, ParsedNode>();
   const edges = new Set<string>();
 
   function getOrCreateNode (raw: string, lineIndex: number, line: string) {
@@ -51,7 +58,7 @@ function parseToShapes (input: string): ParsedDiagram {
 
       nodes.set(id, {
         id,
-        type: parsed.type,
+        type: parsed.type as "rectangle" | "circle",
         text: parsed.text,
         source: {line: lineIndex, start, end}
       });
@@ -71,7 +78,9 @@ function parseToShapes (input: string): ParsedDiagram {
       const fromNode = getOrCreateNode(parts[i], lineIndex, line);
       const toNode = getOrCreateNode(parts[i + 1], lineIndex, line);
 
-      edges.add(getConnectorId(fromNode.id, toNode.id));
+      if(fromNode && toNode) {
+        edges.add(getConnectorId(fromNode.id, toNode.id));
+      }
     }
   });
 
@@ -82,28 +91,38 @@ function parseToShapes (input: string): ParsedDiagram {
 
 // ── Layout engine ─────────────────────────────────────────────────────────────
 function mapParsedToShapes (parsed: ParsedDiagram) {
-  const elements: any[] = [];
-  const connectors: any[] = [];
-  const nodeMap = new Map<string, any>();
+  const elements: Shape[] = [];
+  const connectors: Connector[] = [];
+  const nodeMap = new Map<string, Shape>();
 
   // ── Step 1: Build shape objects (no positions yet) ────────────────────────
   parsed.nodes.forEach((node) => {
-    const shape: any = {
-      id: node.id,
-      type: node.type,
-      text: node.text,
-      fontSize: 16,
-      isGenerated: true,
-      componentId: "default",
-    };
-
-    if(node.type === "circle") {
-      shape.r = 40;
-      shape.width = 80;
-      shape.height = 80;
+    let shape: Shape;
+    if (node.type === "circle") {
+      shape = {
+        id: node.id,
+        type: "circle",
+        cx: 0,
+        cy: 0,
+        r: 40,
+        text: node.text,
+        fontSize: 16,
+        isGenerated: true,
+        componentId: "default",
+      };
     } else {
-      shape.width = 150;
-      shape.height = 80;
+      shape = {
+        id: node.id,
+        type: "rectangle",
+        x: 0,
+        y: 0,
+        width: 150,
+        height: 80,
+        text: node.text,
+        fontSize: 16,
+        isGenerated: true,
+        componentId: "default",
+      };
     }
 
     nodeMap.set(node.id, shape);
@@ -186,7 +205,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       if(shape.type === "circle") {
         shape.cx = x + shape.r;
         shape.cy = y + shape.r;
-      } else {
+      } else if (shape.type === "rectangle" || shape.type === "text") {
         shape.x = x;
         shape.y = y;
       }
@@ -199,14 +218,14 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
     const shape = nodeMap.get(id);
     if(!shape) return;
     const needsPlace =
-      (shape.type === "circle" && shape.cx == null) ||
-      (shape.type !== "circle" && shape.x == null);
+      (shape.type === "circle" && shape.cx === 0) ||
+      ((shape.type === "rectangle" || shape.type === "text") && shape.x === 0);
     if(!needsPlace) return;
 
     if(shape.type === "circle") {
       shape.cx = 100 + shape.r;
       shape.cy = fallbackY + shape.r;
-    } else {
+    } else if (shape.type === "rectangle" || shape.type === "text") {
       shape.x = 100;
       shape.y = fallbackY;
     }
@@ -279,19 +298,20 @@ function reconcile (
   }
 
   // ── Reconcile elements ──────────────────────────────────────────────────
-  const finalElements = newElements.map((el: any) => {
-    const old = oldMap.get(el.id) as any;
+  const finalElements = newElements.map((el) => {
+    const old = oldMap.get(el.id);
     if(!old) return el; // brand-new node → use layout position
 
     // Existing node: keep geometry, preserve position
-    const merged: any = {...old, ...el};
+    const merged = {...old, ...el} as Shape;
 
-    if(el.type === "circle") {
+    if(el.type === "circle" && old.type === "circle" && merged.type === "circle") {
       if(old.cx != null) merged.cx = old.cx;
       if(old.cy != null) merged.cy = old.cy;
-    } else {
-      if(old.x != null) merged.x = old.x;
-      if(old.y != null) merged.y = old.y;
+    } else if ((el.type === "rectangle" || el.type === "text") && (old.type === "rectangle" || old.type === "text")) {
+      const m = merged as import("../../types/types").Rectangle | import("../../types/types").Text;
+      if(old.x != null) m.x = old.x;
+      if(old.y != null) m.y = old.y;
     }
 
     return merged;
@@ -316,7 +336,7 @@ type CodePanelProps = {
 }
 
 function CodePanel ({isOpen, onClose}: CodePanelProps) {
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<import("monaco-editor").editor.IStandaloneCodeEditor | null>(null);
   const monaco = useMonaco();
 
   const {
@@ -328,10 +348,8 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
     previousConnectors,
     setPreviousElements,
     setPreviousConnectors,
-    selectedNodeId,
     setSelectedNodeId,
     highlightedRange,
-    setHighlightedRange,
     generatedElements,
   } = useDiagramStore();
 
@@ -340,7 +358,7 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
     if(!monaco) return;
 
     // Register language
-    if(!monaco.languages.getLanguages().some((l: any) => l.id === "layerscript")) {
+    if(!monaco.languages.getLanguages().some((l) => l.id === "layerscript")) {
       monaco.languages.register({id: "layerscript"});
 
       monaco.languages.setMonarchTokensProvider("layerscript", {
@@ -440,11 +458,11 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
   }, [codeInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cursor-move handler: editor → canvas ─────────────────────────────────
-  const handleCursorChange = (e: any) => {
+  const handleCursorChange = (e: import("monaco-editor").editor.ICursorPositionChangedEvent) => {
     const lineIndex = e.position.lineNumber - 1;
     const charInLine = e.position.column - 1;
 
-    const hit = generatedElements.find((el: any) => {
+    const hit = generatedElements.find((el) => {
       if(!el.source) return false;
       return (
         el.source.line === lineIndex &&

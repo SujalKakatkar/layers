@@ -1,4 +1,5 @@
 import {useParams, useNavigate, useOutletContext} from "react-router";
+import type { Shape, Connector } from "../types/types";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {Plus, Minus} from "lucide-react";
 import WhiteBoard, { type WhiteBoardRef } from "../components/draw/WhiteBoard";
@@ -30,7 +31,7 @@ function Canvas () {
     // manualElements / manualConnectors are read from the store only for Save.
     // They must NOT be passed directly as initialElements to WhiteBoard —
     // that would create a feedback loop that resets undo history on every draw.
-    const {code, manualElements, manualConnectors, generatedGroupOffsets} = useDiagramStore();
+    const {code, manualElements, manualConnectors, generatedGroupOffset} = useDiagramStore();
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [tempTitle, setTempTitle] = useState("");
@@ -42,8 +43,19 @@ function Canvas () {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [currentZoom, setCurrentZoom] = useState(1);
 
+    const isFetchedRef = useRef(false);
     useEffect(() => {
-        const handleZoom = (e: any) => setCurrentZoom(e.detail);
+        isFetchedRef.current = isFetched;
+    }, [isFetched]);
+
+    useEffect(() => {
+        const handleZoom = (e: Event) => {
+            // Only update currentZoom from the whiteboard events 
+            // once we've finished the initial data fetch.
+            if (isFetchedRef.current) {
+                setCurrentZoom((e as CustomEvent).detail);
+            }
+        };
         window.addEventListener('canvas-zoom', handleZoom);
         return () => window.removeEventListener('canvas-zoom', handleZoom);
     }, []);
@@ -71,19 +83,20 @@ function Canvas () {
     // Only updated when a fetch completes — never on user edits.
     // This breaks the feedback loop: useShapes → setManualElements → prop change → setHistoryFromData → history reset.
     const [canvasInitData, setCanvasInitData] = useState<{
-        elements: any[];
-        connectors: any[];
+        elements: Shape[];
+        connectors: Connector[];
         camera?: { scale: number; offset: { x: number; y: number } };
+        generatedGroupOffset?: { x: number; y: number };
     } | null>(null);
 
     //  Unsaved-changes tracking 
     // We compare Zustand array references (not deep equality) to detect edits.
     // After each save / fetch, we snapshot the refs. Any subsequent reference
     // change means the user has made edits that aren't persisted yet.
-    const lastSavedElementsRef = useRef<any[]>([]);
-    const lastSavedConnectorsRef = useRef<any[]>([]);
+    const lastSavedElementsRef = useRef<Shape[]>([]);
+    const lastSavedConnectorsRef = useRef<Connector[]>([]);
     const lastSavedCodeRef = useRef<string>("");
-    const lastSavedOffsetsRef = useRef<Record<string, {x: number; y: number}>>({});
+    const lastSavedOffsetsRef = useRef<{x: number; y: number}>({x: 0, y: 0});
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Where the user wants to go if they choose "Leave" in the dialog
@@ -96,16 +109,22 @@ function Canvas () {
             setHasUnsavedChanges(false);
             fetchSharedCanvas(token)
                 .then(data => {
+                    
                     setCanvasInitData({
                         elements: data.elements,
                         connectors: data.connectors,
                         camera: data.camera
                     });
+                    
+                    
+                    if (data.camera?.scale) {
+                        
+                        setCurrentZoom(data.camera.scale);
+                    }     
                     lastSavedElementsRef.current = data.elements;
                     lastSavedConnectorsRef.current = data.connectors;
-                    const snap = useDiagramStore.getState();
-                    lastSavedCodeRef.current = snap.code;
-                    lastSavedOffsetsRef.current = snap.generatedGroupOffsets;
+                    lastSavedCodeRef.current = data.code || "";
+                    lastSavedOffsetsRef.current = data.generatedGroupOffset || {x: 0, y: 0};
                     setIsFetched(true);
                 })
                 .catch(err => {
@@ -120,17 +139,20 @@ function Canvas () {
             setCanvasId(id);
             fetchCanvas(id)
                 .then((data) => {
+                    
                     setCanvasInitData({
                         elements: data.elements,
                         connectors: data.connectors,
-                        camera: (data as any).camera
+                        camera: data.camera
                     });
+                    if (data.camera?.scale) {
+                        setCurrentZoom(data.camera.scale);
+                    }
                     // Snapshot what the store contains right after fetch
-                    const snap = useDiagramStore.getState();
-                    lastSavedElementsRef.current = snap.manualElements;
-                    lastSavedConnectorsRef.current = snap.manualConnectors;
-                    lastSavedCodeRef.current = snap.code;
-                    lastSavedOffsetsRef.current = snap.generatedGroupOffsets;
+                    lastSavedElementsRef.current = data.elements;
+                    lastSavedConnectorsRef.current = data.connectors;
+                    lastSavedCodeRef.current = data.code || "";
+                    lastSavedOffsetsRef.current = data.generatedGroupOffset || {x: 0, y: 0};
                     setIsFetched(true);
                 })
                 .catch(err => {
@@ -157,10 +179,10 @@ function Canvas () {
             currentElementsJson !== savedElementsJson ||
             currentConnectorsJson !== savedConnectorsJson ||
             code !== lastSavedCodeRef.current ||
-            JSON.stringify(generatedGroupOffsets) !== JSON.stringify(lastSavedOffsetsRef.current);
+            JSON.stringify(generatedGroupOffset) !== JSON.stringify(lastSavedOffsetsRef.current);
             
         setHasUnsavedChanges(changed);
-    }, [manualElements, manualConnectors, code, generatedGroupOffsets, isFetched]);
+    }, [manualElements, manualConnectors, code, generatedGroupOffset, isFetched]);
 
     useEffect(() => {
         setTempTitle(canvasTitle);
@@ -189,34 +211,27 @@ function Canvas () {
         
         const manualElements = uiShapes ? uiShapes.elements : state.manualElements;
         const manualConnectors = uiShapes ? uiShapes.connectors : state.manualConnectors;
-        const {code, generatedGroupOffsets} = state;
+        const {code, generatedGroupOffset} = state;
 
-        console.log("Saving Canvas", {
-            shapesFromUI: uiShapes?.elements.length,
-            shapesFromStore: state.manualElements.length
-        });
-
-        if(manualElements.length === 0 && manualConnectors.length === 0 && code.trim() === "") {
-            return;
-        }
-
+        console.log("Save payload generatedGroupOffset:", generatedGroupOffset);
+        
         try {
             await updateCanvas({
                 manualElements,
                 manualConnectors,
                 code,
-                generatedGroupOffsets,
+                generatedGroupOffset,
                 camera: camera || { scale: 1, offset: { x: 0, y: 0 } }
             });
             // Snapshot saved state so the unsaved-changes tracker resets
             lastSavedElementsRef.current = manualElements;
             lastSavedConnectorsRef.current = manualConnectors;
             lastSavedCodeRef.current = code;
-            lastSavedOffsetsRef.current = generatedGroupOffsets;
+            lastSavedOffsetsRef.current = generatedGroupOffset;
             setHasUnsavedChanges(false);
             toast.success("Canvas saved  ✓");
-        } catch(error) {
-            console.error("Save failed", error);
+        } catch (err) {
+            console.error("Save error:", err);
             toast.error("Failed to save canvas");
         }
     }, [updateCanvas, hasUnsavedChanges]);
@@ -227,7 +242,7 @@ function Canvas () {
         try {
             await getShareToken();
             setShowShareDialog(true);
-        } catch (error) {
+        } catch {
             toast.error("Failed to generate share link");
         } finally {
             setIsSharing(false);
@@ -239,7 +254,7 @@ function Canvas () {
             await revokeShareToken();
             toast.success("Share link revoked");
             setShowShareDialog(false);
-        } catch (error) {
+        } catch {
             toast.error("Failed to revoke share link");
         }
     };

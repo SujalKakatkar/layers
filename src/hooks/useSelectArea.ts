@@ -103,7 +103,7 @@ export function useSelectArea (
                     return;
                 }
 
-                const angle = (bounds as any).rotation || 0;
+                const angle = bounds.rotation || 0;
                 const cx = bounds.x + bounds.width / 2;
                 const cy = bounds.y + bounds.height / 2;
                 const dx = p.x - cx;
@@ -230,7 +230,7 @@ export function useSelectArea (
             }
         }
 
-        const angle = (bounds as any).rotation || 0;
+        const angle = bounds.rotation || 0;
         const cx = bounds.x + bounds.width / 2;
         const cy = bounds.y + bounds.height / 2;
         const dx = p.x - cx;
@@ -312,7 +312,7 @@ export function useSelectArea (
                 const initialBounds = getSelectionBounds(Array.from(initialShapesRef.current.values()), selectedIds);
                 let snappedTotalDx = rawTotalDx;
                 let snappedTotalDy = rawTotalDy;
-                let activeGuides: Guide[] = [];
+                const activeGuides: Guide[] = [];
 
                 if(initialBounds) {
                     const movingCenterX = initialBounds.x + rawTotalDx + initialBounds.width / 2;

@@ -29,8 +29,8 @@ export function useConnector () {
         let gx = 0;
         let gy = 0;
 
-        let finalWidth = width;
-        let finalHeight = height;
+        const finalWidth = width;
+        const finalHeight = height;
 
         if (sourceShape.type === "circle") {
             const r = 50;
@@ -46,7 +46,7 @@ export function useConnector () {
                 cx: gx,
                 cy: gy,
                 r
-            } as any;
+            };
         }
 
         switch (side) {

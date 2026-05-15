@@ -1,4 +1,4 @@
-import { Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo, Code, CodeXml, BookOpen } from "lucide-react"
+import { Circle, MousePointer2, Pen, Redo, Square, TypeOutline, Undo, CodeXml, BookOpen } from "lucide-react"
 import type { LucideIcon } from 'lucide-react'
 import type { HelperTools, Tools } from "../../types/types"
 import { Link } from "react-router"

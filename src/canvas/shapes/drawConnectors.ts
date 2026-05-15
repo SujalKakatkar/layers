@@ -23,7 +23,7 @@ if (astarWorker) {
     astarWorker.onmessage = (e) => {
         const { id, path } = e.data;
         const [connId, hash] = id.split('||');
-        console.log(`✅ WORKER: Computed path for connector ${connId.slice(0,5)}... asynchronously`);
+       
         pathCache.set(connId, { hash, path });
         pendingWorkers.delete(connId);
         if (globalRequestRedraw) globalRequestRedraw();
@@ -183,12 +183,10 @@ function drawGeneratedConnector (
     const cached = pathCache.get(connId);
 
     if (cached && cached.hash === hash) {
-        // console.log(`⚡ CACHE HIT: Reusing path for connector ${connId.slice(0,5)}...`);
         path = cached.path;
     } else {
         if (astarWorker) {
             if (!pendingWorkers.has(connId)) {
-                console.log(`🐌 CACHE MISS: Worker computing path for connector ${connId.slice(0,5)}...`);
                 pendingWorkers.add(connId);
                 astarWorker.postMessage({
                     id: connId + '||' + hash,
@@ -273,9 +271,7 @@ export function drawConnectionDots (
     ctx: CanvasRenderingContext2D,
     shapes: Shape[],
     visibleShapeIds: string[],
-    scale: number,
-    dotShapeId: string | null,
-    selectedIds: string[]
+    scale: number
 ) {
     if(visibleShapeIds.length === 0) return;
 
@@ -284,7 +280,7 @@ export function drawConnectionDots (
     ctx.save();
 
     for(const shape of shapes) {
-        if(!shapeSet.has(shape.id) || (shape as any).isGenerated) continue;
+        if(!shapeSet.has(shape.id) || shape.isGenerated) continue;
 
         const dots = getConnectionDots(shape);
         for(const {point} of dots) {

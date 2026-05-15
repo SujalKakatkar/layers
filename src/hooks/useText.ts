@@ -7,7 +7,7 @@ const PAD_OFFSET_X = 1;
 const PAD_OFFSETS_Y = 4;
 
 export function useText (
-    addShape: (shape: any) => void,
+    addShape: (shape: Shape) => void,
     updateShape: (id: string, updater: (shape: Shape) => Shape) => void
 ) {
 

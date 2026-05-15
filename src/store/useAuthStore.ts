@@ -39,10 +39,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         
             set({user: response.data.data});
             return {error: null};
-        } catch (error: any) {
+        } catch (error) {
             console.error("Signup error:", error);
+            const err = error as { response?: { data?: { message?: string } } };
             return {
-                error: error.response?.data?.message || "An error occurred during signup",
+                error: err.response?.data?.message || "An error occurred during signup",
             };
         }finally{
             set({loading: false})
@@ -59,11 +60,10 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({user: response.data.data});
             
             return {error: null};
-        } catch (error: any) {
-            
-            
+        } catch (error) {
+            const err = error as { response?: { data?: { message?: string } } };
             return {
-                error: error.response?.data?.message || "An error occurred during login",
+                error: err.response?.data?.message || "An error occurred during login",
             };
         }finally{
             set({loading: false})
@@ -84,7 +84,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const response = await api.get("/auth/me");
             set({user: response.data.data});
-        } catch (error) {
+        } catch {
             set({user: null});
         } finally {
             set({loading: false});
@@ -95,10 +95,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             await api.post("/auth/forgot-password", {email});
             return {error: null};
-        } catch (error: any) {
+        } catch (error) {
             console.error("Forgot password error:", error);
+            const err = error as { response?: { data?: { message?: string } } };
             return {
-                error: error.response?.data?.message || "Failed to send reset link",
+                error: err.response?.data?.message || "Failed to send reset link",
             };
         }
     },
@@ -107,10 +108,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             await api.post(`/auth/reset-password?token=${token}`, { password});
             return {error: null};
-        } catch (error: any) {
+        } catch (error) {
             console.error("Reset password error:", error);
+            const err = error as { response?: { data?: { message?: string } } };
             return {
-                error: error.response?.data?.message || "Failed to reset password",
+                error: err.response?.data?.message || "Failed to reset password",
             };
         }
     },

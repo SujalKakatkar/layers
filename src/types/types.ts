@@ -56,6 +56,10 @@ export type Rectangle = {
         start: number;
         end: number;
     };
+    text?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    textAlign?: "left" | "center" | "right";
 };
 
 export type Circle = {
@@ -73,6 +77,10 @@ export type Circle = {
         start: number;
         end: number;
     };
+    text?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    textAlign?: "left" | "center" | "right";
 };
 
 export type Stroke = {
@@ -84,6 +92,12 @@ export type Stroke = {
     width: number
     rotation?: number
     isGenerated?: boolean
+    componentId?: string
+    source?: {
+        line: number;
+        start: number;
+        end: number;
+    };
 }
 
 export type Text = {

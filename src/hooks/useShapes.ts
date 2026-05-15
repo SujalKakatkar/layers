@@ -26,15 +26,12 @@ export function useShapes (canvasId: string = "default") {
 
     // History is always empty on mount — hydrated via setHistoryFromData after fetch
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
+    const [prevCanvasId, setPrevCanvasId] = useState(canvasId);
 
-    // Reset history when canvas changes (e.g. navigating between canvases)
-    const prevCanvasIdRef = useRef<string>(canvasId);
-    useEffect(() => {
-        if(prevCanvasIdRef.current !== canvasId) {
-            prevCanvasIdRef.current = canvasId;
-            setHistory(EMPTY_HISTORY);
-        }
-    }, [canvasId]);
+    if (canvasId !== prevCanvasId) {
+        setPrevCanvasId(canvasId);
+        setHistory(EMPTY_HISTORY);
+    }
 
     const [currentShape, setCurrentShape] = useState<Shape | null>(null)
     const [clipboard, setClipboard] = useState<Shape[]>([])
@@ -343,7 +340,7 @@ export function useShapes (canvasId: string = "default") {
                     case "circle": {
                         const original = initialMap.get(shape.id)
                         if(!original || original.type !== "circle") return shape
-                        let {cx, cy, r} = original;
+                        const {cx, cy, r} = original;
 
                         let x = cx - r;
                         let y = cy - r;

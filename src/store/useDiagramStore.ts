@@ -7,9 +7,9 @@ type DiagramStore = {
   setGeneratedElements: (elements: Shape[] | ((prev: Shape[]) => Shape[])) => void;
   setGeneratedConnectors: (connectors: Connector[] | ((prev: Connector[]) => Connector[])) => void;
 
-  // ── Group drag offsets (per component) ──────────────────────────────────
-  generatedGroupOffsets: Record<string, {x: number; y: number}>;
-  setGeneratedGroupOffsets: (offsets: Record<string, {x: number; y: number}> | ((prev: Record<string, {x: number; y: number}>) => Record<string, {x: number; y: number}>)) => void;
+  // ── Group drag offset ──────────────────────────────────
+  generatedGroupOffset: {x: number; y: number};
+  setGeneratedGroupOffset: (offset: {x: number; y: number} | ((prev: {x: number; y: number}) => {x: number; y: number})) => void;
 
   // ── Reconciliation state ─────────────────────────────────────────────────
   previousElements: Shape[];
@@ -44,11 +44,11 @@ export const useDiagramStore = create<DiagramStore>((set) => ({
       generatedConnectors: typeof connectors === 'function' ? connectors(state.generatedConnectors) : connectors
     })),
 
-  // ── Group drag offsets ────────────────────────────────────────────────────
-  generatedGroupOffsets: {},
-  setGeneratedGroupOffsets: (offsets) => 
+  // ── Group drag offset ────────────────────────────────────────────────────
+  generatedGroupOffset: {x: 0, y: 0},
+  setGeneratedGroupOffset: (offset) => 
     set((state) => ({
-      generatedGroupOffsets: typeof offsets === 'function' ? offsets(state.generatedGroupOffsets) : offsets
+      generatedGroupOffset: typeof offset === 'function' ? offset(state.generatedGroupOffset) : offset
     })),
 
   // ── Reconciliation state ─────────────────────────────────────────────────

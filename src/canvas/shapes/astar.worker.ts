@@ -55,7 +55,7 @@ function getShapeBounds(shape: Shape) {
         };
     }
     // Stroke is filtered out before calling this, but TS doesn't know.
-    const s = shape as any;
+    const s = shape as import("../../types/types").Rectangle;
     return {
         x: s.x,
         y: s.y,

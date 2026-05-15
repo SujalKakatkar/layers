@@ -9,8 +9,8 @@ export function useCamera () {
     const lastPanPointRef = useRef<Point>({x: 0, y: 0})
 
     const startPan = (x: number, y: number) => {
-        isPanningRef.current = true,
-            lastPanPointRef.current = {x, y}
+        isPanningRef.current = true;
+        lastPanPointRef.current = {x, y};
     }
 
     const pan = (x: number, y: number) => {

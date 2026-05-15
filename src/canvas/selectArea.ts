@@ -66,7 +66,7 @@ export function getSelectionBounds (
             { x: b.x, y: b.y + b.height },
         ];
 
-        const rotation = (shape as any).rotation || 0;
+        const rotation = shape.rotation || 0;
         const cosA = Math.cos(rotation);
         const sinA = Math.sin(rotation);
 

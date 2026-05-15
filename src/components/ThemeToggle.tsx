@@ -7,7 +7,7 @@ export function ThemeToggle() {
 
     return (
         <Button
-            variant={'clear'}
+            variant={'ghost'}
             onClick={toggleTheme}
             className="p-2 rounded-lg border border-text hover:bg-bg/50 transition"
         >

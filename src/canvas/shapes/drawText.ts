@@ -1,10 +1,9 @@
 import {measureTextSize} from "../../helpers/measureTextSize"
-import type {Text} from "../../types/types"
+// Using inline types for better compatibility with different shape types
 
 export function drawText (
     ctx: CanvasRenderingContext2D,
-    shape: Text | any,
-    scale: number
+    shape: import("../../types/types").Shape & { text?: string; fontSize?: number; fontWeight?: string; textAlign?: "left" | "center" | "right" }
 ) {
     if (!shape.text) return;
 
@@ -26,8 +25,8 @@ export function drawText (
         // Generated rectangle: center of bounding box
         centerX = shape.x + shape.width / 2;
         centerY = shape.y + shape.height / 2;
-    } else {
-        // Native Text shape: left-aligned or explicit alignment via textAlign
+    } else if (shape.type === "text") {
+        // Native Text shape: handle alignment
         const {lines, lineHeight} = measureTextSize(shape.text, fontSize, weight);
 
         ctx.textBaseline = "top";
@@ -40,6 +39,8 @@ export function drawText (
         lines.forEach((line, i) => {
             ctx.fillText(line, xOffset, shape.y + i * lineHeight);
         });
+        return;
+    } else {
         return;
     }
 

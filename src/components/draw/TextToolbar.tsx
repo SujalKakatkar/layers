@@ -29,7 +29,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                 fontWeight: newWeight,
                 width: metrics.width,
                 height: metrics.height
-            } as any);
+            });
         }
     };
 
@@ -40,7 +40,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
         });
         
         if (editingText && editingText.id === shape.id) {
-            setEditingText({ ...editingText, textAlign: align } as any);
+            setEditingText({ ...editingText, textAlign: align });
         }
     };
 

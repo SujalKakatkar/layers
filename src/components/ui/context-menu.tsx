@@ -21,7 +21,7 @@ function ContextMenuTrigger({
   ...props
 }: ContextMenuPrimitive.Trigger.Props & { disabled?: boolean }) {
   if (disabled) {
-    return <div className={cn("select-none", className)} {...(props as any)} />
+    return <div className={cn("select-none", className)} {...(props as React.ComponentPropsWithoutRef<"div">)} />
   }
   return (
     <ContextMenuPrimitive.Trigger

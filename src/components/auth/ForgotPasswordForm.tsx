@@ -12,10 +12,10 @@ import {useAuthStore} from "@/store/useAuthStore"
 import {toast} from "sonner"
 
 function ForgotPasswordForm () {
-    const {register, handleSubmit, formState: {errors}} = useForm()
+    const {register, handleSubmit} = useForm<{email: string}>()
     const {forgotPassword} = useAuthStore();
 
-    const handleForgotPassword = async (data: any) => {
+    const handleForgotPassword = async (data: {email: string}) => {
         const {error} = await forgotPassword(data.email);
         
         if (error) {

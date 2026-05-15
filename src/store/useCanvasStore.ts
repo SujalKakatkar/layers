@@ -1,15 +1,16 @@
-import {create} from 'zustand';
+import { create } from 'zustand';
 import {
-  createCanvas as apiCreateCanvas, 
-  getCanvas, 
-  updateCanvas as apiUpdateCanvas, 
-  listCanvases, 
-  getSharedCanvas, 
-  generateShareLink as apiGenerateShareLink, 
+  createCanvas as apiCreateCanvas,
+  getCanvas,
+  updateCanvas as apiUpdateCanvas,
+  listCanvases,
+  getSharedCanvas,
+  generateShareLink as apiGenerateShareLink,
   revokeShareLink as apiRevokeShareLink,
   deleteCanvas as apiDeleteCanvas
 } from '@/api/canvas';
-import {useDiagramStore} from './useDiagramStore';
+import type { Shape, Connector } from '../types/types';
+import { useDiagramStore } from './useDiagramStore';
 
 interface CanvasListItem {
   _id: string;
@@ -29,18 +30,18 @@ interface CanvasState {
 
   setCanvasId: (id: string) => void;
   createCanvas: (title: string) => Promise<string>;
-  fetchCanvas: (id: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
+  fetchCanvas: (id: string) => Promise<{ elements: Shape[]; connectors: Connector[]; code: string; camera?: { scale: number; offset: { x: number; y: number } }; generatedGroupOffset?: { x: number; y: number } }>;
   listAllCanvases: () => Promise<void>;
   removeCanvas: (id: string) => Promise<void>;
   updateCanvas: (data: {
     title?: string;
-    manualElements?: any[];
-    manualConnectors?: any[];
+    manualElements?: Shape[];
+    manualConnectors?: Connector[];
     code?: string;
-    generatedGroupOffsets?: Record<string, {x: number; y: number}>;
+    generatedGroupOffset?: { x: number; y: number };
     camera?: { scale: number; offset: { x: number; y: number } };
   }) => Promise<void>;
-  fetchSharedCanvas: (token: string) => Promise<{elements: any[]; connectors: any[]; camera?: any}>;
+  fetchSharedCanvas: (token: string) => Promise<{ elements: Shape[]; connectors: Connector[]; code: string; camera?: { scale: number; offset: { x: number; y: number } }; generatedGroupOffset?: { x: number; y: number } }>;
   getShareToken: () => Promise<string>;
   revokeShareToken: () => Promise<void>;
   setIsReadOnly: (val: boolean) => void;
@@ -56,25 +57,26 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   shareToken: null,
   isReadOnly: false,
 
-  setCanvasId: (id: string) => set({canvasId: id}),
+  setCanvasId: (id: string) => set({ canvasId: id }),
 
   createCanvas: async (title: string) => {
-    set({loading: true, error: null});
+    set({ loading: true, error: null });
     try {
       const data = await apiCreateCanvas(title);
-      set({canvasId: data._id, title, loading: false});
+      set({ canvasId: data._id, title, loading: false });
       return data._id;
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   fetchCanvas: async (id: string) => {
-    set({loading: true, error: null, isHydrated: false, isReadOnly: false});
+    set({ loading: true, error: null, isHydrated: false, isReadOnly: false });
     try {
       const data = await getCanvas(id);
-      set({canvasId: id, title: data.title, loading: false});
+      set({ canvasId: id, title: data.title, loading: false });
 
       const manualElements = data.manualElements || [];
       const manualConnectors = data.manualConnectors || [];
@@ -84,38 +86,37 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       diagramStore.setManualElements(manualElements);
       diagramStore.setManualConnectors(manualConnectors);
       diagramStore.setCode(data.code || "");
-      
-      const rawOffset = (data as any).generatedGroupOffset;
-      const rawOffsets = (data as any).generatedGroupOffsets;
 
-      if(rawOffsets) {
-        diagramStore.setGeneratedGroupOffsets(rawOffsets);
-      } else if(rawOffset) {
-        // Migration: treat old single offset as the default component's offset
-        diagramStore.setGeneratedGroupOffsets({ "default": rawOffset });
+      const rawOffset = data.generatedGroupOffset;
+
+      if (rawOffset) {
+        diagramStore.setGeneratedGroupOffset(rawOffset);
       } else {
-        diagramStore.setGeneratedGroupOffsets({});
+        diagramStore.setGeneratedGroupOffset({ x: 0, y: 0 });
       }
 
-      set({isHydrated: true});
+      set({ isHydrated: true });
 
       // Return the raw data so callers can initialize history directly
       return {
         elements: manualElements,
         connectors: manualConnectors,
-        camera: data.camera
+        code: data.code || "",
+        camera: data.camera,
+        generatedGroupOffset: rawOffset || { x: 0, y: 0 }
       };
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   fetchSharedCanvas: async (token: string) => {
-    set({loading: true, error: null, isHydrated: false, isReadOnly: true});
+    set({ loading: true, error: null, isHydrated: false, isReadOnly: true });
     try {
       const data = await getSharedCanvas(token);
-      set({canvasId: data.id, title: data.title, loading: false});
+      set({ canvasId: data.id, title: data.title, loading: false });
 
       const manualElements = data.manualElements || [];
       const manualConnectors = data.manualConnectors || [];
@@ -124,104 +125,119 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       diagramStore.setManualElements(manualElements);
       diagramStore.setManualConnectors(manualConnectors);
       diagramStore.setCode(data.code || "");
+      if (data.generatedGroupOffset) {
+        diagramStore.setGeneratedGroupOffset(data.generatedGroupOffset);
+      } else {
+        diagramStore.setGeneratedGroupOffset({ x: 0, y: 0 });
+      }
 
-      set({isHydrated: true});
+      set({ isHydrated: true });
 
       return {
         elements: manualElements,
         connectors: manualConnectors,
-        camera: data.camera
+        code: data.code || "",
+        camera: data.camera,
+        generatedGroupOffset: data.generatedGroupOffset
       };
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   listAllCanvases: async () => {
-    set({loading: true, error: null});
+    set({ loading: true, error: null });
     try {
       const data = await listCanvases();
-      set({canvases: data, loading: false});
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+      set({ canvases: data, loading: false });
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   removeCanvas: async (id: string) => {
-    set({loading: true, error: null});
+    set({ loading: true, error: null });
     try {
       await apiDeleteCanvas(id);
       set((state) => ({
         canvases: state.canvases.filter((c) => c._id !== id),
         loading: false
       }));
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   updateCanvas: async (data) => {
-    const {canvasId, title: currentTitle} = get();
-    if(!canvasId) return;
+    const { canvasId } = get();
+    if (!canvasId) return;
 
-    set({loading: true, error: null});
+    set({ loading: true, error: null });
     try {
       // If elements are provided, sanitize them. Otherwise, we're just updating metadata like the title.
-      const sanitizedElements = data.manualElements 
+      const sanitizedElements = data.manualElements
         ? data.manualElements.map(el => {
-            const {isGenerated, source, ...rest} = el;
-            return rest;
-          })
+          const rest = { ...el } as Record<string, unknown>;
+          delete rest.isGenerated;
+          delete rest.source;
+          return rest as unknown as Shape;
+        })
         : undefined;
 
-      const payload: any = { ...data };
+      const payload: Partial<import("../api/canvas").CanvasResponse> = { ...data };
       if (sanitizedElements) {
         payload.manualElements = sanitizedElements;
       }
 
       await apiUpdateCanvas(canvasId, payload);
-      
+
       // Update local state if title changed
       if (data.title) {
         set({ title: data.title });
       }
-      
-      set({loading: false});
-    } catch(err: any) {
-      set({error: err.message, loading: false});
+
+      set({ loading: false });
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message, loading: false });
       throw err;
     }
   },
 
   getShareToken: async () => {
-    const {canvasId} = get();
-    if(!canvasId) throw new Error("No canvas ID");
+    const { canvasId } = get();
+    if (!canvasId) throw new Error("No canvas ID");
     try {
       const data = await apiGenerateShareLink(canvasId);
       // Backend returns { shareUrl, expiry }
       const token = data.shareUrl;
-      set({shareToken: token});
+      set({ shareToken: token });
       return token;
-    } catch(err: any) {
-      set({error: err.message});
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message });
       throw err;
     }
   },
 
   revokeShareToken: async () => {
-    const {canvasId} = get();
-    if(!canvasId) throw new Error("No canvas ID");
+    const { canvasId } = get();
+    if (!canvasId) throw new Error("No canvas ID");
     try {
       await apiRevokeShareLink(canvasId);
-      set({shareToken: null});
-    } catch(err: any) {
-      set({error: err.message});
+      set({ shareToken: null });
+    } catch (err) {
+      const error = err as Error;
+      set({ error: error.message });
       throw err;
     }
   },
 
-  setIsReadOnly: (val: boolean) => set({isReadOnly: val})
+  setIsReadOnly: (val: boolean) => set({ isReadOnly: val })
 }));

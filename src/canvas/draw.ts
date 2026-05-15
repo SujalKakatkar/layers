@@ -59,11 +59,11 @@ export function drawScene (
             case "rectangle": drawRect(ctx, shape, scale); break;
             case "circle": drawCircle(ctx, shape, scale); break;
             case "stroke": drawStroke(ctx, shape, scale); break;
-            case "text": drawText(ctx, shape, scale); break;
+            case "text": drawText(ctx, shape); break;
         }
 
-        if((shape as any).text && shape.type !== "text") {
-            drawText(ctx, shape as any, scale);
+        if ("text" in shape && (shape as { text?: string }).text && shape.type !== "text") {
+            drawText(ctx, shape as unknown as import("../types/types").Text);
         }
 
         ctx.restore();
@@ -95,7 +95,7 @@ export function drawScene (
         const visibleDotIds = new Set(selectedIds);
         if(dotShapeId) visibleDotIds.add(dotShapeId);
 
-        drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale, dotShapeId || null, selectedIds);
+        drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale);
     }
 
     let bounds = getSelectionBounds(shapes, selectedIds);
@@ -127,7 +127,7 @@ export function drawScene (
         const cx = bx + bw / 2;
         const cy = by + bh / 2;
 
-        const angle = (bounds as any).rotation || 0;
+        const angle = (bounds as Bounds & { rotation?: number }).rotation || 0;
         const cosA = Math.cos(angle);
         const sinA = Math.sin(angle);
 
@@ -279,7 +279,7 @@ export function drawShapesLayer(
     shapes: Shape[],
     scale: number,
     offset: {x: number; y: number},
-    editingText: any | null
+    editingText: EditingText | null
 ) {
     const ctx = canvas.getContext("2d")!;
     const dpr = window.devicePixelRatio || 1;
@@ -315,11 +315,11 @@ export function drawShapesLayer(
             case "rectangle": drawRect(ctx, shape, scale); break;
             case "circle": drawCircle(ctx, shape, scale); break;
             case "stroke": drawStroke(ctx, shape, scale); break;
-            case "text": drawText(ctx, shape, scale); break;
+            case "text": drawText(ctx, shape); break;
         }
 
-        if((shape as any).text && shape.type !== "text") {
-            drawText(ctx, shape as any, scale);
+        if ("text" in shape && (shape as { text?: string }).text && shape.type !== "text") {
+            drawText(ctx, shape as unknown as import("../types/types").Text);
         }
 
         ctx.restore();
@@ -379,10 +379,9 @@ export function drawOverlayLayer(
     connectionState: ConnectionState | undefined,
     dotShapeId: string | null | undefined,
     ghostPreview: {type: "rectangle" | "circle" | "text"; x: number; y: number; width?: number; height?: number} | null,
-    selectedConnectorId: string | null | undefined,
     selectedComponentId: string | null,
     selectedNodeId: string | null,
-    shiftedGeneratedElements: any[],
+    shiftedGeneratedElements: Shape[],
     getGroupBounds: (componentId: string | null) => Bounds | null
 ) {
     const ctx = canvas.getContext("2d")!;
@@ -404,7 +403,7 @@ export function drawOverlayLayer(
                 case "rectangle": drawRect(ctx, shape, scale); break;
                 case "circle": drawCircle(ctx, shape, scale); break;
                 case "stroke": drawStroke(ctx, shape, scale); break;
-                case "text": drawText(ctx, shape, scale); break;
+                case "text": drawText(ctx, shape); break;
             }
             ctx.restore();
         };
@@ -421,7 +420,7 @@ export function drawOverlayLayer(
     if(dotShapeId || selectedIds.length > 0) {
         const visibleDotIds = new Set(selectedIds);
         if(dotShapeId) visibleDotIds.add(dotShapeId);
-        drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale, dotShapeId || null, selectedIds);
+        drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale);
     }
 
     // ── Selection bounding box + handles ─────────────────────────────────
@@ -453,7 +452,7 @@ export function drawOverlayLayer(
         const cx = bx + bw / 2;
         const cy = by + bh / 2;
 
-        const angle = (bounds as any).rotation || 0;
+        const angle = (bounds as Bounds & { rotation?: number }).rotation || 0;
         const cosA = Math.cos(angle);
         const sinA = Math.sin(angle);
 
@@ -609,7 +608,7 @@ export function drawOverlayLayer(
 
     // ── Individual generated node highlight ───────────────────────────────
     if(selectedNodeId) {
-        const el = shiftedGeneratedElements.find((e: any) => e.id === selectedNodeId);
+        const el = shiftedGeneratedElements.find((e) => e.id === selectedNodeId);
         if(el) {
             ctx.save();
 
@@ -619,7 +618,7 @@ export function drawOverlayLayer(
                 ctx.beginPath();
                 ctx.arc(el.cx, el.cy, el.r + 5 / scale, 0, Math.PI * 2);
                 ctx.stroke();
-            } else {
+            } else if (el.type === "rectangle" || el.type === "text") {
                 ctx.strokeRect(el.x - 5 / scale, el.y - 5 / scale, el.width + 10 / scale, el.height + 10 / scale);
             }
 

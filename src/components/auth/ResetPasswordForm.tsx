@@ -18,7 +18,7 @@ function ResetPasswordForm () {
     const navigate = useNavigate();
     const {resetPassword} = useAuthStore();
 
-    const handleResetPassword = async (data: any) => {
+    const handleResetPassword = async (data: Record<string, string>) => {
         if (data.password !== data.confirmPassword) {
             toast.error("Passwords do not match");
             return;

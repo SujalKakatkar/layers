@@ -1,7 +1,7 @@
 import {LogOut, Plus, Layout, Clock, ChevronRight, BookOpen, Trash2, LayoutGrid, List, FileText} from "lucide-react"
 import {useEffect, useState} from "react"
 import {useNavigate, Link} from "react-router"
-import {useAuthStore} from "@/store/useAuthStore"
+import {useAuthStore, type User} from "@/store/useAuthStore"
 import LoadingScreen from "@/components/ui/LoadingScreen"
 import { CreateCanvasDialog } from "@/components/ui/CreateCanvasDialog"
 import { DeleteCanvasDialog } from "@/components/ui/DeleteCanvasDialog"
@@ -16,13 +16,13 @@ type Canvas = {
 }
 
 // ─── Header Component ────────────────────────────────────────────────────────
-function Header ({user, onLogout}: {user: any, onLogout: () => void}) {
+function Header ({user, onLogout}: {user: User | null, onLogout: () => void}) {
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-white/5 px-6">
       <div className="max-w-6xl mx-auto h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-emerald-700 flex items-center justify-center text-xs font-bold text-white border border-emerald-500/20">
-            {user.fullName[0].toUpperCase()}
+            {user?.fullName?.[0]?.toUpperCase() || "U"}
           </div>
           <div className="text-left hidden sm:block">
             <p className="text-xs font-bold text-white">{user?.fullName || 'User'}</p>

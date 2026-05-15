@@ -1,22 +1,22 @@
-import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle} from "react";
-import {useOutletContext, useParams} from "react-router";
-import {useCamera, useCameraSync} from "../../hooks/useCamera";
-import {useRectangleDraw} from "../../hooks/useRectangle";
-import {drawShapesLayer, drawConnectorsLayer, drawOverlayLayer} from "../../canvas/draw";
-import {getWorldPoint} from "../../canvas/transform";
-import {useCanvasResize} from "../../hooks/useResizeCanvas";
-import {useSpaceKey} from "../../hooks/UseSapcekey";
-import {useSelectArea} from "../../hooks/useSelectArea";
-import {useCircleDraw} from "../../hooks/useCircle";
-import {usePenDraw} from "../../hooks/usePen";
-import type {CanvasTool, HistoryActions, Tools, Shape, Connector} from "../../types/types";
-import {useShapes} from "../../hooks/useShapes";
-import {useDiagramStore} from "../../store/useDiagramStore";
-import {useCanvasStore} from "../../store/useCanvasStore";
-import {useText} from "../../hooks/useText";
-import {useKeyboard} from "../../hooks/useKeyboard";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { useOutletContext, useParams } from "react-router";
+import { useCamera, useCameraSync } from "../../hooks/useCamera";
+import { useRectangleDraw } from "../../hooks/useRectangle";
+import { drawShapesLayer, drawConnectorsLayer, drawOverlayLayer } from "../../canvas/draw";
+import { getWorldPoint } from "../../canvas/transform";
+import { useCanvasResize } from "../../hooks/useResizeCanvas";
+import { useSpaceKey } from "../../hooks/UseSapcekey";
+import { useSelectArea } from "../../hooks/useSelectArea";
+import { useCircleDraw } from "../../hooks/useCircle";
+import { usePenDraw } from "../../hooks/usePen";
+import type { CanvasTool, HistoryActions, Tools, Shape, Connector } from "../../types/types";
+import { useShapes } from "../../hooks/useShapes";
+import { useDiagramStore } from "../../store/useDiagramStore";
+import { useCanvasStore } from "../../store/useCanvasStore";
+import { useText } from "../../hooks/useText";
+import { useKeyboard } from "../../hooks/useKeyboard";
 import TextToolbar from "./TextToolbar";
-import {useConnector} from "../../hooks/useConnector";
+import { useConnector } from "../../hooks/useConnector";
 import {
     ContextMenu,
     ContextMenuTrigger,
@@ -39,7 +39,7 @@ type OutletContextType = {
 };
 
 
-import {expandSelectionByGroup} from "../../helpers/selectionTools";
+import { expandSelectionByGroup } from "../../helpers/selectionTools";
 import {
     getDistanceToBezier,
     getConnectionPoint,
@@ -59,7 +59,7 @@ export interface WhiteBoardRef {
     setCamera: (camera: { scale: number; offset: { x: number; y: number } }) => void;
 }
 
-const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements, initialConnectors, initialCamera}: WhiteBoardProps, ref) => {
+const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements, initialConnectors, initialCamera }: WhiteBoardProps, ref) => {
     const [selectedIdsState, setSelectedIdsState] = useState<string[]>([])
     const [selectedConnectorId, setSelectedConnectorId] = useState<string | null>(null);
     const [ghostPreview, setGhostPreview] = useState<{
@@ -77,7 +77,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     const [redrawCount, setRedrawCount] = useState(0);
     const requestRedraw = useCallback(() => setRedrawCount(c => c + 1), []);
 
-    const {tool: activeTool, setTool, setUndoRedo} = useOutletContext<OutletContextType>();
+    const { tool: activeTool, setTool, setUndoRedo } = useOutletContext<OutletContextType>();
 
 
     const shapesCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -86,15 +86,15 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     useCanvasResize(shapesCanvasRef, connectorsCanvasRef, overlayCanvasRef);
 
     // Global hooks (always active)
-    const {scale, offset, setScale, setOffset, startPan, pan, endPan, zoom} = useCamera();
+    const { scale, offset, setScale, setOffset, startPan, pan, endPan, zoom } = useCamera();
     useCameraSync(scale);
 
     useEffect(() => {
         const handleZoomIn = () => {
-            if(overlayCanvasRef.current) zoom(-100, overlayCanvasRef.current);
+            if (overlayCanvasRef.current) zoom(-100, overlayCanvasRef.current);
         };
         const handleZoomOut = () => {
-            if(overlayCanvasRef.current) zoom(100, overlayCanvasRef.current);
+            if (overlayCanvasRef.current) zoom(100, overlayCanvasRef.current);
         };
         window.addEventListener('trigger-zoom-in', handleZoomIn);
         window.addEventListener('trigger-zoom-out', handleZoomOut);
@@ -103,9 +103,9 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             window.removeEventListener('trigger-zoom-out', handleZoomOut);
         };
     }, [zoom]);
-    const {pressedRef: spacePressedRef, pressed} = useSpaceKey();
+    const { pressedRef: spacePressedRef, pressed } = useSpaceKey();
 
-    const {id} = useParams<{id: string}>();
+    const { id } = useParams<{ id: string }>();
     const canvasId = id || "default";
 
     const {
@@ -137,7 +137,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         setHistoryFromData
     } = useShapes(canvasId)
 
-    const {isReadOnly} = useCanvasStore();
+    const { isReadOnly } = useCanvasStore();
 
     useImperativeHandle(ref, () => ({
         getShapes: () => ({ elements: shapes, connectors }),
@@ -158,7 +158,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     }, [initialCamera, setScale, setOffset]);
 
     useEffect(() => {
-        if(initialElements && initialConnectors) {
+        if (initialElements && initialConnectors) {
             setHistoryFromData(initialElements, initialConnectors);
         }
     }, [initialElements, initialConnectors, setHistoryFromData]);
@@ -169,7 +169,6 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         onPointerDown: onConnectorPointerDown,
         onPointerMove: onConnectorPointerMove,
         onPointerUp: onConnectorPointerUp,
-        cancelDrag: cancelConnectorDrag,
     } = useConnector();
 
     const {
@@ -177,8 +176,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         generatedConnectors,
         setGeneratedElements,
         setGeneratedConnectors,
-        generatedGroupOffsets,
-        setGeneratedGroupOffsets,
+        generatedGroupOffset,
+        setGeneratedGroupOffset,
         selectedNodeId,
         setSelectedNodeId,
         setHighlightedRange,
@@ -192,54 +191,65 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         startY: number;
         originX: number;
         originY: number;
-    }>({active: false, componentId: null, startX: 0, startY: 0, originX: 0, originY: 0});
+    }>({ active: false, componentId: null, startX: 0, startY: 0, originX: 0, originY: 0 });
 
     const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
 
     // ── Offset-shifted elements (per-component offsets) ──────────────────────
     const shiftedGeneratedElements = useMemo(() => {
-        return generatedElements.map((el: any) => {
-            const offset = generatedGroupOffsets[el.componentId || "default"] || {x: 0, y: 0};
-            if(el.type === "circle") {
-                return {...el, cx: el.cx + offset.x, cy: el.cy + offset.y};
+        const offset = generatedGroupOffset || { x: 0, y: 0 };
+        return generatedElements.map(el => {
+            if (el.type === "circle") {
+                return { ...el, cx: el.cx + offset.x, cy: el.cy + offset.y };
             }
-            return {...el, x: el.x + offset.x, y: el.y + offset.y};
+            if (el.type === "stroke") {
+                return {
+                    ...el,
+                    points: el.points.map(p => ({ x: p.x + offset.x, y: p.y + offset.y }))
+                };
+            }
+            // Rectangle or Text
+            return { ...el, x: el.x + offset.x, y: el.y + offset.y };
         });
-    }, [generatedElements, generatedGroupOffsets]);
+    }, [generatedElements, generatedGroupOffset]);
 
     // ── Helper: hit-test a single shifted element ─────────────────────────────
-    function hitTestElement (el: any, p: {x: number; y: number}): boolean {
-        if(el.type === "circle") {
+    function hitTestElement(el: Shape, p: { x: number; y: number }): boolean {
+        if (el.type === "circle") {
             const dx = p.x - el.cx;
             const dy = p.y - el.cy;
             return Math.sqrt(dx * dx + dy * dy) <= el.r;
         }
-        // rectangle / text
-        return p.x >= el.x && p.x <= el.x + el.width && p.y >= el.y && p.y <= el.y + el.height;
+        if (el.type === "rectangle" || el.type === "text") {
+            return p.x >= el.x && p.x <= el.x + el.width && p.y >= el.y && p.y <= el.y + el.height;
+        }
+        return false;
     }
 
     // ── Helper: get bounding box of a specific shifted component ─────────────
-    function getGroupBounds (componentId: string | null) {
-        if(!componentId) return null;
-        const componentElements = shiftedGeneratedElements.filter((el: any) => (el.componentId || "default") === componentId);
-        if(componentElements.length === 0) return null;
+    const getGroupBounds = useMemo(() => (componentId: string | null) => {
+        if (!componentId) return null;
+        const componentElements = shiftedGeneratedElements.filter((el) => (el.componentId || "default") === componentId);
+        if (componentElements.length === 0) return null;
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        componentElements.forEach((el: any) => {
+        componentElements.forEach((el) => {
             let x: number, y: number, w: number, h: number;
-            if(el.type === "circle") {
+            if (el.type === "circle") {
                 x = el.cx - el.r; y = el.cy - el.r; w = el.r * 2; h = el.r * 2;
-            } else {
+            } else if (el.type === "rectangle" || el.type === "text") {
                 x = el.x; y = el.y; w = el.width; h = el.height;
+            } else {
+                return;
             }
             minX = Math.min(minX, x); minY = Math.min(minY, y);
             maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h);
         });
-        return {x: minX, y: minY, width: maxX - minX, height: maxY - minY};
-    }
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }, [shiftedGeneratedElements]);
 
     const shapesRef = useRef(shapes);
-    useEffect(() => {shapesRef.current = shapes;}, [shapes]);
+    useEffect(() => { shapesRef.current = shapes; }, [shapes]);
 
     const setSelectedIds = useCallback((idsOrUpdater: React.SetStateAction<string[]>) => {
         setSelectedIdsState(prev => {
@@ -253,11 +263,11 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     useEffect(() => {
         setUndoRedo(prev => {
             // 🧠 prevent infinite loop
-            if(prev?.undo === undo && prev?.redo === redo) {
+            if (prev?.undo === undo && prev?.redo === redo) {
                 return prev
             }
 
-            return {undo, redo}
+            return { undo, redo }
         })
     }, [undo, redo, setUndoRedo])
     // Circle tool hook
@@ -284,7 +294,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     } = usePenDraw(currentShape, addCurrentShape, addShape)
 
     //Text tool hook
-    const {editingText, setEditingText, startText, updateText, finishText} = useText(addShape, updateShape)
+    const { editingText, setEditingText, startText, updateText, finishText } = useText(addShape, updateShape)
 
     const allElements = useMemo(() => [...shiftedGeneratedElements, ...shapes], [shiftedGeneratedElements, shapes]);
     const allConnectors = useMemo(() => [...generatedConnectors, ...connectors], [generatedConnectors, connectors]);
@@ -337,7 +347,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
 
     useEffect(() => {
-        if(activeTool != "select") {
+        if (activeTool != "select") {
             setSelectedIds([]);
             setSelectedConnectorId(null);
             resetSelection();
@@ -346,13 +356,13 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     }, [activeTool])
 
     useEffect(() => {
-        function onKeyDown (e: KeyboardEvent) {
+        function onKeyDown(e: KeyboardEvent) {
             if (isReadOnly) return;
             // Prevent interference with input fields
-            if(e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
+            if (e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
 
-            if((e.code === "Delete" || e.code === "Backspace") && !editingText) {
-                if(selectedConnectorId) {
+            if ((e.code === "Delete" || e.code === "Backspace") && !editingText) {
+                if (selectedConnectorId) {
                     e.preventDefault();
                     removeConnector(selectedConnectorId);
                     setSelectedConnectorId(null);
@@ -367,25 +377,25 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     const selectTool: CanvasTool = {
         onPointerDown: (e) => {
             const canvas = overlayCanvasRef.current;
-            if(!canvas) return;
+            if (!canvas) return;
 
             const p = getWorldPoint(e, canvas, scale, offset);
 
             // ── Generated group: intercept before anything else ────────────
-            if(activeTool === "select" && e.isPrimary) {
-                const hitElement = [...shiftedGeneratedElements].reverse().find((el: any) => hitTestElement(el, p));
-                if(hitElement) {
+            if (activeTool === "select" && e.isPrimary) {
+                const hitElement = [...shiftedGeneratedElements].reverse().find((el) => hitTestElement(el, p));
+                if (hitElement) {
                     const componentId = hitElement.componentId || "default";
                     setSelectedComponentId(componentId);
                     setSelectedNodeId(hitElement.id);
-                    if(hitElement.source) {
+                    if (hitElement.source) {
                         setHighlightedRange(hitElement.source);
                     }
 
                     setSelectedIds([]);
                     setSelectedConnectorId(null);
-                    
-                    const currentOffset = generatedGroupOffsets[componentId] || {x: 0, y: 0};
+
+                    const currentOffset = generatedGroupOffset || { x: 0, y: 0 };
                     groupDragRef.current = {
                         active: true,
                         componentId,
@@ -403,31 +413,31 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 setHighlightedRange(null);
             }
 
-            if(activeTool === "select" && e.isPrimary) {
+            if (activeTool === "select" && e.isPrimary) {
                 const consumed = onConnectorPointerDown(p, allElements);
-                if(consumed) return; // skip normal selection logic if starting a connector
+                if (consumed) return; // skip normal selection logic if starting a connector
 
                 // Check connector hit
                 let hitConnectorId: string | null = null;
-                for(const conn of connectors) {
+                for (const conn of connectors) {
                     const fromShape = getShapeById(conn.fromShapeId);
                     const toShape = getShapeById(conn.toShapeId);
-                    if(!fromShape || !toShape) continue;
+                    if (!fromShape || !toShape) continue;
 
-                    const {fromSide, toSide} = getClosestSidePair(fromShape, toShape);
+                    const { fromSide, toSide } = getClosestSidePair(fromShape, toShape);
                     const p1 = getConnectionPoint(fromShape, fromSide);
                     const p2 = getConnectionPoint(toShape, toSide);
                     const cp1 = getBezierControl(p1, p2, 0.35);
                     const cp2 = getBezierControl(p2, p1, 0.35);
 
                     const dist = getDistanceToBezier(p, p1, cp1, cp2, p2);
-                    if(dist < 10 / scale) {
+                    if (dist < 10 / scale) {
                         hitConnectorId = conn.id;
                         break;
                     }
                 }
 
-                if(hitConnectorId) {
+                if (hitConnectorId) {
                     setSelectedConnectorId(hitConnectorId);
                     setSelectedIds([]);
                     return; // skip normal selection logic
@@ -437,9 +447,9 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 setSelectedConnectorId(null);
             }
 
-            if(editingText) {
+            if (editingText) {
                 const current = finishText()
-                if(current) {
+                if (current) {
                     justFinishedRef.current = true;
                     setSelectedIds([current])
                 }
@@ -450,52 +460,49 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         },
         onPointerMove: (e) => {
             const canvas = overlayCanvasRef.current;
-            if(!canvas) return;
+            if (!canvas) return;
             const p = getWorldPoint(e, canvas, scale, offset);
 
-            // ── Group drag ────────────────────────────────────────────────
-            if(groupDragRef.current.active) {
-                const {startX, startY, originX, originY, componentId} = groupDragRef.current;
-                if(componentId) {
-                    setGeneratedGroupOffsets(prev => ({
-                        ...prev,
-                        [componentId]: {
-                            x: originX + (p.x - startX),
-                            y: originY + (p.y - startY),
-                        }
-                    }));
+            // ── Group drag 
+            if (groupDragRef.current.active) {
+                const { startX, startY, originX, originY, componentId } = groupDragRef.current;
+                if (componentId) {
+                    setGeneratedGroupOffset({
+                        x: originX + (p.x - startX),
+                        y: originY + (p.y - startY),
+                    });
                 }
                 return;
             }
 
-            if(activeTool === "select") {
+            if (activeTool === "select") {
                 onConnectorPointerMove(p, allElements);
             }
 
             updateSelect(e);
         },
         onPointerUp: (e) => {
-            // ── End group drag ────────────────────────────────────────────
-            if(groupDragRef.current.active) {
+            // ── End group drag 
+            if (groupDragRef.current.active) {
                 groupDragRef.current.active = false;
                 return;
             }
 
-            if(activeTool === "select") {
+            if (activeTool === "select") {
                 const canvas = overlayCanvasRef.current;
-                if(canvas) {
+                if (canvas) {
                     const p = getWorldPoint(e, canvas, scale, offset);
                     const intent = onConnectorPointerUp(p, allElements);
-                    if(intent) {
-                        if(intent.type === "connect") {
+                    if (intent) {
+                        if (intent.type === "connect") {
                             addConnector(
                                 intent.fromShapeId,
                                 intent.fromSide,
                                 intent.toShapeId,
                                 intent.toSide
                             );
-                        } else if(intent.type === "create") {
-                            const newConnector = {
+                        } else if (intent.type === "create") {
+                            const newConnector: import("../../types/types").Connector = {
                                 id: crypto.randomUUID(),
                                 fromShapeId: intent.sourceId,
                                 fromSide: intent.side,
@@ -504,7 +511,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                                     intent.side === "top" ? "bottom" :
                                         intent.side === "bottom" ? "top" :
                                             intent.side === "left" ? "right" : "left"
-                                ) as any
+                                )
                             };
                             addShapeWithConnector(intent.newShape, newConnector);
                             setSelectedIds([intent.newShape.id]);
@@ -521,12 +528,12 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     //circle tool
     const circleTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!overlayCanvasRef.current) return;
+            if (!overlayCanvasRef.current) return;
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             circleStartDraw(p);
         },
         onPointerMove: (e) => {
-            if(!overlayCanvasRef.current || !isCircleDrawingRef.current) return;
+            if (!overlayCanvasRef.current || !isCircleDrawingRef.current) return;
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             circleDraw(p);
         },
@@ -534,7 +541,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             setGhostPreview(null);
             const current = circleEndDraw()
 
-            if(!current) return
+            if (!current) return
 
             setSelectedIds([current.id]);
             setTool("select")
@@ -544,12 +551,12 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     const rectangleTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!overlayCanvasRef.current) return;
+            if (!overlayCanvasRef.current) return;
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             startDraw(p);
         },
         onPointerMove: (e) => {
-            if(!overlayCanvasRef.current || !isDrawingRef.current) return;
+            if (!overlayCanvasRef.current || !isDrawingRef.current) return;
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
             draw(p);
         },
@@ -557,7 +564,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             setGhostPreview(null);
             const created = endDraw();
 
-            if(!created) return
+            if (!created) return
 
             setSelectedIds([created.id])
             setTool("select")
@@ -568,19 +575,19 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     //Pen tool
     const penTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!overlayCanvasRef.current) return
+            if (!overlayCanvasRef.current) return
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             startPenDraw(p)
         },
         onPointerMove: (e) => {
-            if(!overlayCanvasRef.current || !isPenDrawingRef.current) return
+            if (!overlayCanvasRef.current || !isPenDrawingRef.current) return
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             penDraw(p)
         },
         onPointerUp: () => {
             const current = endPenDraw()
 
-            if(!current) return
+            if (!current) return
 
             setSelectedIds([current.id]);
             setTool("select")
@@ -590,7 +597,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     const textTool: CanvasTool = {
         onPointerDown: (e) => {
-            if(!overlayCanvasRef.current) return
+            if (!overlayCanvasRef.current) return
             const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
             startText(p)
             setGhostPreview(null);
@@ -600,51 +607,55 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
     }
 
 
-    const tools: Record<Tools, CanvasTool> = {
+    const tools: Record<Tools, CanvasTool> = useMemo(() => ({
         select: selectTool,
         rectangle: rectangleTool,
         circle: circleTool,
         pen: penTool,
         text: textTool
-    };
+    }), [selectTool, rectangleTool, circleTool, penTool, textTool]);
 
-    // CURSOR
-    useEffect(() => {
-        if(!overlayCanvasRef.current) return
-        overlayCanvasRef.current.style.cursor = spacePressedRef.current
-            ? "grab"
-            : tools[activeTool]?.cursor ?? "default";
+    const cursor = useMemo(() => {
+        if (pressed) return "grab";
+        const cursors: Record<Tools, string> = {
+            select: "default",
+            rectangle: "crosshair",
+            circle: "crosshair",
+            pen: "crosshair",
+            text: "text"
+        };
+        return cursors[activeTool] ?? "default";
     }, [activeTool, pressed]);
 
     // LAYER 1 — Connectors: Bottom layer (so lines appear behind shapes)
     useLayoutEffect(() => {
-        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
         drawConnectorsLayer(connectorsCanvasRef.current, allConnectors, allElements, scale, offset, selectedConnectorId, requestRedraw);
-        console.log('[Layer: Connectors] redrawn'); // DEV only
+
     }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount]);
 
     // LAYER 2 — Shapes: Middle layer
     useLayoutEffect(() => {
-        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
         drawShapesLayer(shapesCanvasRef.current, currentShape, allElements, scale, offset, editingText);
-        console.log('[Layer: Shapes] redrawn'); // DEV only
+
     }, [currentShape, allElements, scale, offset, editingText]);
 
     // LAYER 3 — Overlay: Top layer (Selection, dots, interactive UI)
     useLayoutEffect(() => {
-        if(!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
         drawOverlayLayer(
             overlayCanvasRef.current,
             allElements, scale, offset,
             selectArea, selectedIds,
             editingText, guides,
             connectionState, connectorDotShapeId,
-            ghostPreview, selectedConnectorId,
+            ghostPreview,
             selectedComponentId, selectedNodeId,
             shiftedGeneratedElements,
             getGroupBounds
         );
-        console.log('[Layer: Overlay] redrawn'); // DEV only
+
     }, [selectArea, selectedIds, editingText, guides, connectionState,
         connectorDotShapeId, ghostPreview, selectedConnectorId,
         selectedComponentId, selectedNodeId, scale, offset, allElements]);
@@ -652,12 +663,12 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
 
 
-    function onPointerDown (e: React.PointerEvent<HTMLCanvasElement>) {
+    function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
         if (isReadOnly && !spacePressedRef.current) return;
 
-        if(!e.isPrimary) return;
+        if (!e.isPrimary) return;
 
-        if(spacePressedRef.current) {
+        if (spacePressedRef.current) {
             startPan(e.clientX, e.clientY);
             return;
         }
@@ -668,9 +679,9 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             e);
     }
 
-    function onPointerMove (e: React.PointerEvent<HTMLCanvasElement>) {
+    function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
         if (rafIdRef.current !== null) {
-            console.log("⏳ Throttled: Skipped a mouse move event!");
+
             return;
         }
         rafIdRef.current = requestAnimationFrame(() => {
@@ -679,16 +690,16 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
             if (isReadOnly) return;
 
-            if(overlayCanvasRef.current && activeTool !== "select" && activeTool !== "pen") {
+            if (overlayCanvasRef.current && activeTool !== "select" && activeTool !== "pen") {
                 const isDrawing = isDrawingRef?.current || isCircleDrawingRef?.current || isPenDrawingRef?.current;
-                if(e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
+                if (e.buttons === 0 && !spacePressedRef.current && !isDrawing) {
                     const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
-                    if(activeTool === "rectangle") {
-                        setGhostPreview({type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80});
-                    } else if(activeTool === "circle") {
-                        setGhostPreview({type: "circle", x: p.x - 50, y: p.y - 50});
-                    } else if(activeTool === "text") {
-                        setGhostPreview({type: "text", x: p.x, y: p.y});
+                    if (activeTool === "rectangle") {
+                        setGhostPreview({ type: "rectangle", x: p.x - 60, y: p.y - 40, width: 120, height: 80 });
+                    } else if (activeTool === "circle") {
+                        setGhostPreview({ type: "circle", x: p.x - 50, y: p.y - 50 });
+                    } else if (activeTool === "text") {
+                        setGhostPreview({ type: "text", x: p.x, y: p.y });
                     } else {
                         setGhostPreview(null);
                     }
@@ -705,7 +716,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         });
     }
 
-    function onPointerUp (e: React.PointerEvent<HTMLCanvasElement>) {
+    function onPointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
 
         endPan();
 
@@ -716,7 +727,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         tools[activeTool]?.onPointerUp?.(e);
     }
 
-    function onDoubleClick (e: React.MouseEvent<HTMLCanvasElement>) {
+    function onDoubleClick(e: React.MouseEvent<HTMLCanvasElement>) {
         if (isReadOnly) return;
         if (!overlayCanvasRef.current) return;
 
@@ -726,7 +737,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
             .slice()
             .reverse()
             .find(shape => {
-                if(shape.type !== "text") return false;
+                if (shape.type !== "text") return false;
 
                 return (
                     p.x >= shape.x &&
@@ -736,23 +747,23 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                 );
             })?.id;
 
-        if(!hitId) return;
+        if (!hitId) return;
 
         const shape = getShapeById(hitId);
 
-        if(shape?.type === "text") {
-            startText({x: shape.x, y: shape.y}, shape);
+        if (shape?.type === "text") {
+            startText({ x: shape.x, y: shape.y }, shape);
         }
     }
 
 
 
     useEffect(() => {
-        if(!editingText) return
+        if (!editingText) return
 
         requestAnimationFrame(() => {
             const el = textRef.current
-            if(!el) return
+            if (!el) return
 
             el.focus()
             el.innerText = editingText.text
@@ -768,44 +779,44 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
 
     }, [editingText?.id])
 
-    const handleCopy = () => copyShapes(selectedIds);
-    const handlePaste = () => {
+    const handleCopy = useCallback(() => copyShapes(selectedIds), [copyShapes, selectedIds]);
+    const handlePaste = useCallback(() => {
         const newIds = pasteShapes();
-        if(newIds.length > 0) setSelectedIds(newIds);
-    };
-    const handleDuplicate = () => {
+        if (newIds.length > 0) setSelectedIds(newIds);
+    }, [pasteShapes, setSelectedIds]);
+    const handleDuplicate = useCallback(() => {
         const newIds = duplicateShapes(selectedIds);
-        if(newIds.length > 0) setSelectedIds(newIds);
-    };
-    const handleDelete = () => {
-        combinedRemoveShapes(selectedIds);
+        if (newIds.length > 0) setSelectedIds(newIds);
+    }, [selectedIds, duplicateShapes, setSelectedIds]);
+    const handleDelete = useCallback(() => {
+        removeShapes(selectedIds);
         setSelectedIds([]);
-    };
-    const handleGroup = () => groupShapes(selectedIds);
-    const handleUngroup = () => ungroupShapes(selectedIds);
+    }, [selectedIds, removeShapes, setSelectedIds]);
+    const handleGroup = useCallback(() => groupShapes(selectedIds), [selectedIds, groupShapes]);
+    const handleUngroup = useCallback(() => ungroupShapes(selectedIds), [selectedIds, ungroupShapes]);
 
-    let menuItems: MenuItem[] = [];
-
-    if(selectedIds.length === 0) {
-        menuItems = [
-            {label: "Undo", onClick: undo, shortcut: "Ctrl+Z"},
-            {label: "Redo", onClick: redo, shortcut: "Ctrl+Y"},
-            {label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0},
-            {label: "Select All", onClick: selectAll, shortcut: "Ctrl+A"}
-        ];
-    } else {
-        menuItems = [
-            {label: "Copy", onClick: handleCopy, shortcut: "Ctrl+C"},
-            {label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0},
-            {label: "Duplicate", onClick: handleDuplicate, shortcut: "Ctrl+D"},
-            ...(selectedIds.length > 1 ? [{label: "Group", onClick: handleGroup, shortcut: "Ctrl+G"}] : []),
-            ...(selectedIds.some(id => shapes.find(s => s.id === id)?.groupId) ? [{label: "Ungroup", onClick: handleUngroup, shortcut: "Ctrl+Shift+G"}] : []),
-            {label: "Select All", onClick: selectAll, shortcut: "Ctrl+A"},
-            {label: "Delete", onClick: handleDelete, shortcut: "Del"},
-            {label: "Bring to Front", onClick: () => bringToFront(selectedIds)},
-            {label: "Send to Back", onClick: () => sendToBack(selectedIds)}
-        ];
-    }
+    const menuItems: MenuItem[] = useMemo(() => {
+        if (selectedIds.length === 0) {
+            return [
+                { label: "Undo", onClick: undo, shortcut: "Ctrl+Z" },
+                { label: "Redo", onClick: redo, shortcut: "Ctrl+Y" },
+                { label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0 },
+                { label: "Select All", onClick: selectAll, shortcut: "Ctrl+A" }
+            ];
+        } else {
+            return [
+                { label: "Copy", onClick: handleCopy, shortcut: "Ctrl+C" },
+                { label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0 },
+                { label: "Duplicate", onClick: handleDuplicate, shortcut: "Ctrl+D" },
+                ...(selectedIds.length > 1 ? [{ label: "Group", onClick: handleGroup, shortcut: "Ctrl+G" }] : []),
+                ...(selectedIds.some(id => shapes.find(s => s.id === id)?.groupId) ? [{ label: "Ungroup", onClick: handleUngroup, shortcut: "Ctrl+Shift+G" }] : []),
+                { label: "Select All", onClick: selectAll, shortcut: "Ctrl+A" },
+                { label: "Delete", onClick: handleDelete, shortcut: "Del" },
+                { label: "Bring to Front", onClick: () => bringToFront(selectedIds) },
+                { label: "Send to Back", onClick: () => sendToBack(selectedIds) }
+            ];
+        }
+    }, [selectedIds, clipboard, handleCopy, handlePaste, selectAll, handleDuplicate, shapes, undo, redo, handleGroup, handleUngroup, handleDelete, bringToFront, sendToBack]);
 
     const code = useDiagramStore(s => s.code);
 
@@ -813,7 +824,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
         <div className="relative w-full h-full overflow-hidden">
             {selectedIds.length === 1 && getShapeById(selectedIds[0])?.type === "text" && !isReadOnly && (
                 <TextToolbar
-                    shape={getShapeById(selectedIds[0])! as any}
+                    shape={getShapeById(selectedIds[0])! as import("../../types/types").Text}
                     updateShape={updateShape}
                     editingText={editingText}
                     setEditingText={setEditingText}
@@ -850,16 +861,22 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                     )}
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                         <canvas ref={connectorsCanvasRef}
-                            style={{ position: 'absolute', top: 0, left: 0,
-                                width: '100%', height: '100%', pointerEvents: 'none' }} />
+                            style={{
+                                position: 'absolute', top: 0, left: 0,
+                                width: '100%', height: '100%', pointerEvents: 'none'
+                            }} />
                         <canvas ref={shapesCanvasRef}
-                            style={{ position: 'absolute', top: 0, left: 0,
-                                width: '100%', height: '100%', pointerEvents: 'none' }} />
+                            style={{
+                                position: 'absolute', top: 0, left: 0,
+                                width: '100%', height: '100%', pointerEvents: 'none'
+                            }} />
                         <canvas ref={overlayCanvasRef}
-                            style={{ position: 'absolute', top: 0, left: 0,
+                            style={{
+                                position: 'absolute', top: 0, left: 0,
                                 width: '100%', height: '100%',
-                                cursor: tools[activeTool]?.cursor,
-                                touchAction: 'none', userSelect: 'none' }}
+                                cursor,
+                                touchAction: 'none', userSelect: 'none'
+                            }}
                             onPointerDown={onPointerDown}
                             onPointerMove={onPointerMove}
                             onPointerUp={onPointerUp}
@@ -869,6 +886,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({initialElements,
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-48">
+                    {/* eslint-disable-next-line react-hooks/refs */}
                     {menuItems.map((item, idx) => (
                         <ContextMenuItem key={idx} onClick={item.onClick} disabled={item.disabled}>
                             {item.label}

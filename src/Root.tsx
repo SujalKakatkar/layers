@@ -17,7 +17,7 @@ export default function Root () {
             window.location.replace("/auth/sign-in")
         })
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
     if (loading) {
         return <Loading />;

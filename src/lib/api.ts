@@ -11,11 +11,15 @@ let _onLogout: () => void = () => {
 }
 
 let isRefreshing = false
-let failedQueue: {resolve: Function; reject: Function}[] = []
+let failedQueue: {resolve: (value?: unknown) => void; reject: (reason?: unknown) => void}[] = []
 
-const processQueue = (error: any) => {
+const processQueue = (error: Error | null) => {
     failedQueue.forEach(({resolve, reject}) => {
-        error ? reject(error) : resolve()
+        if (error) {
+            reject(error);
+        } else {
+            resolve();
+        }
     })
     failedQueue = []
 }
@@ -67,7 +71,7 @@ api.interceptors.response.use(
                 processQueue(null)
                 return api(originalRequest)
             } catch(refreshError) {
-                processQueue(refreshError)
+                processQueue(refreshError as Error | null)
                 _onLogout()
                 return Promise.reject(refreshError)
             } finally {

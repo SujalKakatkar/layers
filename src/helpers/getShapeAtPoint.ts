@@ -10,7 +10,7 @@ export function getShapeAtPoint (
     for(let i = shapes.length - 1;i >= 0;i--) {
         const shape = shapes[i]
 
-        const rotation = (shape as any).rotation || 0;
+        const rotation = ('rotation' in shape ? (shape.rotation || 0) : 0);
         let tx = x;
         let ty = y;
 
@@ -46,15 +46,16 @@ export function getShapeAtPoint (
                 }
                 break
 
-            case "circle":
+            case "circle": {
                 const ddx = tx - shape.cx
                 const ddy = ty - shape.cy
                 if(ddx * ddx + ddy * ddy <= shape.r * shape.r) {
                     return shape.id
                 }
                 break
+            }
 
-            case "stroke":
+            case "stroke": {
                 // For stroke, we still use bounds for now as point-in-path is more complex
                 const b = getStrokeBounds(shape)
                 if(
@@ -66,6 +67,7 @@ export function getShapeAtPoint (
                     return shape.id
                 }
                 break
+            }
             case "text":
                 if(
                     tx >= shape.x &&
