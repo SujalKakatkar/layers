@@ -3,8 +3,9 @@ import {useEffect, useRef} from "react"
 import {useDiagramStore} from "../../store/useDiagramStore"
 import type {Shape, Connector} from "../../types/types"
 import {editorFocus} from "../../hooks/useEditorFocus.ts"
+import {useTheme} from "../ThemeProvider"
 
-// ── Stable ID helpers ────────────────────────────────────────────────────────
+
 function normalize (text: string) {
   return text.toLowerCase().trim().replace(/\s+/g, "-");
 }
@@ -17,7 +18,7 @@ function getConnectorId (fromId: string, toId: string) {
   return "conn-" + fromId + "__" + toId;
 }
 
-// ── Parser ───────────────────────────────────────────────────────────────────
+
 function parseNode (raw: string) {
   if(raw.startsWith("[") && raw.endsWith("]")) {
     return {type: "rectangle", text: raw.slice(1, -1), rawText: raw};
@@ -338,6 +339,7 @@ type CodePanelProps = {
 function CodePanel ({isOpen, onClose}: CodePanelProps) {
   const editorRef = useRef<import("monaco-editor").editor.IStandaloneCodeEditor | null>(null);
   const monaco = useMonaco();
+  const { theme } = useTheme();
 
   const {
     code: codeInput,
@@ -376,7 +378,7 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
       });
     }
 
-    // Define custom theme
+    // Define custom themes
     monaco.editor.defineTheme("layer-dark", {
       base: "vs-dark",
       inherit: true,
@@ -404,8 +406,35 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
       },
     });
 
-    monaco.editor.setTheme("layer-dark");
-  }, [monaco]);
+    monaco.editor.defineTheme("layer-light", {
+      base: "vs",
+      inherit: true,
+      rules: [
+        {token: "keyword.operator", foreground: "059669", fontStyle: "bold"},
+        {token: "delimiter.bracket", foreground: "1e40af"},
+        {token: "delimiter.parenthesis", foreground: "7c3aed"},
+        {token: "comment", foreground: "4b5563", fontStyle: "italic"},
+        {token: "identifier", foreground: "0f172a"},
+      ],
+      colors: {
+        "editor.background": "#ffffff",
+        "editor.foreground": "#0f172a",
+        "editor.lineHighlightBackground": "#f1f5f9",
+        "editorLineNumber.foreground": "#94a3b8",
+        "editorLineNumber.activeForeground": "#10B981",
+        "editor.selectionBackground": "#10B98122",
+        "editor.inactiveSelectionBackground": "#10B98111",
+        "editorCursor.foreground": "#10B981",
+        "editorWhitespace.foreground": "#e2e8f0",
+        "editorIndentGuide.background1": "#e2e8f0",
+        "scrollbar.shadow": "#00000000",
+        "scrollbarSlider.background": "#0000000f",
+        "scrollbarSlider.hoverBackground": "#0000001a",
+      },
+    });
+
+    monaco.editor.setTheme(theme === "dark" ? "layer-dark" : "layer-light");
+  }, [monaco, theme]);
 
   // ── Bidirectional highlight: canvas → editor ──────────────────────────────
   useEffect(() => {
@@ -476,17 +505,17 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
 
   return (
     <div
-      className={`fixed right-0 top-0 h-full w-[340px] bg-[#09090b] border-l border-white/8 shadow-2xl z-40 flex flex-col transition-transform duration-200 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      className={`fixed right-0 top-0 h-full w-[420px] bg-background border-l border-border shadow-2xl z-40 flex flex-col transition-transform duration-200 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <h2 className="text-xs font-bold text-white tracking-wider uppercase">LayerScript</h2>
+          <div className="w-2 h-2 rounded-full bg-primary" />
+          <h2 className="text-xs font-bold text-foreground tracking-wider uppercase">LayerScript</h2>
         </div>
         <button
           onClick={onClose}
-          className="text-white/30 hover:text-white transition-colors"
+          className="text-foreground/30 hover:text-foreground transition-colors"
           title="Close"
         >
           <X size={16} />
@@ -494,9 +523,9 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
       </div>
 
       {/* Hint bar */}
-      <div className="px-4 py-2 border-b border-white/5 shrink-0">
-        <p className="text-[10px] text-white/25 font-mono">
-          Use <span className="text-emerald-400">Node =&gt; Node</span> to connect shapes
+      <div className="px-4 py-2 border-b border-border shrink-0">
+        <p className="text-[10px] text-foreground/25 font-mono">
+          Use <span className="text-primary">Node =&gt; Node</span> to connect shapes
         </p>
       </div>
 
@@ -505,7 +534,7 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
         <Editor
           height="100%"
           language="layerscript"
-          theme="layer-dark"
+          theme={theme === "dark" ? "layer-dark" : "layer-light"}
           value={codeInput}
           onChange={(value) => setCodeInput(value || "")}
           onMount={(editor) => {

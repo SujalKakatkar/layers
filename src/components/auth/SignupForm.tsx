@@ -52,7 +52,7 @@ function SignupForm () {
         <form onSubmit={handleSubmit(handleSignup)} className="p-6 md:p-8">
             <FieldGroup>
                 <div className="flex flex-col items-center gap-2 text-center">
-                    <h1 className="text-2xl font-bold text-emerald-600">Create your account</h1>
+                    <h1 className="text-2xl font-bold text-primary">Create your account</h1>
                     <p className="text-sm text-balance text-muted-foreground">
                         Enter your details below to create your account
                     </p>
@@ -64,10 +64,10 @@ function SignupForm () {
                         type="text"
                         placeholder="John Doe"
                         {...register("name")}
-                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                        className="focus-visible:border-primary focus-visible:ring-primary/20"
                     />
                     {errors.name && (
-                        <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
                     )}
                 </Field>
                 <Field>
@@ -77,10 +77,10 @@ function SignupForm () {
                         type="email"
                         placeholder="m@example.com"
                         {...register("email")}
-                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                        className="focus-visible:border-primary focus-visible:ring-primary/20"
                     />
                     {errors.email && (
-                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
                     )}
                 </Field>
                 <Field>
@@ -89,10 +89,10 @@ function SignupForm () {
                             <FieldLabel htmlFor="password">Password</FieldLabel>
                             <Input id="password" type="password"
                                 {...register("password")}
-                                className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                                className="focus-visible:border-primary focus-visible:ring-primary/20"
                             />
                             {errors.password && (
-                                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                                <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
                             )}
                         </Field>
                         <Field>
@@ -102,10 +102,10 @@ function SignupForm () {
                             <Input
                                 {...register("confirmPassword")}
                                 id="confirm-password" type="password" 
-                                className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                                className="focus-visible:border-primary focus-visible:ring-primary/20"
                             />
                             {errors.confirmPassword && (
-                                <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>
+                                <p className="text-xs text-destructive mt-1">{errors.confirmPassword.message}</p>
                             )}
                         </Field>
                     </Field>
@@ -114,7 +114,7 @@ function SignupForm () {
                     </FieldDescription>
                 </Field>
                 <Field>
-                    <Button type="submit" className="w-full bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500">Create Account</Button>
+                    <Button type="submit" className="w-full bg-primary text-foreground hover:bg-primary focus:ring-2 focus:ring-primary">Create Account</Button>
                 </Field>
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                     Or continue with
@@ -134,7 +134,7 @@ function SignupForm () {
 
                 </Field>
                 <FieldDescription className="text-center">
-                    Already have an account? <Link to="/auth/sign-in" className="text-emerald-600 hover:text-emerald-500 font-medium">Sign in</Link>
+                    Already have an account? <Link to="/auth/sign-in" className="text-primary hover:text-primary font-medium">Sign in</Link>
                 </FieldDescription>
             </FieldGroup>
         </form>

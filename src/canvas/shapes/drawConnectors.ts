@@ -7,6 +7,7 @@ import {
     getShapeBounds,
     getBezierControl,
 } from "../../helpers/connectorHelpers";
+import { getThemeColor, getThemeBgColor } from "../../lib/utils";
 
 // Committed connectors 
 
@@ -112,13 +113,13 @@ function drawOrthogonalLine(
         ctx.lineJoin = "round";
         ctx.stroke();
     } else {
-        ctx.strokeStyle = isSelected ? "#10B981" : "black";
+        ctx.strokeStyle = isSelected ? "#10B981" : getThemeBgColor();
         ctx.lineWidth = (isSelected ? 6 : 4) / scale;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.stroke();
 
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = getThemeColor();
         ctx.lineWidth = 2 / scale;
         ctx.lineJoin = "round";
         ctx.stroke();
@@ -310,20 +311,23 @@ function drawBezierLine (
     ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y);
 
     if(isDraft) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.save();
+        ctx.strokeStyle = getThemeColor();
+        ctx.globalAlpha = 0.5;
         ctx.lineWidth = 1.5 / scale;
         ctx.setLineDash([6 / scale, 4 / scale]);
         ctx.lineCap = "round";
         ctx.stroke();
+        ctx.restore();
     } else {
         // draw black/emerald line first (thicker)
-        ctx.strokeStyle = isSelected ? "#10B981" : "black";
+        ctx.strokeStyle = isSelected ? "#10B981" : getThemeBgColor();
         ctx.lineWidth = (isSelected ? 6 : 4) / scale;
         ctx.lineCap = "round";
         ctx.stroke();
 
         // then white line on top
-        ctx.strokeStyle = "white";
+        ctx.strokeStyle = getThemeColor();
         ctx.lineWidth = 2 / scale;
         ctx.stroke();
     }
@@ -355,10 +359,10 @@ function drawArrowHead (
         ctx.fillStyle = isSelected ? "#10B981" : color;
         ctx.fill();
     } else {
-        ctx.fillStyle = "white";
+        ctx.fillStyle = getThemeColor();
         ctx.fill();
         ctx.lineWidth = 1.5 / scale;
-        ctx.strokeStyle = isSelected ? "#10B981" : "black";
+        ctx.strokeStyle = isSelected ? "#10B981" : getThemeBgColor();
         ctx.stroke();
     }
     
@@ -370,10 +374,10 @@ function drawDot (ctx: CanvasRenderingContext2D, point: Point, scale: number) {
     const arm = 4 / scale;
     const lw = 1.5 / scale;
 
-    // Outer white circle (border)
+    // Outer circle (border)
     ctx.beginPath();
     ctx.arc(point.x, point.y, r + lw, 0, Math.PI * 2);
-    ctx.fillStyle = "white";
+    ctx.fillStyle = getThemeBgColor();
     ctx.fill();
 
     // Inner emerald fill
@@ -383,7 +387,7 @@ function drawDot (ctx: CanvasRenderingContext2D, point: Point, scale: number) {
     ctx.fill();
 
     // "+" cross
-    ctx.strokeStyle = "white";
+    ctx.strokeStyle = getThemeBgColor();
     ctx.lineWidth = lw;
     ctx.lineCap = "round";
 

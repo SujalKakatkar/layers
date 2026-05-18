@@ -347,24 +347,24 @@ function Canvas () {
     }
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-black">
+        <div className="relative w-full h-screen overflow-hidden bg-background">
 
             {/*  Mobile Restriction Dialog  */}
             <Dialog open={isMobile} onOpenChange={() => {}}>
-                <DialogContent showCloseButton={false} className="max-w-sm dark border-white/10 bg-zinc-950/90 backdrop-blur-xl">
+                <DialogContent showCloseButton={false} className="max-w-sm dark border-border bg-muted/90 backdrop-blur-xl">
                     <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2 text-xl">
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <DialogTitle className="text-foreground flex items-center gap-2 text-xl">
+                            <div className="w-8 h-8 rounded-lg bg-warning/20 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warning"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                             </div>
                             Larger Device Required
                         </DialogTitle>
-                        <DialogDescription className="text-white/60 text-sm leading-relaxed pt-2">
+                        <DialogDescription className="text-foreground/60 text-sm leading-relaxed pt-2">
                             Please use a larger device to use this canvas. The editor is optimized for desktop and larger tablet screens to ensure the best experience.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-center py-8">
-                         <div className="w-24 h-24 rounded-3xl bg-emerald-500/5 flex items-center justify-center text-emerald-500 border border-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+                         <div className="w-24 h-24 rounded-3xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
                              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                          </div>
                     </div>
@@ -385,20 +385,20 @@ function Canvas () {
                             <input
                                 readOnly
                                 value={shareToken ? `${shareToken}` : "Generating..."}
-                                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white/80 focus:outline-none"
+                                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-xs text-foreground/80 focus:outline-none"
                             />
                             <button
                                 onClick={copyShareLink}
-                                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all"
+                                className="px-3 py-2 bg-primary hover:bg-primary text-primary-foreground text-xs font-bold rounded-lg transition-all"
                             >
                                 Copy
                             </button>
                         </div>
                         <div className="flex justify-between items-center pt-2">
-                            <p className="text-[10px] text-white/40 italic">Link expires if revoked manually.</p>
+                            <p className="text-[10px] text-foreground/40 italic">Link expires if revoked manually.</p>
                             <button
                                 onClick={handleRevokeShare}
-                                className="text-[10px] text-red-400 hover:text-red-300 font-semibold transition-all underline underline-offset-4"
+                                className="text-[10px] text-destructive hover:text-destructive font-semibold transition-all underline underline-offset-4"
                             >
                                 Revoke Link
                             </button>
@@ -419,20 +419,20 @@ function Canvas () {
                     <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
                         <button
                             onClick={handleDialogCancel}
-                            className="px-4 py-2 rounded-lg border border-white/10 bg-transparent text-white/60 hover:text-white hover:bg-white/5 text-xs font-semibold transition-all"
+                            className="px-4 py-2 rounded-lg border border-border bg-transparent text-foreground/60 hover:text-foreground hover:bg-foreground/5 text-xs font-semibold transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleDialogLeaveWithoutSaving}
-                            className="px-4 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-all"
+                            className="px-4 py-2 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold transition-all"
                         >
                             Leave without saving
                         </button>
                         <button
                             onClick={handleDialogSaveAndLeave}
                             disabled={loading || !isHydrated}
-                            className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary text-primary-foreground text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? "Saving…" : "Save & leave"}
                         </button>
@@ -442,13 +442,13 @@ function Canvas () {
 
             {/* ─── Top Header Overlay  */}
             <div
-                className={`absolute top-0 left-0 w-full flex items-center justify-between px-6 py-4 z-50 pointer-events-none transition-all duration-300 ease-in-out ${isCodePanelOpen ? 'pr-91' : 'pr-6'}`}
+                className={`absolute top-0 left-0 w-full flex items-center justify-between px-6 py-4 z-50 pointer-events-none transition-all duration-300 ease-in-out ${isCodePanelOpen ? 'pr-[444px]' : 'pr-6'}`}
             >
                 {/* Left: Title */}
                 <div className="pointer-events-auto flex items-center gap-3">
                     <div
                         onDoubleClick={() => setIsRenaming(true)}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors cursor-text min-w-30"
+                        className="px-3 py-1.5 rounded-lg bg-foreground/5 border border-border backdrop-blur-md hover:bg-foreground/10 transition-colors cursor-text min-w-30"
                     >
                         {isRenaming ? (
                             <input
@@ -464,22 +464,22 @@ function Canvas () {
                                         setIsRenaming(false);
                                     }
                                 }}
-                                className="bg-transparent text-white text-sm font-bold border-none outline-none w-full"
+                                className="bg-transparent text-foreground text-sm font-bold border-none outline-none w-full"
                             />
                         ) : (
-                            <h1 className="text-sm font-bold text-white tracking-tight">
+                            <h1 className="text-sm font-bold text-foreground tracking-tight">
                                 {canvasTitle}
                             </h1>
                         )}
                     </div>
                     {!isRenaming && (
-                        <p className="text-[10px] text-white/20 hidden md:block">Double-click to rename</p>
+                        <p className="text-[10px] text-foreground/20 hidden md:block">Double-click to rename</p>
                     )}
                     {/* Unsaved indicator dot */}
                     {hasUnsavedChanges && (
                         <span
                             title="Unsaved changes"
-                            className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"
+                            className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse"
                         />
                     )}
                 </div>
@@ -491,7 +491,7 @@ function Canvas () {
                         <Tooltip>
                             <TooltipTrigger render={ <button
                                     onClick={handleDashboardClick}
-                                    className="px-4 py-2 rounded-lg border border-white/10 bg-black/40 text-white/70 hover:text-white hover:bg-white/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
+                                    className="px-4 py-2 rounded-lg border border-border bg-background/40 text-foreground/70 hover:text-foreground hover:bg-foreground/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
                                 >
                                     Dashboard
                                 </button>}>
@@ -508,15 +508,15 @@ function Canvas () {
                                     disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
                                     className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
                                         ${hasUnsavedChanges && !isReadOnly
-                                            ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                                            : "border-white/10 bg-black/40 text-white/70"
+                                            ? "border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+                                            : "border-border bg-background/40 text-foreground/70"
                                         }`}
                                 >
                                     {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
                                 </button>}>
                              
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="flex items-center gap-3 px-3 py-1.5 font-medium text-white/90">
+                            <TooltipContent side="bottom" className="flex items-center gap-3 px-3 py-1.5 font-medium text-foreground/90">
                                 {isReadOnly ? (
                                     <span>Read Only mode</span>
                                 ) : !hasUnsavedChanges ? (
@@ -524,7 +524,7 @@ function Canvas () {
                                 ) : (
                                     <>
                                         <span>Save changes</span>
-                                        <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/40 border border-white/5 leading-none">
+                                        <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 text-[10px] font-mono text-foreground/40 border border-border leading-none">
                                             Ctrl+S
                                         </kbd>
                                     </>
@@ -537,7 +537,7 @@ function Canvas () {
                                 <TooltipTrigger render={ <button
                                         onClick={handleShare}
                                         disabled={isSharing}
-                                        className="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                                        className="bg-primary hover:bg-primary text-primary-foreground px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-primary/10 disabled:opacity-50"
                                     >
                                         {isSharing ? "Sharing..." : "Share"}
                                     </button>}>
@@ -555,7 +555,7 @@ function Canvas () {
                         <Tooltip>
                             <TooltipTrigger render={<button
                                     onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-out'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
                                 >
                                     <Minus size={14} />
                                 </button>}>
@@ -566,14 +566,14 @@ function Canvas () {
                             </TooltipContent>
                         </Tooltip>
                         
-                        <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/40 text-white backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
+                        <div className="px-3 py-2 rounded-lg border border-border bg-background/40 text-foreground backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
                             {Math.round(currentZoom * 100)}%
                         </div>
 
                         <Tooltip>
                             <TooltipTrigger render={<button
                                     onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-in'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-black/40 text-white hover:text-white hover:bg-white/5 backdrop-blur-md transition-all duration-200"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
                                 >
                                     <Plus size={14} />
                                 </button>}>

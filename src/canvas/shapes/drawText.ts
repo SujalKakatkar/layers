@@ -1,4 +1,5 @@
 import {measureTextSize} from "../../helpers/measureTextSize"
+import { getThemeColor } from "../../lib/utils"
 // Using inline types for better compatibility with different shape types
 
 export function drawText (
@@ -11,7 +12,7 @@ export function drawText (
     const fontSize = shape.fontSize || 14;
 
     ctx.font = `${weight} ${fontSize}px 'Patrick Hand', sans-serif`;
-    ctx.fillStyle = "white";
+    ctx.fillStyle = getThemeColor();
 
     // ── Center coordinates based on shape type ────────────────────────────
     let centerX: number;

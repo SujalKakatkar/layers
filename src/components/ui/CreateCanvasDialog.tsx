@@ -57,16 +57,16 @@ export function CreateCanvasDialog({ open, onOpenChange, onSuccess }: CreateCanv
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-[#09090b] border-white/10">
+      <DialogContent className="sm:max-w-[425px] bg-background border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white">Create New Canvas</DialogTitle>
-          <DialogDescription className="text-white/40">
+          <DialogTitle className="text-xl font-bold text-foreground">Create New Canvas</DialogTitle>
+          <DialogDescription className="text-foreground/40">
             Give your diagram a name to get started.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name" className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+            <Label htmlFor="name" className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">
               Canvas Name
             </Label>
             <Input
@@ -75,7 +75,7 @@ export function CreateCanvasDialog({ open, onOpenChange, onSuccess }: CreateCanv
               placeholder="e.g. System Architecture"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 h-11"
+              className="bg-foreground/5 border-border text-foreground placeholder:text-foreground/20 focus-visible:ring-primary/50 h-11"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && name.trim()) {
                   handleCreate()
@@ -88,7 +88,7 @@ export function CreateCanvasDialog({ open, onOpenChange, onSuccess }: CreateCanv
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || isLoading}
-            className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold h-11 transition-all"
+            className="w-full bg-primary hover:bg-primary text-foreground font-bold h-11 transition-all"
           >
             {isLoading ? "Creating..." : "Create Canvas"}
           </Button>

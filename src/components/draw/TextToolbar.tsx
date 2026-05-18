@@ -86,7 +86,7 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
 
     return (
         <div
-            className="absolute z-50 flex items-center gap-2 px-4 h-14 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-2xl shadow-xl bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4"
+            className="absolute z-50 flex items-center gap-2 px-4 h-14 bg-muted/60 backdrop-blur-md border border-border rounded-2xl shadow-xl bottom-20 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4"
             style={{ touchAction: 'none' }}
         >
             {/* Bold Toggle */}
@@ -95,20 +95,20 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                         onClick={handleBold}
                         className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                             shape.fontWeight === "bold" 
-                            ? "active-tool-glow text-white shadow-sm" 
-                            : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                            ? "active-tool-glow text-foreground shadow-sm" 
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                     >
                         <Bold size={18} strokeWidth={shape.fontWeight === "bold" ? 3 : 2} />
                     </button>}>
                    
                 </TooltipTrigger>
-                <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                     Bold
                 </TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-6 bg-zinc-700/50 mx-1" />
+            <div className="w-px h-6 bg-muted/50 mx-1" />
 
             {/* Alignment Group */}
             <div className="flex items-center gap-1">
@@ -117,15 +117,15 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("left")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 (!shape.textAlign || shape.textAlign === "left") 
-                                ? "active-tool-glow text-white shadow-sm" 
-                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                ? "active-tool-glow text-foreground shadow-sm" 
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                         >
                             <AlignLeft size={18} />
                         </button>}>
                         
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                         Align Left
                     </TooltipContent>
                 </Tooltip>
@@ -135,15 +135,15 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("center")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 shape.textAlign === "center" 
-                                ? "active-tool-glow text-white shadow-sm" 
-                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                ? "active-tool-glow text-foreground shadow-sm" 
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                         >
                             <AlignCenter size={18} />
                         </button>}>
                        
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                         Align Center
                     </TooltipContent>
                 </Tooltip>
@@ -153,40 +153,40 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                             onClick={() => handleAlign("right")}
                             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
                                 shape.textAlign === "right" 
-                                ? "active-tool-glow text-white shadow-sm" 
-                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                ? "active-tool-glow text-foreground shadow-sm" 
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                         >
                             <AlignRight size={18} />
                         </button>}>
                         
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                         Align Right
                     </TooltipContent>
                 </Tooltip>
             </div>
 
-            <div className="w-px h-6 bg-zinc-700/50 mx-1" />
+            <div className="w-px h-6 bg-muted/50 mx-1" />
 
             {/* Font Size Control */}
             <div className="flex items-center gap-2">
                 <Tooltip>
                     <TooltipTrigger render={<button
                             onClick={handleDecreaseSize}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-white transition-all"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
                         >
                             <Minus size={16} strokeWidth={3} />
                         </button>}>
                         
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                         Decrease Font Size
                     </TooltipContent>
                 </Tooltip>
 
                 <div className="min-w-[32px] flex justify-center">
-                    <span className="text-white font-mono font-bold tabular-nums">
+                    <span className="text-foreground font-mono font-bold tabular-nums">
                         {Math.round(shape.fontSize || 20)}
                     </span>
                 </div>
@@ -194,13 +194,13 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
                 <Tooltip>
                     <TooltipTrigger render={ <button
                             onClick={handleIncreaseSize}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-white transition-all"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
                         >
                             <Plus size={16} strokeWidth={3} />
                         </button>}>
                        
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-white/90">
+                    <TooltipContent side="top" className="px-3 py-1.5 font-medium text-foreground/90">
                         Increase Font Size
                     </TooltipContent>
                 </Tooltip>

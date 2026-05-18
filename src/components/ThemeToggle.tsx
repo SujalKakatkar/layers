@@ -9,9 +9,9 @@ export function ThemeToggle() {
         <Button
             variant={'ghost'}
             onClick={toggleTheme}
-            className="p-2 rounded-lg border border-text hover:bg-bg/50 transition"
+            className="w-10 h-10 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition"
         >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </Button>
     );
 }

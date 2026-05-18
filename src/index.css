@@ -52,6 +52,8 @@
   --color-border: var(--border);
 
   --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
 
   --color-accent-foreground: var(--accent-foreground);
 
@@ -110,9 +112,9 @@
 
   --popover-foreground: oklch(0.145 0 0);
 
-  --primary: oklch(0.205 0 0);
+  --primary: var(--color-emerald-600);
 
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: var(--color-white);
 
   --secondary: oklch(0.97 0 0);
 
@@ -128,11 +130,15 @@
 
   --destructive: oklch(0.577 0.245 27.325);
 
+  --warning: var(--color-amber-500);
+
+  --warning-foreground: var(--color-white);
+
   --border: oklch(0.922 0 0);
 
   --input: oklch(0.922 0 0);
 
-  --ring: oklch(0.708 0 0);
+  --ring: var(--color-emerald-500);
 
   --chart-1: oklch(0.87 0 0);
 
@@ -165,7 +171,7 @@
 
 .dark {
 
-  --background: oklch(0.145 0 0);
+  --background: oklch(0 0 0);
 
   --foreground: oklch(0.985 0 0);
 
@@ -177,9 +183,9 @@
 
   --popover-foreground: oklch(0.985 0 0);
 
-  --primary: oklch(0.922 0 0);
+  --primary: var(--color-emerald-600);
 
-  --primary-foreground: oklch(0.205 0 0);
+  --primary-foreground: var(--color-white);
 
   --secondary: oklch(0.269 0 0);
 
@@ -195,11 +201,15 @@
 
   --destructive: oklch(0.704 0.191 22.216);
 
+  --warning: var(--color-amber-500);
+
+  --warning-foreground: var(--color-white);
+
   --border: oklch(1 0 0 / 10%);
 
   --input: oklch(1 0 0 / 15%);
 
-  --ring: oklch(0.556 0 0);
+  --ring: var(--color-emerald-500);
 
   --chart-1: oklch(0.87 0 0);
 
@@ -280,11 +290,5 @@
 
 /* ── Active tool indicator ───────────────────────────────────────────────── */
 .active-tool-glow {
-  background-color: rgba(6, 78, 59, 0.6);             /* Dark emerald with opacity */
-  backdrop-filter: blur(8px);                         /* Blur effect */
-  -webkit-backdrop-filter: blur(8px);                 /* Safari support */
-  color: #ffffff;
-  border-radius: 0.75rem;                             /* matches rounded-xl */
-  border: 1px solid rgba(16, 185, 129, 0.3);          /* Subtle emerald border */
-  transition: all 0.15s ease;
+  @apply bg-primary/40 backdrop-blur-md text-foreground rounded-xl border border-primary/40 shadow-sm transition-all duration-150;
 }

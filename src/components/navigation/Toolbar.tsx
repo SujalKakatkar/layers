@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { HelperTools, Tools } from "../../types/types"
 import { Link } from "react-router"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
+import { ThemeToggle } from "../ThemeToggle"
 
 type ToolbarProps = {
   onToolChange: (tool: Tools) => void
@@ -82,8 +83,8 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
   ]
 
   return (
-    <div className="w-fit px-3 h-14 bg-zinc-900/60 backdrop-blur-md border border-zinc-700 rounded-2xl flex justify-center gap-2 items-center shadow-lg">
-      <ul className="text-white p-1 flex gap-2">
+    <div className="w-fit px-3 h-14 bg-muted/60 backdrop-blur-md border border-border rounded-2xl flex justify-center gap-2 items-center shadow-lg">
+      <ul className="text-foreground p-1 flex gap-2">
         {icons.map((item) => {
           const Icon = item.icon
           const isActive = activeTool === item.tool
@@ -94,7 +95,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
                 <TooltipTrigger render={<button
                   onClick={() => onToolChange(item.tool)}
                   className={`w-10 h-10 flex items-center justify-center rounded-xl transition
-                ${isActive ? "active-tool-glow text-white shadow-sm" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                ${isActive ? "active-tool-glow text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                 >
                   <Icon
                     size={20}
@@ -106,7 +107,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
                 </TooltipTrigger>
                 <TooltipContent side="top" className="flex items-center gap-2 px-2.5 py-1.5">
                   <span className="font-medium">{item.name}</span>
-                  <kbd className="px-1.5 py-0.5 rounded-md  text-[10px] text-black font-mono bg-emerald-600">{item.shortcut}</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md  text-[10px] text-black font-mono bg-primary">{item.shortcut}</kbd>
                 </TooltipContent>
               </Tooltip>
             </li>
@@ -115,9 +116,9 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
       </ul>
 
       {/* Separator */}
-      <div className="w-px h-6 bg-zinc-700/50 mx-1" />
+      <div className="w-px h-6 bg-border mx-1" />
 
-      <ul className="text-zinc-400 p-1 flex gap-2">
+      <ul className="text-muted-foreground p-1 flex gap-2">
         {helper.map((tool) => {
           const Icon = tool.icon
           return (
@@ -126,7 +127,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
                 <TooltipTrigger render={
                   <button
                     onClick={tool.name === "Undo" ? onUndo : onRedo}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl transition hover:bg-zinc-800 hover:text-white"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl transition hover:bg-muted hover:text-foreground"
                   >
                     <Icon size={20} strokeWidth={2} />
                   </button>
@@ -135,7 +136,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
                 </TooltipTrigger>
                 <TooltipContent side="top" className="flex items-center gap-2 px-2.5 py-1.5">
                   <span className="font-medium">{tool.name}</span>
-                  <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 text-[10px] font-mono ">{tool.shortcut}</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded-md bg-foreground/10 text-[10px] font-mono ">{tool.shortcut}</kbd>
                 </TooltipContent>
               </Tooltip>
             </li>
@@ -144,12 +145,12 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
       </ul>
 
       {/* Code Toggle */}
-      <div className="w-px h-6 bg-zinc-700/50 mx-1" />
-      <div className="text-zinc-400 p-1 flex gap-2">
+      <div className="w-px h-6 bg-border mx-1" />
+      <div className="text-muted-foreground p-1 flex gap-2 items-center">
         <Tooltip>
           <TooltipTrigger render={<Link
             to="/learn"
-            className="w-10 h-10 flex items-center justify-center rounded-xl transition text-emerald-400/80 hover:bg-emerald-500/10 hover:text-emerald-400"
+            className="w-10 h-10 flex items-center justify-center rounded-xl transition text-primary/80 hover:bg-primary/10 hover:text-primary"
           >
             <BookOpen size={20} strokeWidth={2} />
           </Link>}>
@@ -164,7 +165,7 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
           <TooltipTrigger render={<button
             onClick={onToggleCodePanel}
             className={`w-10 h-10 flex items-center justify-center rounded-xl transition
-              ${isCodePanelOpen ? "bg-theme-muted text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+              ${isCodePanelOpen ? "bg-theme-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
           >
             <CodeXml size={20} strokeWidth={2} />
           </button>}>
@@ -172,6 +173,16 @@ function Toolbar({ onToolChange, activeTool, onUndo, onRedo, isCodePanelOpen, on
           </TooltipTrigger>
           <TooltipContent side="top" className="px-2.5 py-1.5 font-medium">
             Toggle Code Panel
+          </TooltipContent>
+        </Tooltip>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Tooltip>
+          <TooltipTrigger render={<ThemeToggle />}>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="px-2.5 py-1.5 font-medium">
+            Toggle Theme
           </TooltipContent>
         </Tooltip>
       </div>

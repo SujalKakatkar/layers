@@ -40,7 +40,7 @@ function LoginForm () {
         <form onSubmit={handleSubmit(handleSignin)} className="p-6 md:p-8">
             <FieldGroup>
                 <div className="flex flex-col items-center gap-2 text-center">
-                    <h1 className="text-2xl font-bold text-emerald-600">Welcome back</h1>
+                    <h1 className="text-2xl font-bold text-primary">Welcome back</h1>
                     <p className="text-balance text-muted-foreground">
                         Login to your Acme Inc account
                     </p>
@@ -52,10 +52,10 @@ function LoginForm () {
                         type="email"
                         placeholder="m@example.com"
                         {...register("email")}
-                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                        className="focus-visible:border-primary focus-visible:ring-primary/20"
                     />
                     {errors.email && (
-                        <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
                     )}
                 </Field>
                 <Field>
@@ -63,7 +63,7 @@ function LoginForm () {
                         <FieldLabel htmlFor="password">Password</FieldLabel>
                         <Link
                             to="/auth/forgot-password"
-                            className="ml-auto text-sm text-emerald-600 hover:text-emerald-500 font-medium underline-offset-2 hover:underline"
+                            className="ml-auto text-sm text-primary hover:text-primary font-medium underline-offset-2 hover:underline"
                         >
                             Forgot your password?
                         </Link>
@@ -71,14 +71,14 @@ function LoginForm () {
                     <Input
                         {...register("password")}
                         id="password" type="password" 
-                        className="focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                        className="focus-visible:border-primary focus-visible:ring-primary/20"
                     />
                     {errors.password && (
-                        <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                        <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
                     )}
                 </Field>
                 <Field>
-                    <Button type="submit" className="w-full bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500">Login</Button>
+                    <Button type="submit" className="w-full bg-primary text-foreground hover:bg-primary focus:ring-2 focus:ring-primary">Login</Button>
                 </Field>
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                     Or continue with
@@ -98,7 +98,7 @@ function LoginForm () {
 
                 </Field>
                 <FieldDescription className="text-center">
-                    Don&apos;t have an account? <Link to="/auth/sign-up" className="text-emerald-600 hover:text-emerald-500 font-medium">Sign up</Link>
+                    Don&apos;t have an account? <Link to="/auth/sign-up" className="text-primary hover:text-primary font-medium">Sign up</Link>
                 </FieldDescription>
             </FieldGroup>
         </form>

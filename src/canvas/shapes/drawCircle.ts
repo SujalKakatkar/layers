@@ -1,4 +1,5 @@
 import type {Circle} from "../../types/types";
+import { getThemeColor } from "../../lib/utils";
 
 export function drawCircle (
     ctx: CanvasRenderingContext2D,
@@ -7,7 +8,7 @@ export function drawCircle (
 ) {
     const {cx, cy, r} = circle;
     ctx.save();
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = getThemeColor();
     ctx.lineWidth = 1.5 / scale;
     ctx.setLineDash([])
 

@@ -9,13 +9,30 @@ import {getShapeAtPoint} from "../helpers/getShapeAtPoint";
 import {getHandleAtPoint} from "../helpers/getHandleAtPoint";
 import {isTextInside} from "../helpers/isTextInside";
 
-const rotationCursorMap: Record<string, string> = {
-    "rotate-tl": "url('/cursors/rotate-tl.png') 24 24, auto",
-    "rotate-tr": "url('/cursors/rotate-tr.png') 24 24, auto",
-    "rotate-bl": "url('/cursors/rotate-bl.png') 24 24, auto",
-    "rotate-br": "url('/cursors/rotate-br.png') 24 24, auto",
-    "rotate": "url('/cursors/rotate-tl.png') 24 24, auto" // Fallback
-};
+function getRotationCursor(handle: string) {
+    if (typeof document === "undefined") return "auto";
+    const isDark = document.documentElement.classList.contains("dark");
+    const color = isDark ? "white" : "black";
+    const shadowColor = isDark ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.8)";
+    
+    let angle = 0;
+    if (handle === "rotate-tr") angle = 90;
+    else if (handle === "rotate-br") angle = 180;
+    else if (handle === "rotate-bl") angle = 270;
+    
+    const svg = `
+<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'>
+  <g transform='rotate(${angle} 12 12)'>
+    <path d='M19 12a7 7 0 1 1-7-7c2.0 0 3.8 0.8 5.2 2.2L19 9' stroke='${shadowColor}' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/>
+    <polyline points='19 4 19 9 14 9' stroke='${shadowColor}' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/>
+    <path d='M19 12a7 7 0 1 1-7-7c2.0 0 3.8 0.8 5.2 2.2L19 9' stroke='${color}' stroke-width='2.0' stroke-linecap='round' stroke-linejoin='round'/>
+    <polyline points='19 4 19 9 14 9' stroke='${color}' stroke-width='2.0' stroke-linecap='round' stroke-linejoin='round'/>
+  </g>
+</svg>
+`.trim().replace(/\s+/g, ' ');
+
+    return `url('data:image/svg+xml;base64,${btoa(svg)}') 12 12, auto`;
+}
 
 export function useSelectArea (
     canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -225,7 +242,7 @@ export function useSelectArea (
                 case "rotate-tr":
                 case "rotate-bl":
                 case "rotate-br":
-                    canvas.style.cursor = rotationCursorMap[handle] || rotationCursorMap["rotate"];
+                    canvas.style.cursor = getRotationCursor(handle);
                     return;
             }
         }
@@ -277,7 +294,7 @@ export function useSelectArea (
             }
 
             if(resizeHandleRef.current.startsWith("rotate")) {
-                canvas.style.cursor = rotationCursorMap[resizeHandleRef.current] || rotationCursorMap["rotate"];
+                canvas.style.cursor = getRotationCursor(resizeHandleRef.current);
                 const initialBounds = getSelectionBounds(Array.from(initialShapesRef.current.values()), selectedIds);
                 if(initialBounds) {
                     const cx = initialBounds.x + initialBounds.width / 2;

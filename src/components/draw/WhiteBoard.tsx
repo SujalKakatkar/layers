@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useOutletContext, useParams } from "react-router";
+import { getThemeColor, setActiveTheme } from "../../lib/utils";
+import { useTheme } from "../ThemeProvider";
 import { useCamera, useCameraSync } from "../../hooks/useCamera";
 import { useRectangleDraw } from "../../hooks/useRectangle";
 import { drawShapesLayer, drawConnectorsLayer, drawOverlayLayer } from "../../canvas/draw";
@@ -78,6 +80,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     const requestRedraw = useCallback(() => setRedrawCount(c => c + 1), []);
 
     const { tool: activeTool, setTool, setUndoRedo } = useOutletContext<OutletContextType>();
+    const { theme } = useTheme();
 
 
     const shapesCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -630,20 +633,23 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     // LAYER 1 — Connectors: Bottom layer (so lines appear behind shapes)
     useLayoutEffect(() => {
         if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        setActiveTheme(theme);
         drawConnectorsLayer(connectorsCanvasRef.current, allConnectors, allElements, scale, offset, selectedConnectorId, requestRedraw);
 
-    }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount]);
+    }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount, theme]);
 
     // LAYER 2 — Shapes: Middle layer
     useLayoutEffect(() => {
         if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        setActiveTheme(theme);
         drawShapesLayer(shapesCanvasRef.current, currentShape, allElements, scale, offset, editingText);
 
-    }, [currentShape, allElements, scale, offset, editingText]);
+    }, [currentShape, allElements, scale, offset, editingText, theme]);
 
     // LAYER 3 — Overlay: Top layer (Selection, dots, interactive UI)
     useLayoutEffect(() => {
         if (!shapesCanvasRef.current || !connectorsCanvasRef.current || !overlayCanvasRef.current) return;
+        setActiveTheme(theme);
         drawOverlayLayer(
             overlayCanvasRef.current,
             allElements, scale, offset,
@@ -658,7 +664,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
     }, [selectArea, selectedIds, editingText, guides, connectionState,
         connectorDotShapeId, ghostPreview, selectedConnectorId,
-        selectedComponentId, selectedNodeId, scale, offset, allElements]);
+        selectedComponentId, selectedNodeId, scale, offset, allElements, theme]);
 
 
 
@@ -847,7 +853,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                                 left: editingText.x * scale + offset.x,
                                 top: editingText.y * scale + offset.y,
                                 outline: "none",
-                                color: "white",
+                                color: getThemeColor(),
                                 lineHeight: "1.2",
                                 padding: 0,
                                 margin: 0,
@@ -899,8 +905,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
             {shapes.length === 0 && connectors.length === 0 && code === "" && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-center z-10 animate-in fade-in duration-700">
                     <div className="max-w-md px-6">
-                        <h2 className="text-2xl font-bold text-white/50 mb-2">Start building your diagram...</h2>
-                        <p className="text-white/20 text-sm">Use shapes or write LayerScript to begin</p>
+                        <h2 className="text-2xl font-bold text-foreground/50 mb-2">Start building your diagram...</h2>
+                        <p className="text-foreground/20 text-sm">Use shapes or write LayerScript to begin</p>
                     </div>
                 </div>
             )}

@@ -1,4 +1,5 @@
 import type {Rectangle} from "../../types/types";
+import { getThemeColor } from "../../lib/utils";
 
 export function drawRect (
     ctx: CanvasRenderingContext2D,
@@ -15,7 +16,7 @@ export function drawRect (
     const r = Math.min(radius, width / 2, height / 2);
 
 
-    ctx.strokeStyle = "white";
+    ctx.strokeStyle = getThemeColor();
     ctx.lineWidth = 1.5 / scale;
     ctx.setLineDash([])
 

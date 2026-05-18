@@ -6,6 +6,7 @@ import {routes} from "./routes/route";
 import Loading from "./loading/Loading";
 import {registerLogoutHandler} from "./lib/api";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 export default function Root () {
     const {checkAuth, loading} = useAuthStore();
@@ -24,11 +25,11 @@ export default function Root () {
     }
 
     return (
-        <>
+        <ThemeProvider>
             <TooltipProvider>
-                <Toaster richColors closeButton position="bottom-right" />
+                <Toaster richColors closeButton position="top-center" />
                 <RouterProvider router={routes} />
             </TooltipProvider>
-        </>
+        </ThemeProvider>
     );
 }
