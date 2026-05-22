@@ -48,6 +48,7 @@ import {
     getClosestSidePair,
     getBezierControl
 } from "../../helpers/connectorHelpers";
+import { hitTestElement, computeGroupBounds } from "../../helpers/diagramHelpers";
 
 interface WhiteBoardProps {
     initialElements?: Shape[];
@@ -216,40 +217,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
         });
     }, [generatedElements, generatedGroupOffset]);
 
-    // ── Helper: hit-test a single shifted element ─────────────────────────────
-    function hitTestElement(el: Shape, p: { x: number; y: number }): boolean {
-        if (el.type === "circle") {
-            const dx = p.x - el.cx;
-            const dy = p.y - el.cy;
-            return Math.sqrt(dx * dx + dy * dy) <= el.r;
-        }
-        if (el.type === "rectangle" || el.type === "text") {
-            return p.x >= el.x && p.x <= el.x + el.width && p.y >= el.y && p.y <= el.y + el.height;
-        }
-        return false;
-    }
-
     // ── Helper: get bounding box of a specific shifted component ─────────────
-    const getGroupBounds = useMemo(() => (componentId: string | null) => {
-        if (!componentId) return null;
-        const componentElements = shiftedGeneratedElements.filter((el) => (el.componentId || "default") === componentId);
-        if (componentElements.length === 0) return null;
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        componentElements.forEach((el) => {
-            let x: number, y: number, w: number, h: number;
-            if (el.type === "circle") {
-                x = el.cx - el.r; y = el.cy - el.r; w = el.r * 2; h = el.r * 2;
-            } else if (el.type === "rectangle" || el.type === "text") {
-                x = el.x; y = el.y; w = el.width; h = el.height;
-            } else {
-                return;
-            }
-            minX = Math.min(minX, x); minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h);
-        });
-        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    }, [shiftedGeneratedElements]);
+    const getGroupBounds = useMemo(() => (componentId: string | null) => computeGroupBounds(componentId, shiftedGeneratedElements), [shiftedGeneratedElements]);
 
     const shapesRef = useRef(shapes);
     useEffect(() => { shapesRef.current = shapes; }, [shapes]);

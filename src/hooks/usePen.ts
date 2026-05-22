@@ -1,6 +1,5 @@
 import {useRef} from "react"
 import type {Stroke, Point, Shape} from "../types/types"
-import { getThemeColor } from "../lib/utils"
 
 export function usePenDraw (
     currentShape: Shape | null,

@@ -73,9 +73,7 @@ function Hero () {
               Start Building
               <ArrowRight size={16} />
             </button>
-            <button className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground/55 hover:text-foreground hover:border-border font-medium transition-all duration-200">
-              View Demo
-            </button>
+           
           </div>
         </div>
         <div className="flex flex-col gap-4">
