@@ -32,7 +32,7 @@ function parseNode (raw: string) {
 }
 
 type ParsedNode = {
-  id: string;
+  _id: string;
   type: "rectangle" | "circle";
   text: string;
   source: {line: number; start: number; end: number};
@@ -58,7 +58,7 @@ function parseToShapes (input: string): ParsedDiagram {
       const end = start + parsed.rawText.length;
 
       nodes.set(id, {
-        id,
+        _id: id,
         type: parsed.type as "rectangle" | "circle",
         text: parsed.text,
         source: {line: lineIndex, start, end}
@@ -80,7 +80,7 @@ function parseToShapes (input: string): ParsedDiagram {
       const toNode = getOrCreateNode(parts[i + 1], lineIndex, line);
 
       if(fromNode && toNode) {
-        edges.add(getConnectorId(fromNode.id, toNode.id));
+        edges.add(getConnectorId(fromNode._id, toNode._id));
       }
     }
   });
@@ -101,7 +101,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
     let shape: Shape;
     if (node.type === "circle") {
       shape = {
-        id: node.id,
+        _id: node._id,
         type: "circle",
         cx: 0,
         cy: 0,
@@ -113,7 +113,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       };
     } else {
       shape = {
-        id: node.id,
+        _id: node._id,
         type: "rectangle",
         x: 0,
         y: 0,
@@ -126,7 +126,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
       };
     }
 
-    nodeMap.set(node.id, shape);
+    nodeMap.set(node._id, shape);
     elements.push(shape);
   });
 
@@ -252,7 +252,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
     if(!nodeMap.has(fromId) || !nodeMap.has(toId)) return;
 
     connectors.push({
-      id: edgeId,
+      _id: edgeId,
       fromShapeId: fromId,
       toShapeId: toId,
       fromSide: "right",
@@ -264,7 +264,7 @@ function mapParsedToShapes (parsed: ParsedDiagram) {
 
   // Attach source to elements
   elements.forEach(el => {
-    const node = parsed.nodes.get(el.id);
+    const node = parsed.nodes.get(el._id);
     if(node && node.source) {
       el.source = node.source;
     }
@@ -288,8 +288,8 @@ function reconcile (
 ): {elements: Shape[]; connectors: Connector[]} {
 
   // ── Guard: mostly-new diagram → skip reconciliation ─────────────────────
-  const oldMap = new Map(oldElements.map(el => [el.id, el]));
-  const newNodeCount = newElements.filter(el => !oldMap.has(el.id)).length;
+  const oldMap = new Map(oldElements.map(el => [el._id, el]));
+  const newNodeCount = newElements.filter(el => !oldMap.has(el._id)).length;
   const freshRatio = newNodeCount / Math.max(newElements.length, 1);
 
   // If more than 55% of nodes are brand new, use fresh layout positions for all.
@@ -300,7 +300,7 @@ function reconcile (
 
   // ── Reconcile elements ──────────────────────────────────────────────────
   const finalElements = newElements.map((el) => {
-    const old = oldMap.get(el.id);
+    const old = oldMap.get(el._id);
     if(!old) return el; // brand-new node → use layout position
 
     // Existing node: keep geometry, preserve position
@@ -319,10 +319,10 @@ function reconcile (
   });
 
   // ── Reconcile connectors ────────────────────────────────────────────────
-  const oldConnMap = new Map(oldConnectors.map(c => [c.id, c]));
+  const oldConnMap = new Map(oldConnectors.map(c => [c._id, c]));
 
   const finalConnectors = newConnectors.map((conn) => {
-    return oldConnMap.get(conn.id) ?? conn;
+    return oldConnMap.get(conn._id) ?? conn;
   });
 
   return {elements: finalElements as Shape[], connectors: finalConnectors as Connector[]};
@@ -500,7 +500,7 @@ function CodePanel ({isOpen, onClose}: CodePanelProps) {
       );
     });
 
-    setSelectedNodeId(hit ? hit.id : null);
+    setSelectedNodeId(hit ? hit._id : null);
   };
 
   return (

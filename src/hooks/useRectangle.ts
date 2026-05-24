@@ -15,10 +15,10 @@ export function useRectangleDraw (
         isDrawingRef.current = true
         startPointRef.current = p
 
-        const id = crypto.randomUUID()
+        const _id = crypto.randomUUID()
 
         setCurrentShape({
-            id,
+            _id,
             type: "rectangle",
             x: p.x,
             y: p.y,

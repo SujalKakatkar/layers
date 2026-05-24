@@ -5,7 +5,7 @@ export function expandSelectionByGroup(selectedIds: string[], shapes: Shape[]): 
     
     // Find all groupIds within the currently selected set
     selectedIds.forEach(id => {
-        const shape = shapes.find(s => s.id === id);
+        const shape = shapes.find(s => s._id === id);
         if (shape?.groupId) {
             groupIds.add(shape.groupId);
         }
@@ -20,7 +20,7 @@ export function expandSelectionByGroup(selectedIds: string[], shapes: Shape[]): 
     // Include all shapes that share any discovered groupId
     shapes.forEach(shape => {
         if (shape.groupId && groupIds.has(shape.groupId)) {
-            expandedIds.add(shape.id);
+            expandedIds.add(shape._id);
         }
     });
 

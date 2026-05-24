@@ -8,7 +8,7 @@ const PAD_OFFSETS_Y = 4;
 
 export function useText (
     addShape: (shape: Shape) => void,
-    updateShape: (id: string, updater: (shape: Shape) => Shape) => void
+    updateShape: (_id: string, updater: (shape: Shape) => Shape) => void
 ) {
 
     const [editingText, setEditingText] = useState<EditingText | null>(null)
@@ -17,7 +17,7 @@ export function useText (
     ) {
         if(existing) {
             setEditingText({
-                id: existing.id,
+                _id: existing._id,
                 x: existing.x,
                 y: existing.y,
                 text: existing.text,
@@ -32,7 +32,7 @@ export function useText (
         const {width, height} = measureTextSize("Text")
 
         setEditingText({
-            id: crypto.randomUUID(),
+            _id: crypto.randomUUID(),
             x: point.x,
             y: point.y,
             text: "Text",
@@ -73,7 +73,7 @@ export function useText (
             if(editingText.isNew) {
 
                 addShape({
-                    id: editingText.id,
+                    _id: editingText._id,
                     type: "text",
                     x: editingText.x + PAD_OFFSET_X,
                     y: editingText.y + PAD_OFFSETS_Y,
@@ -86,7 +86,7 @@ export function useText (
 
             } else {
 
-                updateShape(editingText.id, (shape) => ({
+                updateShape(editingText._id, (shape) => ({
                     ...shape,
                     text: editingText.text,
                     fontSize: editingText.fontSize,
@@ -98,7 +98,7 @@ export function useText (
             }
         }
 
-        const current = editingText.id;
+        const current = editingText._id;
 
         setEditingText(null)
 

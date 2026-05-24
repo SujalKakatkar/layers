@@ -19,7 +19,7 @@ type DiagramStore = {
 
   // ── Highlighting ─────────────────────────────────────────────────────────
   selectedNodeId: string | null;
-  setSelectedNodeId: (id: string | null) => void;
+  setSelectedNodeId: (_id: string | null) => void;
   highlightedRange: {line: number; start: number; end: number} | null;
   setHighlightedRange: (range: {line: number; start: number; end: number} | null) => void;
 

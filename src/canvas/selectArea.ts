@@ -7,7 +7,7 @@ export function getSelectionBounds (
     shapes: Shape[],
     selectedIds: string[]
 ): (Bounds & { rotation?: number }) | null {
-    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id))
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s._id))
 
     if(selectedShapes.length === 0) {
         return null;

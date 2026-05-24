@@ -13,11 +13,11 @@ export function useCircleDraw (
     function startDraw (p: Point) {
         isDrawingRef.current = true;
         startPointRef.current = p;
-        const id = crypto.randomUUID()
+        const _id = crypto.randomUUID()
         setCurrentShape({
-            id,
+            _id,
             type: "circle",
-            cx: p.x,
+            cx: p.x,    
             cy: p.y,
             r: 0,
         });

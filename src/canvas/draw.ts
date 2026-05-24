@@ -70,11 +70,11 @@ export function drawScene (
     };
 
     shapes.forEach(shape => {
-        if(editingText && shape.id === editingText.id) return;
+        if(editingText && shape._id === editingText._id) return;
         renderShape(shape);
     });
 
-    if(currentShape && (!editingText || currentShape.id !== editingText.id)) {
+    if(currentShape && (!editingText || currentShape._id !== editingText._id)) {
         renderShape(currentShape);
     }
 
@@ -326,7 +326,7 @@ export function drawShapesLayer(
     };
 
     shapes.forEach(shape => {
-        if(editingText && shape.id === editingText.id) return;
+        if(editingText && shape._id === editingText._id) return;
         renderShape(shape);
     });
 
@@ -608,7 +608,7 @@ export function drawOverlayLayer(
 
     // ── Individual generated node highlight ───────────────────────────────
     if(selectedNodeId) {
-        const el = shiftedGeneratedElements.find((e) => e.id === selectedNodeId);
+        const el = shiftedGeneratedElements.find((e) => e._id === selectedNodeId);
         if(el) {
             ctx.save();
 

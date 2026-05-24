@@ -103,7 +103,7 @@ export function useSelectArea (
             const bounds = getSelectionBounds(shapes, selectedIds);
             if(bounds) {
                 const handle = getHandleAtPoint(p, bounds);
-                const isTextOnly = selectedIds.length === 1 && shapes.find(s => s.id === selectedIds[0])?.type === "text";
+                const isTextOnly = selectedIds.length === 1 && shapes.find(s => s._id === selectedIds[0])?.type === "text";
 
                 if(handle && !isTextOnly) {
                     resizeHandleRef.current = handle;
@@ -112,7 +112,7 @@ export function useSelectArea (
                     // 🔥 STORE ORIGINAL SHAPES HERE
                     const map = new Map<string, Shape>();
                     selectedIds.forEach(id => {
-                        const s = shapes.find(s => s.id === id);
+                        const s = shapes.find(s => s._id === id);
                         if(s) map.set(id, structuredClone(s));
                     });
                     initialShapesRef.current = map;
@@ -147,7 +147,7 @@ export function useSelectArea (
 
                     const map = new Map<string, Shape>();
                     selectedIds.forEach(id => {
-                        const s = shapes.find(s => s.id === id);
+                        const s = shapes.find(s => s._id === id);
                         if(s) map.set(id, structuredClone(s));
                     });
                     initialShapesRef.current = map;
@@ -177,7 +177,7 @@ export function useSelectArea (
 
             const map = new Map<string, Shape>();
             idsToMove.forEach(id => {
-                const s = shapes.find(s => s.id === id);
+                const s = shapes.find(s => s._id === id);
                 if(s) map.set(id, structuredClone(s));
             });
             initialShapesRef.current = map;
@@ -211,7 +211,7 @@ export function useSelectArea (
         const bounds = getSelectionBounds(shapes, selectedIds);
         if(!bounds) return;
 
-        const isTextOnly = selectedIds.length === 1 && shapes.find(s => s.id === selectedIds[0])?.type === "text";
+        const isTextOnly = selectedIds.length === 1 && shapes.find(s => s._id === selectedIds[0])?.type === "text";
 
         const handle = getHandleAtPoint(p, bounds);
 
@@ -340,9 +340,9 @@ export function useSelectArea (
                     let minDiffY = Infinity;
 
                     shapes.forEach(shape => {
-                        if(selectedIds.includes(shape.id)) return;
+                        if(selectedIds.includes(shape._id)) return;
 
-                        const otherBounds = getSelectionBounds([shape], [shape.id]);
+                        const otherBounds = getSelectionBounds([shape], [shape._id]);
                         if(!otherBounds) return;
 
                         const otherCenterX = otherBounds.x + otherBounds.width / 2;
@@ -432,7 +432,7 @@ export function useSelectArea (
                             return false;
                     }
                 })
-                .map(shape => shape.id);
+                .map(shape => shape._id);
 
             onSelect(ids);
         }

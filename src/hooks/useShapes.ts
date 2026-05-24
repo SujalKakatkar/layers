@@ -70,10 +70,10 @@ export function useShapes (canvasId: string = "default") {
         setCurrentShape(shape)
     }
 
-    function updateShape (id: string, updater: (shape: Shape) => Shape, options?: {skipHistory?: boolean}) {
+    function updateShape (_id: string, updater: (shape: Shape) => Shape, options?: {skipHistory?: boolean}) {
         updateShapes(prevShapes =>
             prevShapes.map(shape =>
-                shape.id === id ? updater(shape) : shape
+                shape._id === _id ? updater(shape) : shape
             ), options
         )
     }
@@ -81,7 +81,7 @@ export function useShapes (canvasId: string = "default") {
     // Remove shapes
     function removeShapes (ids: string[], options?: {skipHistory?: boolean}) {
         setHistory(prev => {
-            const nextElements = prev.present.elements.filter(shape => !ids.includes(shape.id));
+            const nextElements = prev.present.elements.filter(shape => !ids.includes(shape._id));
             const nextConnectors = prev.present.connectors.filter(c => !ids.includes(c.fromShapeId) && !ids.includes(c.toShapeId));
 
             if(options?.skipHistory) {
@@ -110,7 +110,7 @@ export function useShapes (canvasId: string = "default") {
     ) {
         const updater = (prevShapes: Shape[]) =>
             prevShapes.map(shape => {
-                if(!ids.includes(shape.id)) return shape;
+                if(!ids.includes(shape._id)) return shape;
 
                 switch(shape.type) {
                     case "rectangle":
@@ -141,7 +141,7 @@ export function useShapes (canvasId: string = "default") {
 
     // Copy shapes
     function copyShapes (ids: string[]) {
-        const selected = history.present.elements.filter(s => ids.includes(s.id));
+        const selected = history.present.elements.filter(s => ids.includes(s._id));
         setClipboard(structuredClone(selected));
     }
 
@@ -152,62 +152,92 @@ export function useShapes (canvasId: string = "default") {
         const offset = 20;
         const pasted: Shape[] = clipboard.map(shape => {
             const newId = crypto.randomUUID();
+            let newShape: Shape;
             switch(shape.type) {
                 case "rectangle":
                 case "text":
-                    return {...shape, id: newId, x: shape.x + offset, y: shape.y + offset};
+                    newShape = {...shape, _id: newId, x: shape.x + offset, y: shape.y + offset};
+                    break;
                 case "circle":
-                    return {...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
+                    newShape = {...shape, _id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
+                    break;
                 case "stroke":
-                    return {
+                    newShape = {
                         ...shape,
-                        id: newId,
+                        _id: newId,
                         points: shape.points.map(p => ({x: p.x + offset, y: p.y + offset}))
                     };
+                    break;
                 default:
-                    return shape;
+                    newShape = {...(shape as any), _id: newId};
+                    break;
             }
+            
+            // Remove MongoDB/backend specific fields
+            const cleanShape = newShape as any;
+            delete cleanShape._id;
+            delete cleanShape.createdAt;
+            delete cleanShape.updatedAt;
+            delete cleanShape.__v;
+            delete cleanShape.canvasId;
+            
+            return newShape;
         });
 
         setClipboard(pasted);
         updateShapes(prevShapes => [...prevShapes, ...pasted]);
-        return pasted.map(s => s.id);
+        return pasted.map(s => s._id);
     }
 
     // Duplicate shapes
     function duplicateShapes (ids: string[], options?: {offset?: number; skipHistory?: boolean}) {
-        const toDuplicate = history.present.elements.filter(s => ids.includes(s.id));
+        const toDuplicate = history.present.elements.filter(s => ids.includes(s._id));
         if(toDuplicate.length === 0) return [];
 
         const offset = options?.offset ?? 20;
         const duplicated: Shape[] = toDuplicate.map(shape => {
             const newId = crypto.randomUUID();
+            let newShape: Shape;
             switch(shape.type) {
                 case "rectangle":
                 case "text":
-                    return {...shape, id: newId, x: shape.x + offset, y: shape.y + offset};
+                    newShape = {...shape, _id: newId, x: shape.x + offset, y: shape.y + offset};
+                    break;
                 case "circle":
-                    return {...shape, id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
+                    newShape = {...shape, _id: newId, cx: shape.cx + offset, cy: shape.cy + offset};
+                    break;
                 case "stroke":
-                    return {
+                    newShape = {
                         ...shape,
-                        id: newId,
+                        _id: newId,
                         points: shape.points.map(p => ({x: p.x + offset, y: p.y + offset}))
                     };
+                    break;
                 default:
-                    return shape;
+                    newShape = {...(shape as any), _id: newId};
+                    break;
             }
+            
+            // Remove MongoDB/backend specific fields
+            const cleanShape = newShape as any;
+            delete cleanShape._id;
+            delete cleanShape.createdAt;
+            delete cleanShape.updatedAt;
+            delete cleanShape.__v;
+            delete cleanShape.canvasId;
+            
+            return newShape;
         });
 
         updateShapes(prevShapes => [...prevShapes, ...duplicated], {skipHistory: options?.skipHistory});
-        return duplicated.map(s => s.id);
+        return duplicated.map(s => s._id);
     }
 
     // Bring to front
     function bringToFront (ids: string[]) {
         updateShapes(prevShapes => {
-            const affected = prevShapes.filter(s => ids.includes(s.id));
-            const unaffected = prevShapes.filter(s => !ids.includes(s.id));
+            const affected = prevShapes.filter(s => ids.includes(s._id));
+            const unaffected = prevShapes.filter(s => !ids.includes(s._id));
             return [...unaffected, ...affected];
         });
     }
@@ -215,15 +245,15 @@ export function useShapes (canvasId: string = "default") {
     // Send to back
     function sendToBack (ids: string[]) {
         updateShapes(prevShapes => {
-            const affected = prevShapes.filter(s => ids.includes(s.id));
-            const unaffected = prevShapes.filter(s => !ids.includes(s.id));
+            const affected = prevShapes.filter(s => ids.includes(s._id));
+            const unaffected = prevShapes.filter(s => !ids.includes(s._id));
             return [...affected, ...unaffected];
         });
     }
 
     // Get shape
-    function getShapeById (id: string) {
-        return history.present.elements.find(shape => shape.id === id)
+    function getShapeById (_id: string) {
+        return history.present.elements.find(shape => shape._id === _id)
     }
 
     //resize shapes
@@ -263,9 +293,9 @@ export function useShapes (canvasId: string = "default") {
 
                 updateShapes(prevShapes =>
                     prevShapes.map(shape => {
-                        if(!ids.includes(shape.id)) return shape;
+                        if(!ids.includes(shape._id)) return shape;
 
-                        const original = initialMap.get(shape.id);
+                        const original = initialMap.get(shape._id);
                         if(!original) return shape;
 
                         switch(shape.type) {
@@ -315,11 +345,11 @@ export function useShapes (canvasId: string = "default") {
 
         updateShapes(prevShapes =>
             prevShapes.map(shape => {
-                if(!ids.includes(shape.id)) return shape;
+                if(!ids.includes(shape._id)) return shape;
 
                 switch(shape.type) {
                     case "rectangle": {
-                        const original = initialMap.get(shape.id);
+                        const original = initialMap.get(shape._id);
                         if(!original || original.type !== "rectangle") return shape;
 
                         let {x, y, width, height} = original;
@@ -338,7 +368,7 @@ export function useShapes (canvasId: string = "default") {
                     }
 
                     case "circle": {
-                        const original = initialMap.get(shape.id)
+                        const original = initialMap.get(shape._id)
                         if(!original || original.type !== "circle") return shape
                         const {cx, cy, r} = original;
 
@@ -368,7 +398,7 @@ export function useShapes (canvasId: string = "default") {
                     }
 
                     case "stroke": {
-                        const original = initialMap.get(shape.id)
+                        const original = initialMap.get(shape._id)
                         if(!original || original.type !== "stroke") return shape;
                         const points = original.points;
 
@@ -407,7 +437,7 @@ export function useShapes (canvasId: string = "default") {
                     }
 
                     case "text": {
-                        const original = initialMap.get(shape.id);
+                        const original = initialMap.get(shape._id);
                         if(!original || original.type !== "text") return shape;
 
                         // text resizing is disabled, handles don't appear.
@@ -432,9 +462,9 @@ export function useShapes (canvasId: string = "default") {
     ) {
         updateShapes(prevShapes =>
             prevShapes.map(shape => {
-                if(!ids.includes(shape.id)) return shape;
+                if(!ids.includes(shape._id)) return shape;
 
-                const original = initialMap.get(shape.id);
+                const original = initialMap.get(shape._id);
                 if(!original) return shape;
 
                 const cosA = Math.cos(angleDelta);
@@ -497,7 +527,7 @@ export function useShapes (canvasId: string = "default") {
         const groupId = crypto.randomUUID();
         updateShapes(prevShapes =>
             prevShapes.map(shape =>
-                ids.includes(shape.id) ? {...shape, groupId} : shape
+                ids.includes(shape._id) ? {...shape, groupId} : shape
             )
         );
     }
@@ -505,7 +535,7 @@ export function useShapes (canvasId: string = "default") {
     function ungroupShapes (ids: string[]) {
         updateShapes(prevShapes =>
             prevShapes.map(shape =>
-                ids.includes(shape.id) ? {...shape, groupId: undefined} : shape
+                ids.includes(shape._id) ? {...shape, groupId: undefined} : shape
             )
         );
     }
@@ -521,7 +551,7 @@ export function useShapes (canvasId: string = "default") {
     ) {
         if(fromShapeId === toShapeId) return;
         const connector: Connector = {
-            id: crypto.randomUUID(),
+            _id: crypto.randomUUID(),
             fromShapeId,
             fromSide,
             toShapeId,
@@ -539,13 +569,13 @@ export function useShapes (canvasId: string = "default") {
         });
     }
 
-    function removeConnector (id: string) {
+    function removeConnector (_id: string) {
         setHistory(prev => {
             return {
                 past: [...prev.past, structuredClone(prev.present)],
                 present: {
                     elements: prev.present.elements,
-                    connectors: prev.present.connectors.filter(c => c.id !== id)
+                    connectors: prev.present.connectors.filter(c => c._id !== _id)
                 },
                 future: []
             };

@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type TextToolbarProps = {
     shape: Text;
-    updateShape: (id: string, updater: (shape: Shape) => Shape) => void;
+    updateShape: (_id: string, updater: (shape: Shape) => Shape) => void;
     editingText: EditingText | null;
     setEditingText: (val: EditingText | null) => void;
 };
@@ -15,14 +15,14 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
         const newWeight = shape.fontWeight === "bold" ? "normal" : "bold";
         
         // Update store
-        updateShape(shape.id, (s) => {
+        updateShape(shape._id, (s) => {
             if (s.type !== "text") return s;
             const metrics = measureTextSize(s.text, s.fontSize, newWeight);
             return { ...s, fontWeight: newWeight, width: metrics.width, height: metrics.height };
         });
 
         // Sync with editing state if active
-        if (editingText && editingText.id === shape.id) {
+        if (editingText && editingText._id === shape._id) {
             const metrics = measureTextSize(editingText.text, editingText.fontSize, newWeight);
             setEditingText({
                 ...editingText,
@@ -34,12 +34,12 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
     };
 
     const handleAlign = (align: "left" | "center" | "right") => {
-        updateShape(shape.id, (s) => {
+        updateShape(shape._id, (s) => {
             if (s.type !== "text") return s;
             return { ...s, textAlign: align };
         });
         
-        if (editingText && editingText.id === shape.id) {
+        if (editingText && editingText._id === shape._id) {
             setEditingText({ ...editingText, textAlign: align });
         }
     };
@@ -47,13 +47,13 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
     const handleIncreaseSize = () => {
         const newFontSize = (shape.fontSize || 20) + 4;
         
-        updateShape(shape.id, (s) => {
+        updateShape(shape._id, (s) => {
             if (s.type !== "text") return s;
             const metrics = measureTextSize(s.text, newFontSize, s.fontWeight);
             return { ...s, fontSize: newFontSize, width: metrics.width, height: metrics.height };
         });
 
-        if (editingText && editingText.id === shape.id) {
+        if (editingText && editingText._id === shape._id) {
             const metrics = measureTextSize(editingText.text, newFontSize, editingText.fontWeight);
             setEditingText({
                 ...editingText,
@@ -67,13 +67,13 @@ export default function TextToolbar({ shape, updateShape, editingText, setEditin
     const handleDecreaseSize = () => {
         const newFontSize = Math.max(8, (shape.fontSize || 20) - 4);
         
-        updateShape(shape.id, (s) => {
+        updateShape(shape._id, (s) => {
             if (s.type !== "text") return s;
             const metrics = measureTextSize(s.text, newFontSize, s.fontWeight);
             return { ...s, fontSize: newFontSize, width: metrics.width, height: metrics.height };
         });
 
-        if (editingText && editingText.id === shape.id) {
+        if (editingText && editingText._id === shape._id) {
             const metrics = measureTextSize(editingText.text, newFontSize, editingText.fontWeight);
             setEditingText({
                 ...editingText,

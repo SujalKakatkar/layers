@@ -46,7 +46,7 @@ export function drawConnectors (
     globalRequestRedraw = requestRedraw;
     if(connectors.length === 0) return;
 
-    const shapeMap = new Map<string, Shape>(shapes.map(s => [s.id, s]));
+    const shapeMap = new Map<string, Shape>(shapes.map(s => [s._id, s]));
 
     ctx.save();
     
@@ -57,11 +57,11 @@ export function drawConnectors (
         const toShape = shapeMap.get(conn.toShapeId);
         if(!fromShape || !toShape) continue;
 
-        const isSelected = conn.id === selectedConnectorId;
+        const isSelected = conn._id === selectedConnectorId;
 
         if(conn.isGenerated) {
             // ── Smart routing for LayerScript connectors
-            drawGeneratedConnector(ctx, conn.id, fromShape, toShape, shapes, scale, isSelected, usageMap);
+            drawGeneratedConnector(ctx, conn._id, fromShape, toShape, shapes, scale, isSelected, usageMap);
         } else {
             // Manual connectors: use closest geometric side pair 
             const {fromSide, toSide} = getClosestSidePair(fromShape, toShape);
@@ -126,14 +126,14 @@ function drawOrthogonalLine(
     }
 }
 
-function getColorForShape(id: string) {
+function getColorForShape(_id: string) {
     const colors = [
         "#ef4444", "#f97316", "#eab308", "#22c55e", 
         "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"
     ];
     let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < _id.length; i++) {
+        hash = _id.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
 }
@@ -190,21 +190,21 @@ function drawGeneratedConnector (
             if (!pendingWorkers.has(connId)) {
                 pendingWorkers.add(connId);
                 astarWorker.postMessage({
-                    id: connId + '||' + hash,
+                    _id: connId + '||' + hash,
                     start: p1,
                     end: p2,
                     shapes,
-                    ignoreIds: [fromShape.id, toShape.id],
+                    ignoreIds: [fromShape._id, toShape._id],
                     usageMap: [...usageMap.entries()]
                 });
             }
             path = cached ? cached.path : [p1, p2];
         } else {
-            path = getAStarPath(p1, p2, shapes, [fromShape.id, toShape.id], usageMap);
+            path = getAStarPath(p1, p2, shapes, [fromShape._id, toShape._id], usageMap);
             pathCache.set(connId, { hash, path });
         }
     }
-    const color = getColorForShape(fromShape.id);
+    const color = getColorForShape(fromShape._id);
     
     drawOrthogonalLine(ctx, path, scale, isSelected, color);
     
@@ -232,7 +232,7 @@ export function drawConnectorPreview (
 ) {
     if(state.mode === "idle") return;
 
-    const fromShape = shapes.find(s => s.id === state.sourceId);
+    const fromShape = shapes.find(s => s._id === state.sourceId);
     if(!fromShape) return;
 
     const p1 = getConnectionPoint(fromShape, state.side);
@@ -255,7 +255,7 @@ export function drawConnectorPreview (
 
     // Highlight hovering target shape
     if(targetShapeId) {
-        const target = shapes.find(s => s.id === targetShapeId);
+        const target = shapes.find(s => s._id === targetShapeId);
         if(target) highlightShape(ctx, target, scale);
     }
 
@@ -281,7 +281,7 @@ export function drawConnectionDots (
     ctx.save();
 
     for(const shape of shapes) {
-        if(!shapeSet.has(shape.id) || shape.isGenerated) continue;
+        if(!shapeSet.has(shape._id) || shape.isGenerated) continue;
 
         const dots = getConnectionDots(shape);
         for(const {point} of dots) {

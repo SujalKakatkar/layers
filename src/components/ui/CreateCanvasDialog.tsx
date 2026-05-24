@@ -41,11 +41,11 @@ export function CreateCanvasDialog({ open, onOpenChange, onSuccess }: CreateCanv
 
     setIsLoading(true)
     try {
-      const id = await createCanvas(trimmedName)
+      const _id = await createCanvas(trimmedName)
       toast.success("Canvas created successfully")
       onSuccess?.()
       onOpenChange(false)
-      navigate(`/canvas/${id}`)
+      navigate(`/canvas/${_id}`)
     } catch (error: unknown) {
       console.error("Failed to create canvas", error)
       const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to create canvas"

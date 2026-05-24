@@ -78,7 +78,7 @@ export function getAStarPath(
         .filter(s => !s.type.includes('stroke') && s.type !== "text")
         .map(s => {
             const b = getShapeBounds(s);
-            const isSourceOrTarget = ignoreIds.includes(s.id);
+            const isSourceOrTarget = ignoreIds.includes(s._id);
             
             const pad = isSourceOrTarget ? 0 : PADDING;
             
@@ -240,9 +240,9 @@ export function getAStarPath(
 }
 
 self.onmessage = (e: MessageEvent) => {
-    const { id, start, end, shapes, ignoreIds, usageMap } = e.data;
+    const { _id, start, end, shapes, ignoreIds, usageMap } = e.data;
     const usageMapObj = new Map<string, number>(usageMap);
     
     const path = getAStarPath(start, end, shapes, ignoreIds, usageMapObj);
-    self.postMessage({ id, path });
+    self.postMessage({ id: _id, path });
 };

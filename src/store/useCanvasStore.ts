@@ -28,11 +28,11 @@ interface CanvasState {
   shareToken: string | null;
   isReadOnly: boolean;
 
-  setCanvasId: (id: string) => void;
+  setCanvasId: (_id: string) => void;
   createCanvas: (title: string) => Promise<string>;
-  fetchCanvas: (id: string) => Promise<{ elements: Shape[]; connectors: Connector[]; code: string; camera?: { scale: number; offset: { x: number; y: number } }; generatedGroupOffset?: { x: number; y: number } }>;
+  fetchCanvas: (_id: string) => Promise<{ elements: Shape[]; connectors: Connector[]; code: string; camera?: { scale: number; offset: { x: number; y: number } }; generatedGroupOffset?: { x: number; y: number } }>;
   listAllCanvases: () => Promise<void>;
-  removeCanvas: (id: string) => Promise<void>;
+  removeCanvas: (_id: string) => Promise<void>;
   updateCanvas: (data: {
     title?: string;
     manualElements?: Shape[];
@@ -57,7 +57,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   shareToken: null,
   isReadOnly: false,
 
-  setCanvasId: (id: string) => set({ canvasId: id }),
+  setCanvasId: (_id: string) => set({ canvasId: _id }),
 
   createCanvas: async (title: string) => {
     set({ loading: true, error: null });
@@ -72,11 +72,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  fetchCanvas: async (id: string) => {
+  fetchCanvas: async (_id: string) => {
     set({ loading: true, error: null, isHydrated: false, isReadOnly: false });
     try {
-      const data = await getCanvas(id);
-      set({ canvasId: id, title: data.title, loading: false });
+      const data = await getCanvas(_id);
+      set({ canvasId: _id, title: data.title, loading: false });
 
       const manualElements = data.manualElements || [];
       const manualConnectors = data.manualConnectors || [];
@@ -116,7 +116,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ loading: true, error: null, isHydrated: false, isReadOnly: true });
     try {
       const data = await getSharedCanvas(token);
-      set({ canvasId: data.id, title: data.title, loading: false });
+      set({ canvasId: data._id, title: data.title, loading: false });
 
       const manualElements = data.manualElements || [];
       const manualConnectors = data.manualConnectors || [];
@@ -159,12 +159,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  removeCanvas: async (id: string) => {
+  removeCanvas: async (_id: string) => {
     set({ loading: true, error: null });
     try {
-      await apiDeleteCanvas(id);
+      await apiDeleteCanvas(_id);
       set((state) => ({
-        canvases: state.canvases.filter((c) => c._id !== id),
+        canvases: state.canvases.filter((c) => c._id !== _id),
         loading: false
       }));
     } catch (err) {

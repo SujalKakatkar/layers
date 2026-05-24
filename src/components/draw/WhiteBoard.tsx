@@ -109,8 +109,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     }, [zoom]);
     const { pressedRef: spacePressedRef, pressed } = useSpaceKey();
 
-    const { id } = useParams<{ id: string }>();
-    const canvasId = id || "default";
+    const { _id } = useParams<{ _id: string }>();
+    const canvasId = _id || "default";
 
     const {
         shapes,
@@ -285,12 +285,12 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     const clearSelection = useCallback(() => setSelectedIds([]), []);
 
     const selectAll = useCallback(() => {
-        setSelectedIds(shapes.map(s => s.id));
+        setSelectedIds(shapes.map(s => s._id));
     }, [shapes]);
 
     const combinedRemoveShapes = useCallback((ids: string[]) => {
         removeShapes(ids);
-        setGeneratedElements(prev => prev.filter(el => !ids.includes(el.id)));
+        setGeneratedElements(prev => prev.filter(el => !ids.includes(el._id)));
         setGeneratedConnectors(prev => prev.filter(conn => !ids.includes(conn.fromShapeId) && !ids.includes(conn.toShapeId)));
     }, [removeShapes, setGeneratedElements, setGeneratedConnectors]);
 
@@ -359,7 +359,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                 if (hitElement) {
                     const componentId = hitElement.componentId || "default";
                     setSelectedComponentId(componentId);
-                    setSelectedNodeId(hitElement.id);
+                    setSelectedNodeId(hitElement._id);
                     if (hitElement.source) {
                         setHighlightedRange(hitElement.source);
                     }
@@ -404,7 +404,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
                     const dist = getDistanceToBezier(p, p1, cp1, cp2, p2);
                     if (dist < 10 / scale) {
-                        hitConnectorId = conn.id;
+                        hitConnectorId = conn._id;
                         break;
                     }
                 }
@@ -475,10 +475,10 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                             );
                         } else if (intent.type === "create") {
                             const newConnector: import("../../types/types").Connector = {
-                                id: crypto.randomUUID(),
+                                _id: crypto.randomUUID(),
                                 fromShapeId: intent.sourceId,
                                 fromSide: intent.side,
-                                toShapeId: intent.newShape.id,
+                                toShapeId: intent.newShape._id,
                                 toSide: (
                                     intent.side === "top" ? "bottom" :
                                         intent.side === "bottom" ? "top" :
@@ -486,7 +486,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                                 )
                             };
                             addShapeWithConnector(intent.newShape, newConnector);
-                            setSelectedIds([intent.newShape.id]);
+                            setSelectedIds([intent.newShape._id]);
                         }
                     }
                 }
@@ -515,7 +515,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
             if (!current) return
 
-            setSelectedIds([current.id]);
+            setSelectedIds([current._id]);
             setTool("select")
         },
         cursor: "crosshair",
@@ -538,7 +538,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
             if (!created) return
 
-            setSelectedIds([created.id])
+            setSelectedIds([created._id])
             setTool("select")
         },
         cursor: "crosshair",
@@ -561,7 +561,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
             if (!current) return
 
-            setSelectedIds([current.id]);
+            setSelectedIds([current._id]);
             setTool("select")
         },
         cursor: "crosshair"
@@ -720,7 +720,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                     p.y >= shape.y &&
                     p.y <= shape.y + shape.height
                 );
-            })?.id;
+            })?._id;
 
         if (!hitId) return;
 
@@ -752,7 +752,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
         })
 
-    }, [editingText?.id])
+    }, [editingText?._id])
 
     const handleCopy = useCallback(() => copyShapes(selectedIds), [copyShapes, selectedIds]);
     const handlePaste = useCallback(() => {
@@ -784,7 +784,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                 { label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0 },
                 { label: "Duplicate", onClick: handleDuplicate, shortcut: "Ctrl+D" },
                 ...(selectedIds.length > 1 ? [{ label: "Group", onClick: handleGroup, shortcut: "Ctrl+G" }] : []),
-                ...(selectedIds.some(id => shapes.find(s => s.id === id)?.groupId) ? [{ label: "Ungroup", onClick: handleUngroup, shortcut: "Ctrl+Shift+G" }] : []),
+                ...(selectedIds.some(id => shapes.find(s => s._id === id)?.groupId) ? [{ label: "Ungroup", onClick: handleUngroup, shortcut: "Ctrl+Shift+G" }] : []),
                 { label: "Select All", onClick: selectAll, shortcut: "Ctrl+A" },
                 { label: "Delete", onClick: handleDelete, shortcut: "Del" },
                 { label: "Bring to Front", onClick: () => bringToFront(selectedIds) },

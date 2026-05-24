@@ -213,7 +213,6 @@ function Canvas () {
         const manualConnectors = uiShapes ? uiShapes.connectors : state.manualConnectors;
         const {code, generatedGroupOffset} = state;
 
-        console.log("Save payload generatedGroupOffset:", generatedGroupOffset);
         
         try {
             await updateCanvas({
@@ -587,7 +586,6 @@ function Canvas () {
                 </div>
             </div>
 
-            {/* ─── WhiteBoard Component ─────────────────────────────────────── */}
             <WhiteBoard
                 ref={whiteboardRef}
                 initialElements={canvasInitData?.elements ?? []}

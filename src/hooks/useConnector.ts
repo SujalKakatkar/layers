@@ -41,7 +41,7 @@ export function useConnector () {
                 case "left":   gx = anchor.x - distance - r; gy = anchor.y; break;
             }
             return {
-                id: crypto.randomUUID(),
+                _id: crypto.randomUUID(),
                 type: "circle",
                 cx: gx,
                 cy: gy,
@@ -69,7 +69,7 @@ export function useConnector () {
         }
 
         return {
-            id: crypto.randomUUID(),
+            _id: crypto.randomUUID(),
             type: "rectangle", // we default to rectangle for text/stroke if any
             x: gx,
             y: gy,
@@ -88,7 +88,7 @@ export function useConnector () {
                 const ghostShape = generateGhostShape(shape, side);
                 setConnectionState({
                     mode: "hover",
-                    sourceId: shape.id,
+                    sourceId: shape._id,
                     side,
                     ghostShape
                 });
@@ -106,7 +106,7 @@ export function useConnector () {
             setConnectionState(prev => {
                 if (prev.mode === "hover" && dist > 5) {
                     const hitId = getShapeAtPoint(point.x, point.y, shapes);
-                    const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+                    const targetShape = hitId ? shapes.find(s => s._id === hitId) : null;
                     const isGenerated = targetShape?.isGenerated;
 
                     return {
@@ -119,7 +119,7 @@ export function useConnector () {
                     };
                 } else if (prev.mode === "drag") {
                     const hitId = getShapeAtPoint(point.x, point.y, shapes);
-                    const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+                    const targetShape = hitId ? shapes.find(s => s._id === hitId) : null;
                     const isGenerated = targetShape?.isGenerated;
 
                     return {
@@ -140,10 +140,10 @@ export function useConnector () {
             if(shapes[i].isGenerated) continue;
             const side = getHoveredDot(point, shapes[i], 14);
             if(side !== null) {
-                setDotShapeId(shapes[i].id);
+                setDotShapeId(shapes[i]._id);
                 setConnectionState({
                     mode: "hover",
-                    sourceId: shapes[i].id,
+                    sourceId: shapes[i]._id,
                     side,
                     ghostShape: generateGhostShape(shapes[i], side)
                 });
@@ -155,7 +155,7 @@ export function useConnector () {
         if (!foundHover) {
             setConnectionState({ mode: "idle" });
             const hitId = getShapeAtPoint(point.x, point.y, shapes);
-            const targetShape = hitId ? shapes.find(s => s.id === hitId) : null;
+            const targetShape = hitId ? shapes.find(s => s._id === hitId) : null;
             setDotShapeId(targetShape && !targetShape.isGenerated ? hitId : null);
         }
     }
@@ -186,7 +186,7 @@ export function useConnector () {
             let toSide: ConnectorSide | undefined;
 
             for(let i = shapes.length - 1; i >= 0; i--) {
-                if(shapes[i].id === state.sourceId || shapes[i].isGenerated) continue;
+                if(shapes[i]._id === state.sourceId || shapes[i].isGenerated) continue;
                 const side = getHoveredDot(point, shapes[i], 14);
                 if(side !== null) {
                     toShape = shapes[i];
@@ -198,7 +198,7 @@ export function useConnector () {
             if(!toShape) {
                 const hitId = getShapeAtPoint(point.x, point.y, shapes);
                 if(hitId && hitId !== state.sourceId) {
-                    const candidate = shapes.find(s => s.id === hitId);
+                    const candidate = shapes.find(s => s._id === hitId);
                     if(candidate && candidate.type !== "text" && candidate.type !== "stroke" && !candidate.isGenerated) {
                         toShape = candidate;
                     }
@@ -213,7 +213,7 @@ export function useConnector () {
                 type: "connect",
                 fromShapeId: state.sourceId,
                 fromSide: state.side,
-                toShapeId: toShape.id,
+                toShapeId: toShape._id,
                 toSide: toSide || getOppositeSide(state.side),
             };
         }

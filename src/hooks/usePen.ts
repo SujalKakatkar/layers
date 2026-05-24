@@ -14,7 +14,7 @@ export function usePenDraw (
         isPenDrawingRef.current = true
 
         const newStroke: Stroke = {
-            id: crypto.randomUUID(),
+            _id: crypto.randomUUID(),
             type: "stroke",
             points: [point],
             color: "theme",

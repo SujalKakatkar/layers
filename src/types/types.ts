@@ -41,7 +41,7 @@ export type Point = {
 };
 
 export type Rectangle = {
-    id: string
+    _id: string
     groupId?: string
     type: "rectangle"
     x: number
@@ -63,7 +63,7 @@ export type Rectangle = {
 };
 
 export type Circle = {
-    id: string,
+    _id: string,
     groupId?: string
     type: "circle"
     cx: number
@@ -84,7 +84,7 @@ export type Circle = {
 };
 
 export type Stroke = {
-    id: string
+    _id: string
     groupId?: string
     type: "stroke"
     points: Point[]
@@ -101,7 +101,7 @@ export type Stroke = {
 }
 
 export type Text = {
-    id: string,
+    _id: string,
     groupId?: string
     type: "text"
     x: number
@@ -123,7 +123,7 @@ export type Text = {
 }
 
 export type EditingText = {
-    id: string
+    _id: string
     groupId?: string
     x: number
     y: number
@@ -159,7 +159,7 @@ export type AnchorPosition = "top" | "bottom" | "left" | "right"
 export type ConnectorSide = "top" | "right" | "bottom" | "left";
 
 export type Connector = {
-    id: string;
+    _id: string;
     fromShapeId: string;
     toShapeId: string;
     fromSide: ConnectorSide;

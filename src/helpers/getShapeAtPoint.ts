@@ -42,7 +42,7 @@ export function getShapeAtPoint (
                     ty >= shape.y &&
                     ty <= shape.y + shape.height
                 ) {
-                    return shape.id
+                    return shape._id
                 }
                 break
 
@@ -50,7 +50,7 @@ export function getShapeAtPoint (
                 const ddx = tx - shape.cx
                 const ddy = ty - shape.cy
                 if(ddx * ddx + ddy * ddy <= shape.r * shape.r) {
-                    return shape.id
+                    return shape._id
                 }
                 break
             }
@@ -64,7 +64,7 @@ export function getShapeAtPoint (
                     ty >= b.y &&
                     ty <= b.y + b.height
                 ) {
-                    return shape.id
+                    return shape._id
                 }
                 break
             }
@@ -75,7 +75,7 @@ export function getShapeAtPoint (
                     ty >= shape.y &&
                     ty <= shape.y + shape.height
                 ) {
-                    return shape.id
+                    return shape._id
                 }
                 break
         }
