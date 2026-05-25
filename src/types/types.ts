@@ -89,7 +89,7 @@ export type Stroke = {
     type: "stroke"
     points: Point[]
     color: string
-    width: number
+    strokeWidth: number
     rotation?: number
     isGenerated?: boolean
     componentId?: string

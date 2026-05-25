@@ -20,6 +20,7 @@ export function useCircleDraw (
             cx: p.x,    
             cy: p.y,
             r: 0,
+            rotation: 0,
         });
     }
 

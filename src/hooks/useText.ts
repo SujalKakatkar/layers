@@ -81,7 +81,8 @@ export function useText (
                     fontSize: editingText.fontSize,
                     fontWeight: editingText.fontWeight,
                     width,
-                    height
+                    height,
+                    rotation: 0,
                 })
 
             } else {

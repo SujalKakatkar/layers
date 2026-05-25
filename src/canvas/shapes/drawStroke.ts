@@ -19,7 +19,7 @@ export function drawStroke (
 
     // --- draw the stroke ---
     ctx.beginPath()
-    ctx.lineWidth = stroke.width / scale
+    ctx.lineWidth = stroke.strokeWidth / scale
     ctx.strokeStyle = isThemeColor ? getThemeColor() : stroke.color
     ctx.lineCap = "round"
     ctx.lineJoin = "round"

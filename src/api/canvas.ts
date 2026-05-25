@@ -25,7 +25,6 @@ export async function createCanvas(title: string) {
 
 export async function getCanvas(_id: string) {
   const response = await api.get(`/canvas/${_id}`);
-  console.log(response.data);
   
   return response.data.data as CanvasResponse;
 }

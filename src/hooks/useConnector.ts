@@ -45,7 +45,8 @@ export function useConnector () {
                 type: "circle",
                 cx: gx,
                 cy: gy,
-                r
+                r,
+                rotation: 0,
             };
         }
 
@@ -74,7 +75,8 @@ export function useConnector () {
             x: gx,
             y: gy,
             width: finalWidth,
-            height: finalHeight
+            height: finalHeight,
+            rotation: 0,
         };
     }
 

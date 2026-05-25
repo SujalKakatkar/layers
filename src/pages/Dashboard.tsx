@@ -16,7 +16,6 @@ type Canvas = {
   createdAt: string
 }
 
-// ─── Header Component ────────────────────────────────────────────────────────
 function Header ({user, onLogout}: {user: User | null, onLogout: () => void}) {
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border px-6">
@@ -53,7 +52,6 @@ function Header ({user, onLogout}: {user: User | null, onLogout: () => void}) {
   )
 }
 
-// ─── Canvas Card (Grid) ──────────────────────────────────────────────────────
 function CanvasCard ({canvas, onClick, onDelete}: {canvas: Canvas, onClick: () => void, onDelete: () => void}) {
   const formattedDate = new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -113,7 +111,6 @@ function CanvasCard ({canvas, onClick, onDelete}: {canvas: Canvas, onClick: () =
   )
 }
 
-// ─── Canvas Row (List) ───────────────────────────────────────────────────────
 function CanvasRow ({canvas, onClick, onDelete}: {canvas: Canvas, onClick: () => void, onDelete: () => void}) {
   const formattedDate = new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -159,7 +156,6 @@ function CanvasRow ({canvas, onClick, onDelete}: {canvas: Canvas, onClick: () =>
   )
 }
 
-// ─── Empty State ─────────────────────────────────────────────────────────────
 function EmptyState ({onCreate}: {onCreate: () => void}) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -181,7 +177,6 @@ function EmptyState ({onCreate}: {onCreate: () => void}) {
   )
 }
 
-// ─── Dashboard Main ──────────────────────────────────────────────────────────
 function Dashboard () {
   const logout = useAuthStore((s) => s.logout)
   const user = useAuthStore((s) => s.user)

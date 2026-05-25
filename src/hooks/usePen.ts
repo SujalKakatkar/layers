@@ -18,7 +18,8 @@ export function usePenDraw (
             type: "stroke",
             points: [point],
             color: "theme",
-            width: 2
+            strokeWidth: 2,
+            rotation: 0,
         }
 
         setCurrentShape(newStroke)

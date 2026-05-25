@@ -23,7 +23,8 @@ export function useRectangleDraw (
             x: p.x,
             y: p.y,
             width: 0,
-            height: 0
+            height: 0,
+            rotation: 0,
         })
     }
 
