@@ -1,11 +1,11 @@
-import {useParams, useNavigate, useOutletContext} from "react-router";
+import { useParams, useNavigate, useOutletContext } from "react-router";
 import type { Shape, Connector } from "../types/types";
-import {useCallback, useEffect, useRef, useState} from "react";
-import {Plus, Minus} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Plus, Minus } from "lucide-react";
 import WhiteBoard, { type WhiteBoardRef } from "../components/draw/WhiteBoard";
-import {useDiagramStore} from "@/store/useDiagramStore";
-import {useCanvasStore} from "@/store/useCanvasStore";
-import {toast} from "sonner";
+import { useDiagramStore } from "@/store/useDiagramStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
+import { toast } from "sonner";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import {
     Dialog,
@@ -21,17 +21,17 @@ type ContextType = {
     isCodePanelOpen: boolean;
 };
 
-function Canvas () {
-    const {id, token} = useParams<{id: string, token: string}>();
+function Canvas() {
+    const { id, token } = useParams<{ id: string, token: string }>();
     const navigate = useNavigate();
-    const {isCodePanelOpen} = useOutletContext<ContextType>();
+    const { isCodePanelOpen } = useOutletContext<ContextType>();
     const whiteboardRef = useRef<WhiteBoardRef>(null);
 
-    const {fetchCanvas, fetchSharedCanvas, updateCanvas, getShareToken, revokeShareToken, loading, title: canvasTitle, setCanvasId, isHydrated, shareToken, isReadOnly, setIsReadOnly} = useCanvasStore();
+    const { fetchCanvas, fetchSharedCanvas, updateCanvas, getShareToken, revokeShareToken, loading, title: canvasTitle, setCanvasId, isHydrated, shareToken, isReadOnly, setIsReadOnly } = useCanvasStore();
     // manualElements / manualConnectors are read from the store only for Save.
     // They must NOT be passed directly as initialElements to WhiteBoard —
     // that would create a feedback loop that resets undo history on every draw.
-    const {code, manualElements, manualConnectors, generatedGroupOffset} = useDiagramStore();
+    const { code, manualElements, manualConnectors, generatedGroupOffset } = useDiagramStore();
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [tempTitle, setTempTitle] = useState("");
@@ -77,7 +77,7 @@ function Canvas () {
             // Restore original read-only state when moving back to larger screen
             setIsReadOnly(!!token);
         }
-    }, [isMobile, setIsReadOnly, isFetched, token]); 
+    }, [isMobile, setIsReadOnly, isFetched, token]);
 
     // Stable snapshot of data fetched from the backend.
     // Only updated when a fetch completes — never on user edits.
@@ -96,35 +96,35 @@ function Canvas () {
     const lastSavedElementsRef = useRef<Shape[]>([]);
     const lastSavedConnectorsRef = useRef<Connector[]>([]);
     const lastSavedCodeRef = useRef<string>("");
-    const lastSavedOffsetsRef = useRef<{x: number; y: number}>({x: 0, y: 0});
+    const lastSavedOffsetsRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Where the user wants to go if they choose "Leave" in the dialog
     const pendingNavigationRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if(token) {
+        if (token) {
             setIsFetched(false);
             setCanvasInitData(null);
             setHasUnsavedChanges(false);
             fetchSharedCanvas(token)
                 .then(data => {
-                    
+
                     setCanvasInitData({
                         elements: data.elements,
                         connectors: data.connectors,
                         camera: data.camera
                     });
-                    
-                    
+
+
                     if (data.camera?.scale) {
-                        
+
                         setCurrentZoom(data.camera.scale);
-                    }     
+                    }
                     lastSavedElementsRef.current = data.elements;
                     lastSavedConnectorsRef.current = data.connectors;
                     lastSavedCodeRef.current = data.code || "";
-                    lastSavedOffsetsRef.current = data.generatedGroupOffset || {x: 0, y: 0};
+                    lastSavedOffsetsRef.current = data.generatedGroupOffset || { x: 0, y: 0 };
                     setIsFetched(true);
                 })
                 .catch(err => {
@@ -132,14 +132,14 @@ function Canvas () {
                     toast.error("Invalid or expired share link");
                     navigate("/");
                 });
-        } else if(id) {
+        } else if (id) {
             setIsFetched(false);
             setCanvasInitData(null);
             setHasUnsavedChanges(false);
             setCanvasId(id);
             fetchCanvas(id)
                 .then((data) => {
-                    
+
                     setCanvasInitData({
                         elements: data.elements,
                         connectors: data.connectors,
@@ -152,13 +152,13 @@ function Canvas () {
                     lastSavedElementsRef.current = data.elements;
                     lastSavedConnectorsRef.current = data.connectors;
                     lastSavedCodeRef.current = data.code || "";
-                    lastSavedOffsetsRef.current = data.generatedGroupOffset || {x: 0, y: 0};
+                    lastSavedOffsetsRef.current = data.generatedGroupOffset || { x: 0, y: 0 };
                     setIsFetched(true);
                 })
                 .catch(err => {
                     console.error("Failed to fetch canvas", err);
                     toast.error("Failed to load canvas data");
-                    setCanvasInitData({elements: [], connectors: []});
+                    setCanvasInitData({ elements: [], connectors: [] });
                     setIsFetched(true);
                 });
         }
@@ -167,8 +167,8 @@ function Canvas () {
     // Detect edits: any reference change to manualElements/manualConnectors
     // after the initial fetch marks the canvas as having unsaved changes.
     useEffect(() => {
-        if(!isFetched) return;
-        
+        if (!isFetched) return;
+
         // Use stringification for a robust "deep" comparison to avoid reference-mismatch false positives on mount
         const currentElementsJson = JSON.stringify(manualElements);
         const savedElementsJson = JSON.stringify(lastSavedElementsRef.current);
@@ -180,7 +180,7 @@ function Canvas () {
             currentConnectorsJson !== savedConnectorsJson ||
             code !== lastSavedCodeRef.current ||
             JSON.stringify(generatedGroupOffset) !== JSON.stringify(lastSavedOffsetsRef.current);
-            
+
         setHasUnsavedChanges(changed);
     }, [manualElements, manualConnectors, code, generatedGroupOffset, isFetched]);
 
@@ -189,7 +189,7 @@ function Canvas () {
     }, [canvasTitle]);
 
     useEffect(() => {
-        if(isRenaming && inputRef.current) {
+        if (isRenaming && inputRef.current) {
             inputRef.current.focus();
             inputRef.current.select();
         }
@@ -199,8 +199,8 @@ function Canvas () {
     const handleSave = useCallback(async () => {
         if (!hasUnsavedChanges) return;
 
-        const {isHydrated} = useCanvasStore.getState();
-        if(!isHydrated) {
+        const { isHydrated } = useCanvasStore.getState();
+        if (!isHydrated) {
             toast.error("Canvas still loading");
             return;
         }
@@ -208,12 +208,12 @@ function Canvas () {
         const state = useDiagramStore.getState();
         const uiShapes = whiteboardRef.current?.getShapes();
         const camera = whiteboardRef.current?.getCamera();
-        
+
         const manualElements = uiShapes ? uiShapes.elements : state.manualElements;
         const manualConnectors = uiShapes ? uiShapes.connectors : state.manualConnectors;
-        const {code, generatedGroupOffset} = state;
+        const { code, generatedGroupOffset } = state;
 
-        
+
         try {
             await updateCanvas({
                 manualElements,
@@ -228,7 +228,7 @@ function Canvas () {
             lastSavedCodeRef.current = code;
             lastSavedOffsetsRef.current = generatedGroupOffset;
             setHasUnsavedChanges(false);
-            toast.success("Canvas saved  ✓");
+            toast.success("Canvas saved");
         } catch (err) {
             console.error("Save error:", err);
             toast.error("Failed to save canvas");
@@ -267,13 +267,13 @@ function Canvas () {
 
     //  Keyboard shortcuts
     useEffect(() => {
-        function onKeyDown (e: KeyboardEvent) {
+        function onKeyDown(e: KeyboardEvent) {
             if (isReadOnly) return;
             const isInput = e.target instanceof HTMLElement &&
                 (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable);
-            if(isInput) return;
+            if (isInput) return;
 
-            if((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
+            if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
                 e.preventDefault();
                 handleSave();
             }
@@ -284,8 +284,8 @@ function Canvas () {
 
     //  Warn on browser reload / tab close
     useEffect(() => {
-        function onBeforeUnload (e: BeforeUnloadEvent) {
-            if(!hasUnsavedChanges) return;
+        function onBeforeUnload(e: BeforeUnloadEvent) {
+            if (!hasUnsavedChanges) return;
             e.preventDefault();
         }
         window.addEventListener("beforeunload", onBeforeUnload);
@@ -294,7 +294,7 @@ function Canvas () {
 
     //  Dashboard navigation (in-app)
     const handleDashboardClick = () => {
-        if(hasUnsavedChanges) {
+        if (hasUnsavedChanges) {
             pendingNavigationRef.current = "/dashboard";
             setShowUnsavedDialog(true);
         } else {
@@ -305,14 +305,14 @@ function Canvas () {
     const handleDialogSaveAndLeave = async () => {
         setShowUnsavedDialog(false);
         await handleSave();
-        if(pendingNavigationRef.current) {
+        if (pendingNavigationRef.current) {
             navigate(pendingNavigationRef.current);
         }
     };
 
     const handleDialogLeaveWithoutSaving = () => {
         setShowUnsavedDialog(false);
-        if(pendingNavigationRef.current) {
+        if (pendingNavigationRef.current) {
             navigate(pendingNavigationRef.current);
         }
     };
@@ -325,7 +325,7 @@ function Canvas () {
 
     const saveTitle = async () => {
         const newTitle = tempTitle.trim() || "Untitled Canvas";
-        if(newTitle === canvasTitle) {
+        if (newTitle === canvasTitle) {
             setIsRenaming(false);
             return;
         }
@@ -333,7 +333,7 @@ function Canvas () {
         try {
             await updateCanvas({ title: newTitle });
             toast.success("Title updated");
-        } catch(error) {
+        } catch (error) {
             console.error("Failed to update title", error);
             toast.error("Failed to update title");
             setTempTitle(canvasTitle);
@@ -341,7 +341,7 @@ function Canvas () {
         setIsRenaming(false);
     };
 
-    if(!isFetched) {
+    if (!isFetched) {
         return <LoadingScreen />;
     }
 
@@ -349,12 +349,12 @@ function Canvas () {
         <div className="relative w-full h-screen overflow-hidden bg-background">
 
             {/*  Mobile Restriction Dialog  */}
-            <Dialog open={isMobile} onOpenChange={() => {}}>
+            <Dialog open={isMobile} onOpenChange={() => { }}>
                 <DialogContent showCloseButton={false} className="max-w-sm dark border-border bg-muted/90 backdrop-blur-xl">
                     <DialogHeader>
                         <DialogTitle className="text-foreground flex items-center gap-2 text-xl">
                             <div className="w-8 h-8 rounded-lg bg-warning/20 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warning"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warning"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
                             </div>
                             Larger Device Required
                         </DialogTitle>
@@ -363,9 +363,9 @@ function Canvas () {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-center py-8">
-                         <div className="w-24 h-24 rounded-3xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                         </div>
+                        <div className="w-24 h-24 rounded-3xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -407,7 +407,7 @@ function Canvas () {
             </Dialog>
 
             {/*  Unsaved Changes Dialog  */}
-            <Dialog open={showUnsavedDialog} onOpenChange={(open) => {if(!open) handleDialogCancel();}}>
+            <Dialog open={showUnsavedDialog} onOpenChange={(open) => { if (!open) handleDialogCancel(); }}>
                 <DialogContent showCloseButton={false} className="max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Unsaved changes</DialogTitle>
@@ -457,8 +457,8 @@ function Canvas () {
                                 onChange={(e) => setTempTitle(e.target.value)}
                                 onBlur={saveTitle}
                                 onKeyDown={(e) => {
-                                    if(e.key === 'Enter') saveTitle();
-                                    if(e.key === 'Escape') {
+                                    if (e.key === 'Enter') saveTitle();
+                                    if (e.key === 'Escape') {
                                         setTempTitle(canvasTitle);
                                         setIsRenaming(false);
                                     }
@@ -488,13 +488,13 @@ function Canvas () {
                     {/* Buttons Row */}
                     <div className="flex items-center gap-3">
                         <Tooltip>
-                            <TooltipTrigger render={ <button
-                                    onClick={handleDashboardClick}
-                                    className="px-4 py-2 rounded-lg border border-border bg-background/40 text-foreground/70 hover:text-foreground hover:bg-foreground/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
-                                >
-                                    Dashboard
-                                </button>}>
-                               
+                            <TooltipTrigger render={<button
+                                onClick={handleDashboardClick}
+                                className="px-4 py-2 rounded-lg border border-border bg-background/40 text-foreground/70 hover:text-foreground hover:bg-foreground/5 backdrop-blur-md text-xs font-semibold transition-all duration-200"
+                            >
+                                Dashboard
+                            </button>}>
+
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                 Back to Dashboard
@@ -502,18 +502,18 @@ function Canvas () {
                         </Tooltip>
 
                         <Tooltip>
-                            <TooltipTrigger render={   <button
-                                    onClick={handleSave}
-                                    disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
-                                    className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+                            <TooltipTrigger render={<button
+                                onClick={handleSave}
+                                disabled={loading || !isHydrated || !hasUnsavedChanges || isReadOnly}
+                                className={`px-4 py-2 rounded-lg border backdrop-blur-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
                                         ${hasUnsavedChanges && !isReadOnly
-                                            ? "border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
-                                            : "border-border bg-background/40 text-foreground/70"
-                                        }`}
-                                >
-                                    {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
-                                </button>}>
-                             
+                                        ? "border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+                                        : "border-border bg-background/40 text-foreground/70"
+                                    }`}
+                            >
+                                {loading ? "Saving…" : (isReadOnly ? "Read Only" : (hasUnsavedChanges ? "Save*" : "Saved"))}
+                            </button>}>
+
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="flex items-center gap-3 px-3 py-1.5 font-medium text-foreground/90">
                                 {isReadOnly ? (
@@ -533,14 +533,14 @@ function Canvas () {
 
                         {!isReadOnly && (
                             <Tooltip>
-                                <TooltipTrigger render={ <button
-                                        onClick={handleShare}
-                                        disabled={isSharing}
-                                        className="bg-primary hover:bg-primary text-primary-foreground px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-primary/10 disabled:opacity-50"
-                                    >
-                                        {isSharing ? "Sharing..." : "Share"}
-                                    </button>}>
-                                   
+                                <TooltipTrigger render={<button
+                                    onClick={handleShare}
+                                    disabled={isSharing}
+                                    className="bg-primary hover:bg-primary text-primary-foreground px-5 py-2 rounded-lg text-xs font-bold transition-all duration-200 shadow-lg shadow-primary/10 disabled:opacity-50"
+                                >
+                                    {isSharing ? "Sharing..." : "Share"}
+                                </button>}>
+
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                     Share Canvas
@@ -553,30 +553,30 @@ function Canvas () {
                     <div className="flex items-center gap-1">
                         <Tooltip>
                             <TooltipTrigger render={<button
-                                    onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-out'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
-                                >
-                                    <Minus size={14} />
-                                </button>}>
-                                
+                                onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-out'))}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
+                            >
+                                <Minus size={14} />
+                            </button>}>
+
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                 Zoom Out
                             </TooltipContent>
                         </Tooltip>
-                        
+
                         <div className="px-3 py-2 rounded-lg border border-border bg-background/40 text-foreground backdrop-blur-md text-[10px] font-black tracking-widest uppercase min-w-[64px] text-center">
                             {Math.round(currentZoom * 100)}%
                         </div>
 
                         <Tooltip>
                             <TooltipTrigger render={<button
-                                    onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-in'))}
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
-                                >
-                                    <Plus size={14} />
-                                </button>}>
-                                
+                                onClick={() => window.dispatchEvent(new CustomEvent('trigger-zoom-in'))}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-background/40 text-foreground hover:text-foreground hover:bg-foreground/5 backdrop-blur-md transition-all duration-200"
+                            >
+                                <Plus size={14} />
+                            </button>}>
+
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="px-2.5 py-1.5 font-medium">
                                 Zoom In
