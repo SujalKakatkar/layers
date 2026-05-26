@@ -39,7 +39,7 @@ export function ThemeProvider({children}: {children: React.ReactNode}) {
         localStorage.setItem("theme", theme)
 
         // Force browser to paint the new theme without transition
-        window.getComputedStyle(css).opacity
+        void window.getComputedStyle(css).opacity
 
         setTimeout(() => {
             document.head.removeChild(css)

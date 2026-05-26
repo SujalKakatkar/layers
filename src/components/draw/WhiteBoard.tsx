@@ -282,11 +282,11 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     } = useSelectArea(overlayCanvasRef, scale, offset, shapes, moveShapes, selectedIds, setSelectedIds, resizeShapes, rotateShapes, spacePressedRef, justFinishedRef, updateShapes, duplicateShapes);
 
     // ── Phase 1: Keyboard Accessibility ─────────────────────────────────
-    const clearSelection = useCallback(() => setSelectedIds([]), []);
+    const clearSelection = useCallback(() => setSelectedIds([]), [setSelectedIds]);
 
     const selectAll = useCallback(() => {
         setSelectedIds(shapes.map(s => s._id));
-    }, [shapes]);
+    }, [shapes, setSelectedIds]);
 
     const combinedRemoveShapes = useCallback((ids: string[]) => {
         removeShapes(ids);
@@ -325,7 +325,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
             resetSelection();
         }
         setGhostPreview(null);
-    }, [activeTool])
+    }, [activeTool, setSelectedIds, resetSelection])
 
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
@@ -345,247 +345,258 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [selectedConnectorId, editingText, removeConnector, isReadOnly]);
 
-    // TOOL ADAPTERS
-    const selectTool: CanvasTool = {
-        onPointerDown: (e) => {
-            const canvas = overlayCanvasRef.current;
-            if (!canvas) return;
-
-            const p = getWorldPoint(e, canvas, scale, offset);
-
-            // ── Generated group: intercept before anything else ────────────
-            if (activeTool === "select" && e.isPrimary) {
-                const hitElement = [...shiftedGeneratedElements].reverse().find((el) => hitTestElement(el, p));
-                if (hitElement) {
-                    const componentId = hitElement.componentId || "default";
-                    setSelectedComponentId(componentId);
-                    setSelectedNodeId(hitElement._id);
-                    if (hitElement.source) {
-                        setHighlightedRange(hitElement.source);
-                    }
-
-                    setSelectedIds([]);
-                    setSelectedConnectorId(null);
-
-                    const currentOffset = generatedGroupOffset || { x: 0, y: 0 };
-                    groupDragRef.current = {
-                        active: true,
-                        componentId,
-                        startX: p.x,
-                        startY: p.y,
-                        originX: currentOffset.x,
-                        originY: currentOffset.y,
-                    };
-                    e.currentTarget.setPointerCapture(e.pointerId);
-                    return; // skip normal selection
-                }
-                // Clicked outside any diagram element → deselect diagram
-                setSelectedComponentId(null);
-                setSelectedNodeId(null);
-                setHighlightedRange(null);
-            }
-
-            if (activeTool === "select" && e.isPrimary) {
-                const consumed = onConnectorPointerDown(p, allElements);
-                if (consumed) return; // skip normal selection logic if starting a connector
-
-                // Check connector hit
-                let hitConnectorId: string | null = null;
-                for (const conn of connectors) {
-                    const fromShape = getShapeById(conn.fromShapeId);
-                    const toShape = getShapeById(conn.toShapeId);
-                    if (!fromShape || !toShape) continue;
-
-                    const { fromSide, toSide } = getClosestSidePair(fromShape, toShape);
-                    const p1 = getConnectionPoint(fromShape, fromSide);
-                    const p2 = getConnectionPoint(toShape, toSide);
-                    const cp1 = getBezierControl(p1, p2, 0.35);
-                    const cp2 = getBezierControl(p2, p1, 0.35);
-
-                    const dist = getDistanceToBezier(p, p1, cp1, cp2, p2);
-                    if (dist < 10 / scale) {
-                        hitConnectorId = conn._id;
-                        break;
-                    }
-                }
-
-                if (hitConnectorId) {
-                    setSelectedConnectorId(hitConnectorId);
-                    setSelectedIds([]);
-                    return; // skip normal selection logic
-                }
-
-                // If not hit a connector, clear connector selection
-                setSelectedConnectorId(null);
-            }
-
-            if (editingText) {
-                const current = finishText()
-                if (current) {
-                    justFinishedRef.current = true;
-                    setSelectedIds([current])
-                }
-                return
-            }
-
-            startSelect(p, e.altKey)
-        },
-        onPointerMove: (e) => {
-            const canvas = overlayCanvasRef.current;
-            if (!canvas) return;
-            const p = getWorldPoint(e, canvas, scale, offset);
-
-            // ── Group drag 
-            if (groupDragRef.current.active) {
-                const { startX, startY, originX, originY, componentId } = groupDragRef.current;
-                if (componentId) {
-                    setGeneratedGroupOffset({
-                        x: originX + (p.x - startX),
-                        y: originY + (p.y - startY),
-                    });
-                }
-                return;
-            }
-
-            if (activeTool === "select") {
-                onConnectorPointerMove(p, allElements);
-            }
-
-            updateSelect(e);
-        },
-        onPointerUp: (e) => {
-            // ── End group drag 
-            if (groupDragRef.current.active) {
-                groupDragRef.current.active = false;
-                return;
-            }
-
-            if (activeTool === "select") {
+    // TOOL ADAPTERS — all tool objects are created inside useMemo to avoid
+    // recreating them on every render and triggering dependency warnings.
+    const tools: Record<Tools, CanvasTool> = useMemo(() => {
+        const selectTool: CanvasTool = {
+            onPointerDown: (e) => {
                 const canvas = overlayCanvasRef.current;
-                if (canvas) {
-                    const p = getWorldPoint(e, canvas, scale, offset);
-                    const intent = onConnectorPointerUp(p, allElements);
-                    if (intent) {
-                        if (intent.type === "connect") {
-                            addConnector(
-                                intent.fromShapeId,
-                                intent.fromSide,
-                                intent.toShapeId,
-                                intent.toSide
-                            );
-                        } else if (intent.type === "create") {
-                            const newConnector: import("../../types/types").Connector = {
-                                _id: crypto.randomUUID(),
-                                fromShapeId: intent.sourceId,
-                                fromSide: intent.side,
-                                toShapeId: intent.newShape._id,
-                                toSide: (
-                                    intent.side === "top" ? "bottom" :
-                                        intent.side === "bottom" ? "top" :
-                                            intent.side === "left" ? "right" : "left"
-                                )
-                            };
-                            addShapeWithConnector(intent.newShape, newConnector);
-                            setSelectedIds([intent.newShape._id]);
+                if (!canvas) return;
+
+                const p = getWorldPoint(e, canvas, scale, offset);
+
+                // ── Generated group: intercept before anything else ────────────
+                if (activeTool === "select" && e.isPrimary) {
+                    const hitElement = [...shiftedGeneratedElements].reverse().find((el) => hitTestElement(el, p));
+                    if (hitElement) {
+                        const componentId = hitElement.componentId || "default";
+                        setSelectedComponentId(componentId);
+                        setSelectedNodeId(hitElement._id);
+                        if (hitElement.source) {
+                            setHighlightedRange(hitElement.source);
+                        }
+
+                        setSelectedIds([]);
+                        setSelectedConnectorId(null);
+
+                        const currentOffset = generatedGroupOffset || { x: 0, y: 0 };
+                        groupDragRef.current = {
+                            active: true,
+                            componentId,
+                            startX: p.x,
+                            startY: p.y,
+                            originX: currentOffset.x,
+                            originY: currentOffset.y,
+                        };
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        return; // skip normal selection
+                    }
+                    // Clicked outside any diagram element → deselect diagram
+                    setSelectedComponentId(null);
+                    setSelectedNodeId(null);
+                    setHighlightedRange(null);
+                }
+
+                if (activeTool === "select" && e.isPrimary) {
+                    const consumed = onConnectorPointerDown(p, allElements);
+                    if (consumed) return; // skip normal selection logic if starting a connector
+
+                    // Check connector hit
+                    let hitConnectorId: string | null = null;
+                    for (const conn of connectors) {
+                        const fromShape = getShapeById(conn.fromShapeId);
+                        const toShape = getShapeById(conn.toShapeId);
+                        if (!fromShape || !toShape) continue;
+
+                        const { fromSide, toSide } = getClosestSidePair(fromShape, toShape);
+                        const p1 = getConnectionPoint(fromShape, fromSide);
+                        const p2 = getConnectionPoint(toShape, toSide);
+                        const cp1 = getBezierControl(p1, p2, 0.35);
+                        const cp2 = getBezierControl(p2, p1, 0.35);
+
+                        const dist = getDistanceToBezier(p, p1, cp1, cp2, p2);
+                        if (dist < 10 / scale) {
+                            hitConnectorId = conn._id;
+                            break;
+                        }
+                    }
+
+                    if (hitConnectorId) {
+                        setSelectedConnectorId(hitConnectorId);
+                        setSelectedIds([]);
+                        return; // skip normal selection logic
+                    }
+
+                    // If not hit a connector, clear connector selection
+                    setSelectedConnectorId(null);
+                }
+
+                if (editingText) {
+                    const current = finishText()
+                    if (current) {
+                        justFinishedRef.current = true;
+                        setSelectedIds([current])
+                    }
+                    return
+                }
+
+                startSelect(p, e.altKey)
+            },
+            onPointerMove: (e) => {
+                const canvas = overlayCanvasRef.current;
+                if (!canvas) return;
+                const p = getWorldPoint(e, canvas, scale, offset);
+
+                // ── Group drag 
+                if (groupDragRef.current.active) {
+                    const { startX, startY, originX, originY, componentId } = groupDragRef.current;
+                    if (componentId) {
+                        setGeneratedGroupOffset({
+                            x: originX + (p.x - startX),
+                            y: originY + (p.y - startY),
+                        });
+                    }
+                    return;
+                }
+
+                if (activeTool === "select") {
+                    onConnectorPointerMove(p, allElements);
+                }
+
+                updateSelect(e);
+            },
+            onPointerUp: (e) => {
+                // ── End group drag 
+                if (groupDragRef.current.active) {
+                    groupDragRef.current.active = false;
+                    return;
+                }
+
+                if (activeTool === "select") {
+                    const canvas = overlayCanvasRef.current;
+                    if (canvas) {
+                        const p = getWorldPoint(e, canvas, scale, offset);
+                        const intent = onConnectorPointerUp(p, allElements);
+                        if (intent) {
+                            if (intent.type === "connect") {
+                                addConnector(
+                                    intent.fromShapeId,
+                                    intent.fromSide,
+                                    intent.toShapeId,
+                                    intent.toSide
+                                );
+                            } else if (intent.type === "create") {
+                                const newConnector: import("../../types/types").Connector = {
+                                    _id: crypto.randomUUID(),
+                                    fromShapeId: intent.sourceId,
+                                    fromSide: intent.side,
+                                    toShapeId: intent.newShape._id,
+                                    toSide: (
+                                        intent.side === "top" ? "bottom" :
+                                            intent.side === "bottom" ? "top" :
+                                                intent.side === "left" ? "right" : "left"
+                                    )
+                                };
+                                addShapeWithConnector(intent.newShape, newConnector);
+                                setSelectedIds([intent.newShape._id]);
+                            }
                         }
                     }
                 }
-            }
-            endSelect();
-        },
-        cursor: "default",
-    };
+                endSelect();
+            },
+            cursor: "default",
+        };
 
+        //circle tool
+        const circleTool: CanvasTool = {
+            onPointerDown: (e) => {
+                if (!overlayCanvasRef.current) return;
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
+                circleStartDraw(p);
+            },
+            onPointerMove: (e) => {
+                if (!overlayCanvasRef.current || !isCircleDrawingRef.current) return;
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
+                circleDraw(p);
+            },
+            onPointerUp: () => {
+                setGhostPreview(null);
+                const current = circleEndDraw()
 
-    //circle tool
-    const circleTool: CanvasTool = {
-        onPointerDown: (e) => {
-            if (!overlayCanvasRef.current) return;
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
-            circleStartDraw(p);
-        },
-        onPointerMove: (e) => {
-            if (!overlayCanvasRef.current || !isCircleDrawingRef.current) return;
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
-            circleDraw(p);
-        },
-        onPointerUp: () => {
-            setGhostPreview(null);
-            const current = circleEndDraw()
+                if (!current) return
 
-            if (!current) return
+                setSelectedIds([current._id]);
+                setTool("select")
+            },
+            cursor: "crosshair",
+        };
 
-            setSelectedIds([current._id]);
-            setTool("select")
-        },
-        cursor: "crosshair",
-    };
+        const rectangleTool: CanvasTool = {
+            onPointerDown: (e) => {
+                if (!overlayCanvasRef.current) return;
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
+                startDraw(p);
+            },
+            onPointerMove: (e) => {
+                if (!overlayCanvasRef.current || !isDrawingRef.current) return;
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
+                draw(p);
+            },
+            onPointerUp: () => {
+                setGhostPreview(null);
+                const created = endDraw();
 
-    const rectangleTool: CanvasTool = {
-        onPointerDown: (e) => {
-            if (!overlayCanvasRef.current) return;
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
-            startDraw(p);
-        },
-        onPointerMove: (e) => {
-            if (!overlayCanvasRef.current || !isDrawingRef.current) return;
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset);
-            draw(p);
-        },
-        onPointerUp: () => {
-            setGhostPreview(null);
-            const created = endDraw();
+                if (!created) return
 
-            if (!created) return
+                setSelectedIds([created._id])
+                setTool("select")
+            },
+            cursor: "crosshair",
+        };
 
-            setSelectedIds([created._id])
-            setTool("select")
-        },
-        cursor: "crosshair",
-    };
+        //Pen tool
+        const penTool: CanvasTool = {
+            onPointerDown: (e) => {
+                if (!overlayCanvasRef.current) return
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
+                startPenDraw(p)
+            },
+            onPointerMove: (e) => {
+                if (!overlayCanvasRef.current || !isPenDrawingRef.current) return
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
+                penDraw(p)
+            },
+            onPointerUp: () => {
+                const current = endPenDraw()
 
-    //Pen tool
-    const penTool: CanvasTool = {
-        onPointerDown: (e) => {
-            if (!overlayCanvasRef.current) return
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
-            startPenDraw(p)
-        },
-        onPointerMove: (e) => {
-            if (!overlayCanvasRef.current || !isPenDrawingRef.current) return
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
-            penDraw(p)
-        },
-        onPointerUp: () => {
-            const current = endPenDraw()
+                if (!current) return
 
-            if (!current) return
+                setSelectedIds([current._id]);
+                setTool("select")
+            },
+            cursor: "crosshair"
+        }
 
-            setSelectedIds([current._id]);
-            setTool("select")
-        },
-        cursor: "crosshair"
-    }
+        const textTool: CanvasTool = {
+            onPointerDown: (e) => {
+                if (!overlayCanvasRef.current) return
+                const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
+                startText(p)
+                setGhostPreview(null);
+                setTool("select")
+            },
+            cursor: 'text'
+        }
 
-    const textTool: CanvasTool = {
-        onPointerDown: (e) => {
-            if (!overlayCanvasRef.current) return
-            const p = getWorldPoint(e, overlayCanvasRef.current, scale, offset)
-            startText(p)
-            setGhostPreview(null);
-            setTool("select")
-        },
-        cursor: 'text'
-    }
-
-
-    const tools: Record<Tools, CanvasTool> = useMemo(() => ({
-        select: selectTool,
-        rectangle: rectangleTool,
-        circle: circleTool,
-        pen: penTool,
-        text: textTool
-    }), [selectTool, rectangleTool, circleTool, penTool, textTool]);
+        return {
+            select: selectTool,
+            rectangle: rectangleTool,
+            circle: circleTool,
+            pen: penTool,
+            text: textTool
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [scale, offset, activeTool, editingText, connectors, allElements,
+        shiftedGeneratedElements, generatedGroupOffset,
+        setSelectedIds, setTool, startSelect, updateSelect, endSelect,
+        finishText, getShapeById, addConnector, addShapeWithConnector,
+        onConnectorPointerDown, onConnectorPointerMove, onConnectorPointerUp,
+        setSelectedNodeId, setHighlightedRange, setGeneratedGroupOffset,
+        circleStartDraw, circleDraw, circleEndDraw,
+        startDraw, draw, endDraw,
+        startPenDraw, penDraw, endPenDraw,
+        startText]);
 
     const cursor = useMemo(() => {
         if (pressed) return "grab";
@@ -605,7 +616,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
         setActiveTheme(theme);
         drawConnectorsLayer(connectorsCanvasRef.current, allConnectors, allElements, scale, offset, selectedConnectorId, requestRedraw);
 
-    }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount, theme]);
+    }, [allConnectors, allElements, scale, offset, selectedConnectorId, redrawCount, theme, requestRedraw]);
 
     // LAYER 2 — Shapes: Middle layer
     useLayoutEffect(() => {
@@ -633,7 +644,8 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
     }, [selectArea, selectedIds, editingText, guides, connectionState,
         connectorDotShapeId, ghostPreview, selectedConnectorId,
-        selectedComponentId, selectedNodeId, scale, offset, allElements, theme]);
+        selectedComponentId, selectedNodeId, scale, offset, allElements, theme,
+        shiftedGeneratedElements, getGroupBounds]);
 
 
 
@@ -752,6 +764,7 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
 
         })
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingText?._id])
 
     const handleCopy = useCallback(() => copyShapes(selectedIds), [copyShapes, selectedIds]);
@@ -861,7 +874,6 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-48">
-                    {/* eslint-disable-next-line react-hooks/refs */}
                     {menuItems.map((item, idx) => (
                         <ContextMenuItem key={idx} onClick={item.onClick} disabled={item.disabled}>
                             {item.label}

@@ -169,12 +169,12 @@ export function useShapes (canvasId: string = "default") {
                     };
                     break;
                 default:
-                    newShape = {...(shape as any), _id: newId};
+                    newShape = shape as never;
                     break;
             }
             
             // Remove MongoDB/backend specific fields
-            const cleanShape = newShape as any;
+            const cleanShape = newShape as unknown as Record<string, unknown>;
             delete cleanShape._id;
             delete cleanShape.createdAt;
             delete cleanShape.updatedAt;
@@ -214,12 +214,12 @@ export function useShapes (canvasId: string = "default") {
                     };
                     break;
                 default:
-                    newShape = {...(shape as any), _id: newId};
+                    newShape = shape as never;
                     break;
             }
             
             // Remove MongoDB/backend specific fields
-            const cleanShape = newShape as any;
+            const cleanShape = newShape as unknown as Record<string, unknown>;
             delete cleanShape._id;
             delete cleanShape.createdAt;
             delete cleanShape.updatedAt;
