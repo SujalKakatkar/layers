@@ -181,3 +181,9 @@ export type HandleType =
     | "e" | "w"
     | "rotate"
     | "rotate-tl" | "rotate-tr" | "rotate-bl" | "rotate-br";
+
+export type Canvas = {
+  _id: string
+  title: string
+  createdAt: string
+}
