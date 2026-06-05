@@ -98,22 +98,8 @@ export function drawScene (
         drawConnectionDots(ctx, shapes, Array.from(visibleDotIds), scale);
     }
 
-    let bounds = getSelectionBounds(shapes, selectedIds);
-
-    if(editingText) {
-        const {width, height} = measureTextSize(
-            editingText.text,
-            editingText.fontSize,
-            editingText.fontWeight
-        );
-
-        bounds = {
-            x: editingText.x,
-            y: editingText.y,
-            width,
-            height
-        };
-    }
+    const activeSelectedIds = editingText ? selectedIds.filter(id => id !== editingText._id) : selectedIds;
+    let bounds = getSelectionBounds(shapes, activeSelectedIds);
 
     if(bounds) {
         ctx.save();
@@ -424,21 +410,8 @@ export function drawOverlayLayer(
     }
 
     // ── Selection bounding box + handles ─────────────────────────────────
-    let bounds = getSelectionBounds(shapes, selectedIds);
-
-    if(editingText) {
-        const {width, height} = measureTextSize(
-            editingText.text,
-            editingText.fontSize,
-            editingText.fontWeight
-        );
-        bounds = {
-            x: editingText.x,
-            y: editingText.y,
-            width,
-            height
-        };
-    }
+    const activeSelectedIds = editingText ? selectedIds.filter(id => id !== editingText._id) : selectedIds;
+    let bounds = getSelectionBounds(shapes, activeSelectedIds);
 
     if(bounds) {
         ctx.save();
