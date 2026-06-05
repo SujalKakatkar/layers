@@ -49,6 +49,7 @@ import {
     getBezierControl
 } from "../../helpers/connectorHelpers";
 import { hitTestElement, computeGroupBounds } from "../../helpers/diagramHelpers";
+import { exportShapes } from "../../helpers/exportHelpers";
 
 interface WhiteBoardProps {
     initialElements?: Shape[];
@@ -783,14 +784,43 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
     const handleGroup = useCallback(() => groupShapes(selectedIds), [selectedIds, groupShapes]);
     const handleUngroup = useCallback(() => ungroupShapes(selectedIds), [selectedIds, ungroupShapes]);
 
+    const handleExportSelectedPNG = useCallback(() => {
+        const selectedShapes = shapes.filter(s => selectedIds.includes(s._id));
+        const selectedConnectors = connectors.filter(c => 
+            selectedIds.includes(c.fromShapeId) && selectedIds.includes(c.toShapeId)
+        );
+        exportShapes('png', selectedShapes, selectedConnectors, theme, 80);
+    }, [selectedIds, shapes, connectors, theme]);
+
+    const handleExportSelectedJPG = useCallback(() => {
+        const selectedShapes = shapes.filter(s => selectedIds.includes(s._id));
+        const selectedConnectors = connectors.filter(c => 
+            selectedIds.includes(c.fromShapeId) && selectedIds.includes(c.toShapeId)
+        );
+        exportShapes('jpg', selectedShapes, selectedConnectors, theme, 80);
+    }, [selectedIds, shapes, connectors, theme]);
+
+    const handleExportDiagramPNG = useCallback(() => {
+        exportShapes('png', shiftedGeneratedElements, generatedConnectors, theme, 80);
+    }, [shiftedGeneratedElements, generatedConnectors, theme]);
+
+    const handleExportDiagramJPG = useCallback(() => {
+        exportShapes('jpg', shiftedGeneratedElements, generatedConnectors, theme, 80);
+    }, [shiftedGeneratedElements, generatedConnectors, theme]);
+
     const menuItems: MenuItem[] = useMemo(() => {
         if (selectedIds.length === 0) {
-            return [
+            const items: MenuItem[] = [
                 { label: "Undo", onClick: undo, shortcut: "Ctrl+Z" },
                 { label: "Redo", onClick: redo, shortcut: "Ctrl+Y" },
                 { label: "Paste", onClick: handlePaste, shortcut: "Ctrl+V", disabled: clipboard.length === 0 },
                 { label: "Select All", onClick: selectAll, shortcut: "Ctrl+A" }
             ];
+            if (shiftedGeneratedElements.length > 0 && selectedComponentId !== null) {
+                items.push({ label: "Export Diagram as PNG", onClick: handleExportDiagramPNG });
+                items.push({ label: "Export Diagram as JPG", onClick: handleExportDiagramJPG });
+            }
+            return items;
         } else {
             return [
                 { label: "Copy", onClick: handleCopy, shortcut: "Ctrl+C" },
@@ -801,10 +831,12 @@ const Whiteboard = forwardRef<WhiteBoardRef, WhiteBoardProps>(({ initialElements
                 { label: "Select All", onClick: selectAll, shortcut: "Ctrl+A" },
                 { label: "Delete", onClick: handleDelete, shortcut: "Del" },
                 { label: "Bring to Front", onClick: () => bringToFront(selectedIds) },
-                { label: "Send to Back", onClick: () => sendToBack(selectedIds) }
+                { label: "Send to Back", onClick: () => sendToBack(selectedIds) },
+                { label: "Export Selected as PNG", onClick: handleExportSelectedPNG },
+                { label: "Export Selected as JPG", onClick: handleExportSelectedJPG }
             ];
         }
-    }, [selectedIds, clipboard, handleCopy, handlePaste, selectAll, handleDuplicate, shapes, undo, redo, handleGroup, handleUngroup, handleDelete, bringToFront, sendToBack]);
+    }, [selectedIds, clipboard, handleCopy, handlePaste, selectAll, handleDuplicate, shapes, undo, redo, handleGroup, handleUngroup, handleDelete, bringToFront, sendToBack, handleExportSelectedPNG, handleExportSelectedJPG, handleExportDiagramPNG, handleExportDiagramJPG, shiftedGeneratedElements.length, selectedComponentId]);
 
     const code = useDiagramStore(s => s.code);
 

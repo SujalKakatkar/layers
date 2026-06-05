@@ -201,7 +201,7 @@ export function useConnector () {
                 const hitId = getShapeAtPoint(point.x, point.y, shapes);
                 if(hitId && hitId !== state.sourceId) {
                     const candidate = shapes.find(s => s._id === hitId);
-                    if(candidate && candidate.type !== "text" && candidate.type !== "stroke" && !candidate.isGenerated) {
+                    if(candidate && candidate.type !== "stroke" && !candidate.isGenerated) {
                         toShape = candidate;
                     }
                 }

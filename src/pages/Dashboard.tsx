@@ -10,7 +10,7 @@ import { useCanvasStore } from "@/store/useCanvasStore"
 
 import type { Canvas } from "@/types/types"
 import { Header } from "@/components/dashboard/Header"
-import { CanvasCard } from "@/components/cards/CanvasCard"
+import { CanvasCard } from "@/components/Cards/CanvasCard"
 import { CanvasRow } from "@/components/dashboard/CanvasRow"
 import { EmptyState } from "@/components/dashboard/EmptyState"
 

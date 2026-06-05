@@ -37,6 +37,16 @@ export function getShapeAnchorPoint(shape: Shape, side: ConnectorSide): Point {
             case "left":   px = cx - r; py = cy;     break;
             case "right":  px = cx + r; py = cy;     break;
         }
+    } else if (shape.type === "text") {
+        const pad = 12;
+        cx = shape.x + shape.width / 2;
+        cy = shape.y + shape.height / 2;
+        switch (side) {
+            case "top":    px = cx;                 py = shape.y - pad;          break;
+            case "bottom": px = cx;                 py = shape.y + shape.height + pad; break;
+            case "left":   px = shape.x - pad;      py = cy;                     break;
+            case "right":  px = shape.x + shape.width + pad; py = cy;            break;
+        }
     } else {
         const b = getShapeBounds(shape);
         cx = b.x + b.width / 2;
