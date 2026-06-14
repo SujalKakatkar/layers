@@ -98,7 +98,7 @@ export function drawScene (
     }
 
     const activeSelectedIds = editingText ? selectedIds.filter(id => id !== editingText._id) : selectedIds;
-    let bounds = getSelectionBounds(shapes, activeSelectedIds);
+    const bounds = getSelectionBounds(shapes, activeSelectedIds);
 
     if(bounds) {
         ctx.save();
