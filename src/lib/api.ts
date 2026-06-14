@@ -1,8 +1,10 @@
 import axios from "axios"
-import {isPublicRoute} from "./routes"
+import { isPublicRoute } from "./routes"
+
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export const api = axios.create({
-    baseURL: "http://localhost:8000",
+    baseURL: apiUrl,
     withCredentials: true,
 })
 
@@ -11,10 +13,10 @@ let _onLogout: () => void = () => {
 }
 
 let isRefreshing = false
-let failedQueue: {resolve: (value?: unknown) => void; reject: (reason?: unknown) => void}[] = []
+let failedQueue: { resolve: (value?: unknown) => void; reject: (reason?: unknown) => void }[] = []
 
 const processQueue = (error: Error | null) => {
-    failedQueue.forEach(({resolve, reject}) => {
+    failedQueue.forEach(({ resolve, reject }) => {
         if (error) {
             reject(error);
         } else {
@@ -24,9 +26,9 @@ const processQueue = (error: Error | null) => {
     failedQueue = []
 }
 
-export function registerLogoutHandler (fn: () => void) {
+export function registerLogoutHandler(fn: () => void) {
     _onLogout = () => {
-        if(!isPublicRoute(window.location.pathname)) {
+        if (!isPublicRoute(window.location.pathname)) {
             fn()
         }
     }
@@ -37,7 +39,7 @@ api.interceptors.response.use(
 
     async (error) => {
         // ✅ handle network errors
-        if(!error.response) {
+        if (!error.response) {
             return Promise.reject(new Error("Network error"))
         }
 
@@ -48,18 +50,18 @@ api.interceptors.response.use(
             originalRequest.url?.includes("/auth/sign-up") ||
             originalRequest.url?.includes("/auth/refresh-token")
 
-        if(
+        if (
             error.response?.status === 401 &&
             !isAuthRoute &&
             !originalRequest._retry
         ) {
-            if(isPublicRoute(window.location.pathname)) {
+            if (isPublicRoute(window.location.pathname)) {
                 return Promise.reject(error)
             }
 
-            if(isRefreshing) {
+            if (isRefreshing) {
                 return new Promise((resolve, reject) => {
-                    failedQueue.push({resolve, reject})
+                    failedQueue.push({ resolve, reject })
                 }).then(() => api(originalRequest))
             }
 
@@ -70,7 +72,7 @@ api.interceptors.response.use(
                 await api.post("/auth/refresh-token")
                 processQueue(null)
                 return api(originalRequest)
-            } catch(refreshError) {
+            } catch (refreshError) {
                 processQueue(refreshError as Error | null)
                 _onLogout()
                 return Promise.reject(refreshError)

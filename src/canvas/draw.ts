@@ -4,7 +4,6 @@ import {drawRect} from "./shapes/drawRect";
 import {getSelectionBounds} from "./selectArea";
 import {drawStroke} from "./shapes/drawStroke";
 import {drawText} from "./shapes/drawText";
-import {measureTextSize} from "../helpers/measureTextSize";
 import {drawConnectors, drawConnectorPreview, drawConnectionDots} from "./shapes/drawConnectors";
 
 export function drawScene (
