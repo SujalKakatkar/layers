@@ -38,8 +38,9 @@ function Dashboard () {
   }, [listAllCanvases])
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/')
+    await logout();
+    useAuthStore.getState().setUser(null);
+    navigate("/auth/sign-in");
   }
 
   const handleConfirmDelete = async () => {
