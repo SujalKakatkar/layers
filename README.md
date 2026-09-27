@@ -1,162 +1,298 @@
-# 🧩 Layers — Interactive Whiteboard Engine
+# Layer — Interactive Diagram Editor
 
-Layers is a high-performance, scalable whiteboard application designed for creating, managing, and rendering diagrams with a clean separation between user-driven interactions and system-generated elements.
+Layer is a desktop-oriented, canvas-based diagram editor for creating, editing, generating, and sharing interactive diagrams.
 
-This project focuses on **architecture, performance, and extensibility**, making it suitable for real-world collaborative tools (even though collaboration is not yet implemented).
+The project focuses on building an interactive editing experience around a custom rendering and interaction system rather than relying on a pre-built whiteboard library.
 
----
+## Features
 
-##  Features
+* Interactive canvas-based diagram editing
+* Create and manipulate diagram elements
+* Zoom and pan
+* Element selection and interaction
+* Resize and move elements
+* Connect diagram elements
+* Text elements
+* Undo and redo history
+* Copy and paste support
+* LayerScript-based diagram generation
+* Automatic layout for generated diagram elements
+* Separation between manually created and system-generated elements
+* Authentication-aware application flow
+* Read-only diagram sharing
+* Persistent diagrams through the backend API
+* Desktop-oriented interface with a minimum viewport requirement
 
--  Draw and manipulate shapes (rectangles, arrows, etc.)
--  Smart separation of manual vs generated elements
--  Optimized rendering with minimal re-renders
--  Undo / Redo system (frontend state-based)
--  Copy / Paste support
--  Precise interaction handling (selection, drag, resize)
--  Scalable state architecture using Zustand
--  Authentication-ready backend structure
+## LayerScript
 
----
+LayerScript is a lightweight text-based syntax developed for generating diagrams without manually creating every element.
 
-##  Architecture Overview
+For example:
 
-### 1. State Separation (Core Design Principle)
+```text
+User => Login
+Login => Dashboard
+Dashboard => Reports
+```
 
-The system is built around a strict separation:
+The LayerScript workflow converts the textual definition into diagram elements and relationships, then lays them out on the canvas.
 
-####  Manual Shapes (User Driven)
-- Stored in: `useShapes` (local state / history)
-- Includes:
-  - Drawing
-  - Moving
-  - Resizing
-  - Deleting
+This provides an alternative to manually constructing a diagram and creates a separation between the diagram definition and its visual representation.
 
-#### 🔹 Generated Shapes (System Driven)
-- Stored in: `useDiagramStore` (global Zustand store)
-- Includes:
-  - Derived elements
-  - Computed layouts
-  - Auto-generated connections
+## Frontend Architecture
 
- This separation ensures:
-- Better performance
-- Clear debugging
-- Future scalability (AI, auto-layout, etc.)
+The editor is organized around separate responsibilities for application state, interaction state, element data, and rendering.
 
----
+### State Separation
 
-### 2. State Layers
+Layer distinguishes between two major categories of diagram data.
 
-| Layer              | Responsibility                          |
-|-------------------|----------------------------------------|
-| AppState          | Global application-level data           |
-| InteractionState  | Current user interaction (drag, select)|
-| Element Model     | Shape definitions & structure           |
-| Zustand Store     | Global shared state                    |
-| Local State       | Undo/Redo history                      |
+#### Manual Elements
 
----
+Manual elements represent objects directly manipulated by the user.
 
-### 3. Interaction Flow
+Typical operations include:
 
-1. User performs an action (draw, move, resize)
-2. InteractionState updates
-3. Local state (`useShapes`) updates
-4. Render cycle reflects changes
-5. Optional: generated shapes update in global store
+* Creating
+* Moving
+* Resizing
+* Selecting
+* Deleting
+* Copying and pasting
 
----
+These operations are handled through local editor state and history.
 
-##  Undo / Redo System
+#### Generated Elements
 
-- Fully handled on the **frontend**
-- Based on **state snapshots**
-- No backend involvement
+Generated elements are produced by LayerScript and related diagram-generation logic.
 
-### How it works:
-- Every action pushes a new state into history
-- Undo → move backward in history
-- Redo → move forward in history
+They are maintained separately so that generated data and user-driven editing state do not unnecessarily interfere with each other.
 
- Fast and predictable because:
-- No network calls
-- Pure state transitions
+### State Management
 
----
+Zustand is used for shared application state.
 
-##  Copy / Paste
+The frontend separates responsibilities across:
 
-- Operates on selected shapes
-- Clones shape data with new IDs
-- Inserted into local state (`useShapes`)
+* Application-level state
+* Interaction state
+* Diagram element models
+* Zustand stores
+* Local editor and history state
 
----
+This structure keeps high-frequency canvas interactions local while keeping shared state centralized where required.
 
-##  Backend Responsibilities (Planned / Partial)
+## Rendering and Interaction
 
-### Backend Handles:
-- User authentication (JWT-based)
-- Storing diagrams (MongoDB)
-- Sharing diagrams via link (view-only)
-- Persisting canvas state
+The editor uses canvas/SVG-based rendering and custom interaction logic.
 
-### Frontend Handles:
-- Rendering engine
-- All interactions
-- Undo/Redo
-- Copy/Paste
-- Temporary state management
+The rendering system is responsible for:
 
-Current focus: **Frontend architecture first, backend minimal**
+* Drawing diagram elements
+* Mapping element coordinates to the visible canvas
+* Handling zoom and pan
+* Selection
+* Dragging
+* Resizing
+* Connections
+* Interactive updates
 
----
+### Coordinate Transformations
 
-##  Tech Stack
+Because the editor supports zooming and panning, screen coordinates and diagram/world coordinates cannot always be treated as the same values.
+
+The editor therefore uses coordinate transformations to keep element positioning and interaction consistent as the viewport changes.
+
+This is important for operations such as:
+
+* Selecting an element after zooming
+* Dragging elements
+* Creating elements at the cursor position
+* Positioning connectors
+* Maintaining element locations while panning
+
+## Undo and Redo
+
+Undo and redo are handled on the frontend using editor state history.
+
+The basic flow is:
+
+```text
+User Action
+    |
+    v
+Editor State Update
+    |
+    v
+History Snapshot
+    |
+    v
+Canvas Re-render
+```
+
+Undo moves backward through the stored history, while redo moves forward again.
+
+Keeping this mechanism on the frontend avoids network requests for ordinary editing operations.
+
+## Copy and Paste
+
+Copy and paste operates on selected diagram elements.
+
+When elements are copied, their data can be cloned and assigned new identifiers before being inserted back into the editor state.
+
+This allows duplicated elements to behave as independent diagram objects.
+
+## API Integration
+
+The frontend communicates with the Layer backend through REST APIs.
+
+Axios is used for HTTP communication.
+
+The frontend integrates with backend functionality for areas such as:
+
+* Authentication
+* User-specific application data
+* Diagram persistence
+* Diagram retrieval
+* Sharing
+
+Authentication state is used to control access to protected application functionality.
+
+## Desktop-Oriented Design
+
+Layer is designed primarily for larger screens because the editor relies on a large interactive canvas and desktop-style interactions.
+
+When the available viewport becomes too small, the application displays a minimum-screen-size message instead of attempting to provide a degraded editing experience.
+
+## Tech Stack
 
 ### Frontend
-- React (Vite)
-- Zustand (state management)
-- Tailwind CSS
-- Canvas / SVG rendering
 
-### Backend (Planned / Partial)
-- Node.js
-- Express
-- MongoDB
-- JWT Authentication
+* React 19
+* TypeScript
+* Vite
+* Tailwind CSS
+* Zustand
+* React Router
+* Axios
+* Monaco Editor
+* React Hook Form
+* Zod
+* Lucide React
+* Base UI / shadcn tooling
 
----
+## Project Structure
 
-##  Project Structure (Conceptual)
+The exact structure may evolve, but the frontend is organized around responsibilities such as:
+
+```text
 src/
-├── components/ # UI components
-├── canvas/ # Rendering logic
-├── store/ # Zustand stores
-├── hooks/ # useShapes, interactions
-├── models/ # Element definitions
-├── utils/ # Helpers
-└── features/ # Core features (copy, undo, etc.)
+├── components/       # Reusable UI components
+├── features/         # Feature-specific application logic
+├── hooks/            # Reusable React hooks
+├── store/            # Zustand/global state
+├── canvas/           # Canvas/rendering and interaction logic
+├── models/           # Diagram element/data definitions
+├── utils/             # Utility functions
+└── ...
+```
 
+## Getting Started
 
----
+### Prerequisites
 
-##  Performance Considerations
+Make sure you have:
 
-- Separation of concerns reduces unnecessary re-renders
-- Local state for high-frequency updates
-- Global store only for shared/generated data
-- Lazy updates where possible
+* Node.js
+* pnpm
+* Git
 
----
+### Clone the Repository
 
-##  Future Improvements
+```bash
+git clone https://github.com/SujalKakatkar/layers.git
+cd layers
+```
 
--  Real-time collaboration
--  AI-assisted diagram generation
--  Export (PNG, SVG, JSON)
--  Snap-to-grid and alignment tools
--  Plugin system
+### Install Dependencies
 
----
+```bash
+pnpm install
+```
+
+### Configure Environment Variables
+
+Create a `.env` file according to the environment variables required by the application.
+
+Do not commit real credentials or secrets to the repository.
+
+### Start the Development Server
+
+```bash
+pnpm dev
+```
+
+The application will be available at the local Vite development URL shown in the terminal.
+
+### Build for Production
+
+```bash
+pnpm build
+```
+
+### Preview the Production Build
+
+```bash
+pnpm preview
+```
+
+### Run Linting
+
+```bash
+pnpm lint
+```
+
+## Backend
+
+The backend is maintained in a separate repository:
+
+https://github.com/SujalKakatkar/layers-backend
+
+## Live Application
+
+Add the deployed Layer URL here.
+
+## Demo
+
+Add the Google Drive demo video link here.
+
+## Engineering Focus
+
+The main engineering challenges explored in this project include:
+
+* Building an interactive canvas editor
+* Handling coordinate transformations
+* Managing high-frequency interaction state
+* Separating generated and manually edited elements
+* Implementing editor history
+* Designing a text-to-diagram workflow
+* Integrating a custom frontend editor with a REST backend
+* Maintaining separation between UI state, interaction state, and persisted data
+
+## Future Improvements
+
+Potential future improvements include:
+
+* Real-time collaboration
+* More advanced automatic layout algorithms
+* Exporting diagrams to formats such as PNG, SVG, or JSON
+* Snap-to-grid and alignment tools
+* Additional diagram types
+* Plugin and extensibility support
+
+## Author
+
+Sujal Kakatkar
+
+GitHub:
+https://github.com/SujalKakatkar
