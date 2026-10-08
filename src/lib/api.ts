@@ -38,7 +38,6 @@ api.interceptors.response.use(
     (response) => response,
 
     async (error) => {
-        // ✅ handle network errors
         if (!error.response) {
             return Promise.reject(new Error("Network error"))
         }
@@ -46,9 +45,11 @@ api.interceptors.response.use(
         const originalRequest = error.config
 
         const isAuthRoute =
-            originalRequest.url?.includes("/auth/sign-in") ||
-            originalRequest.url?.includes("/auth/sign-up") ||
-            originalRequest.url?.includes("/auth/refresh-token")
+            originalRequest.url?.includes("/auth/signin") ||
+            originalRequest.url?.includes("/auth/signup") ||
+            originalRequest.url?.includes("/auth/refresh-token") ||
+            originalRequest.url?.includes("/auth/forgot-password") ||
+            originalRequest.url?.includes("/auth/reset-password")
 
         if (
             error.response?.status === 401 &&
